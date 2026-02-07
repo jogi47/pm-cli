@@ -16,6 +16,28 @@ Currently supports:
 
 ## Installation
 
+### Install from npm (recommended)
+
+```bash
+pnpm add -g pm-cli
+```
+
+The `pm` command is now available globally:
+
+```bash
+pm --help
+```
+
+You can also use npm or yarn:
+
+```bash
+npm install -g pm-cli
+# or
+yarn global add pm-cli
+```
+
+### Install from source
+
 ```bash
 # Clone the repository
 git clone <repo-url>
@@ -27,22 +49,74 @@ pnpm install
 # Build all packages
 pnpm build
 
-# Run the CLI
-pnpm pm --help
+# Link the CLI globally
+pnpm link --global --filter pm-cli
 ```
+
+The `pm` command is now available system-wide:
+
+```bash
+pm --help
+```
+
+## Uninstall
+
+```bash
+# If installed from npm
+pnpm remove -g pm-cli
+
+# If installed from source
+cd pm-cli
+pnpm unlink --global --filter pm-cli
+```
+
+## Agent Skill
+
+PM-CLI ships with an agent skill that teaches AI coding agents (Cl  aude Code, Cursor, etc.) how to use the `pm` CLI. Once installed, your agent can run pm-cli commands to manage tasks on your behalf.
+
+### Install the skill
+
+Browse the skill at [skills.sh](https://skills.sh) or install directly:
+
+```bash
+npx skills add jogi47/pm-cli -g -y
+```
+
+### What the skill provides
+
+- Complete command reference for all `pm` commands
+- Task ID format conventions (`PROVIDER-externalId`)
+- Flag and argument details for every subcommand
+- Common workflows (check overdue, search, force-refresh, switch workspace)
+- Caching behavior and output modes (table vs JSON)
+
+### Discover more skills
+
+```bash
+# Search for related skills
+npx skills find pm-cli
+
+# Check for updates to installed skills
+npx skills check
+
+# Update all installed skills
+npx skills update
+```
+
+Learn more about the agent skills ecosystem at [skills.sh](https://skills.sh).
 
 ## Quick Start
 
 ```bash
 # 1. Connect to Asana
-pnpm pm connect asana
+pm connect asana
 # Enter your Personal Access Token from https://app.asana.com/0/my-apps
 
 # 2. View your tasks
-pnpm pm tasks assigned
+pm tasks assigned
 
 # 3. Search for tasks
-pnpm pm tasks search "bug"
+pm tasks search "bug"
 ```
 
 ## Commands
@@ -51,52 +125,52 @@ pnpm pm tasks search "bug"
 
 ```bash
 # Connect to a provider
-pnpm pm connect asana
-pnpm pm connect notion
+pm connect asana
+pm connect notion
 
 # Disconnect from a provider
-pnpm pm disconnect asana
+pm disconnect asana
 
 # List all providers and their status
-pnpm pm providers
-pnpm pm providers --json
+pm providers
+pm providers --json
 ```
 
 ### Workspace Management
 
 ```bash
 # List available workspaces
-pnpm pm workspace
+pm workspace
 
 # Switch to a different workspace
-pnpm pm workspace switch
+pm workspace switch
 
 # Specify provider (default: asana)
-pnpm pm workspace -s asana
+pm workspace -s asana
 ```
 
 ### Task Commands
 
 ```bash
 # List tasks assigned to you
-pnpm pm tasks assigned
-pnpm pm tasks assigned --source=asana    # Filter by provider
-pnpm pm tasks assigned --limit=10        # Limit results
-pnpm pm tasks assigned --refresh         # Bypass cache
-pnpm pm tasks assigned --json            # JSON output
+pm tasks assigned
+pm tasks assigned --source=asana    # Filter by provider
+pm tasks assigned --limit=10        # Limit results
+pm tasks assigned --refresh         # Bypass cache
+pm tasks assigned --json            # JSON output
 
 # List overdue tasks
-pnpm pm tasks overdue
-pnpm pm tasks overdue --source=asana
+pm tasks overdue
+pm tasks overdue --source=asana
 
 # Search for tasks
-pnpm pm tasks search "login bug"
-pnpm pm tasks search "api" --limit=5
+pm tasks search "login bug"
+pm tasks search "api" --limit=5
 
 # Show task details
-pnpm pm tasks show ASANA-1234567890
-pnpm pm tasks show ASANA-123 --json      # JSON output
-pnpm pm tasks show ASANA-123 --open      # Open in browser
+pm tasks show ASANA-1234567890
+pm tasks show ASANA-123 --json      # JSON output
+pm tasks show ASANA-123 --open      # Open in browser
 ```
 
 ## Project Structure
