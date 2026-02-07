@@ -1,0 +1,43 @@
+{
+  "name": "pm-cli",
+  "version": "0.1.0",
+  "description": "Unified project management CLI",
+  "type": "module",
+  "bin": {
+    "pm": "./bin/run.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "oclif": {
+    "bin": "pm",
+    "dirname": "pm-cli",
+    "commands": {
+      "strategy": "pattern",
+      "target": "./dist/commands"
+    },
+    "plugins": [
+      "@oclif/plugin-help"
+    ],
+    "topicSeparator": " "
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc -b --watch",
+    "clean": "rm -rf dist",
+    "lint": "eslint src",
+    "pm": "./bin/dev.js"
+  },
+  "dependencies": {
+    "@oclif/core": "^4.0.0",
+    "@oclif/plugin-help": "^6.0.0",
+    "@pm-cli/core": "workspace:*",
+    "@pm-cli/plugin-asana": "workspace:*",
+    "@inquirer/prompts": "^5.0.0",
+    "open": "^10.0.0"
+  },
+  "devDependencies": {
+    "@oclif/test": "^4.0.0",
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  }
+}

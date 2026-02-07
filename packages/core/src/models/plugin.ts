@@ -1,0 +1,172 @@
+// src/models/plugin.ts
+
+import type { Task, ProviderType } from './task.js';
+
+export interface TaskQueryOptions {
+  /** Maximum number of tasks to return */
+  limit?: number;
+
+  /** Include completed tasks (default: false) */
+  includeCompleted?: boolean;
+
+  /** Filter by project ID */
+  projectId?: string;
+
+  /** Skip cache and fetch fresh data */
+  refresh?: boolean;
+}
+
+export interface ProviderCredentials {
+  /** API token or access token */
+  token: string;
+
+  /** Additional provider-specific config */
+  [key: string]: string | undefined;
+}
+
+export interface ProviderInfo {
+  /** Provider identifier */
+  name: ProviderType;
+
+  /** Human-readable name */
+  displayName: string;
+
+  /** Workspace/organization name (after connection) */
+  workspace?: string;
+
+  /** User's name in this provider */
+  userName?: string;
+
+  /** User's email in this provider */
+  userEmail?: string;
+
+  /** Connection status */
+  connected: boolean;
+}
+
+/**
+ * Workspace/organization in a provider
+ */
+export interface Workspace {
+  /** Unique identifier */
+  id: string;
+
+  /** Display name */
+  name: string;
+}
+
+export interface PMPlugin {
+  /** Provider identifier */
+  readonly name: ProviderType;
+
+  /** Human-readable display name */
+  readonly displayName: string;
+
+  // ═══════════════════════════════════════════════
+  // LIFECYCLE METHODS
+  // ═══════════════════════════════════════════════
+
+  /**
+   * Initialize the plugin (load config, setup client)
+   */
+  initialize(): Promise<void>;
+
+  /**
+   * Check if the plugin has valid credentials stored
+   */
+  isAuthenticated(): Promise<boolean>;
+
+  /**
+   * Authenticate with the provider
+   * @param credentials - Provider-specific credentials
+   */
+  authenticate(credentials: ProviderCredentials): Promise<void>;
+
+  /**
+   * Disconnect and clear stored credentials
+   */
+  disconnect(): Promise<void>;
+
+  /**
+   * Get provider connection info
+   */
+  getInfo(): Promise<ProviderInfo>;
+
+  /**
+   * Validate that current credentials are still valid
+   * (makes an API call to verify)
+   */
+  validateConnection(): Promise<boolean>;
+
+  // ═══════════════════════════════════════════════
+  // TASK OPERATIONS
+  // ═══════════════════════════════════════════════
+
+  /**
+   * Get tasks assigned to the current user
+   */
+  getAssignedTasks(options?: TaskQueryOptions): Promise<Task[]>;
+
+  /**
+   * Get tasks that are past their due date
+   */
+  getOverdueTasks(options?: TaskQueryOptions): Promise<Task[]>;
+
+  /**
+   * Search tasks by text query
+   */
+  searchTasks(query: string, options?: TaskQueryOptions): Promise<Task[]>;
+
+  /**
+   * Get a single task by its external ID
+   */
+  getTask(externalId: string): Promise<Task | null>;
+
+  /**
+   * Get the URL to open task in browser
+   */
+  getTaskUrl(externalId: string): string;
+
+  // ═══════════════════════════════════════════════
+  // WORKSPACE OPERATIONS (optional)
+  // ═══════════════════════════════════════════════
+
+  /**
+   * Check if this plugin supports multiple workspaces
+   */
+  supportsWorkspaces?(): boolean;
+
+  /**
+   * Get available workspaces
+   */
+  getWorkspaces?(): Workspace[];
+
+  /**
+   * Get the currently selected workspace
+   */
+  getCurrentWorkspace?(): Workspace | null;
+
+  /**
+   * Switch to a different workspace
+   */
+  setWorkspace?(workspaceId: string): void;
+}
+
+/**
+ * Credentials required for each provider type
+ */
+export const PROVIDER_CREDENTIALS: Record<ProviderType, { fields: string[]; labels: Record<string, string> }> = {
+  asana: {
+    fields: ['token'],
+    labels: {
+      token: 'Personal Access Token (from https://app.asana.com/0/my-apps)',
+    },
+  },
+  notion: {
+    fields: ['token', 'databaseId'],
+    labels: {
+      token: 'Integration Token (from https://www.notion.so/my-integrations)',
+      databaseId: 'Task Database ID (from database URL)',
+    },
+  },
+};

@@ -1,0 +1,31 @@
+{
+  "name": "@pm-cli/plugin-asana",
+  "version": "0.1.0",
+  "description": "Asana plugin for pm-cli",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "oclif": {
+    "commands": {
+      "strategy": "pattern",
+      "target": "./dist/commands"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc -b --watch",
+    "clean": "rm -rf dist",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@pm-cli/core": "workspace:*",
+    "asana": "^3.0.0"
+  },
+  "peerDependencies": {
+    "@oclif/core": "^4.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  }
+}
