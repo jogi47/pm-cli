@@ -3,6 +3,7 @@
 
 import { pluginManager } from '@pm-cli/core';
 import { AsanaPlugin } from '@pm-cli/plugin-asana';
+import { NotionPlugin } from '@pm-cli/plugin-notion';
 
 let initialized = false;
 
@@ -11,6 +12,7 @@ export function initializePlugins(): void {
 
   // Register plugins
   pluginManager.registerPlugin(new AsanaPlugin());
+  pluginManager.registerPlugin(new NotionPlugin());
 
   initialized = true;
 }
