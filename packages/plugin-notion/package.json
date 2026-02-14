@@ -1,0 +1,22 @@
+{
+  "name": "@pm-cli/plugin-notion",
+  "version": "0.1.0",
+  "description": "Notion plugin for pm-cli",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc -b --watch",
+    "clean": "rm -rf dist",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@pm-cli/core": "workspace:*",
+    "@notionhq/client": "^2.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  }
+}
