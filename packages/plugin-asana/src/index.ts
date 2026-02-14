@@ -1,6 +1,6 @@
 // src/index.ts
 
-import type { PMPlugin, ProviderInfo, ProviderCredentials, TaskQueryOptions, Task, ProviderType, Workspace } from '@pm-cli/core';
+import type { PMPlugin, ProviderInfo, ProviderCredentials, TaskQueryOptions, CreateTaskInput, UpdateTaskInput, Task, ProviderType, Workspace } from '@pm-cli/core';
 import { cacheManager } from '@pm-cli/core';
 import { asanaClient } from './client.js';
 import { mapAsanaTask, mapAsanaTasks } from './mapper.js';
@@ -118,6 +118,54 @@ export class AsanaPlugin implements PMPlugin {
 
   getTaskUrl(externalId: string): string {
     return `https://app.asana.com/0/0/${externalId}`;
+  }
+
+  // ═══════════════════════════════════════════════
+  // WRITE OPERATIONS
+  // ═══════════════════════════════════════════════
+
+  async createTask(input: CreateTaskInput): Promise<Task> {
+    const asanaTask = await asanaClient.createTask({
+      name: input.title,
+      notes: input.description,
+      due_on: input.dueDate ? input.dueDate.toISOString().split('T')[0] : undefined,
+      projects: input.projectId ? [input.projectId] : undefined,
+      assignee: input.assigneeEmail,
+    });
+
+    const task = mapAsanaTask(asanaTask);
+    await cacheManager.invalidateProvider('asana');
+    return task;
+  }
+
+  async updateTask(externalId: string, updates: UpdateTaskInput): Promise<Task> {
+    const params: {
+      name?: string;
+      notes?: string;
+      due_on?: string | null;
+      completed?: boolean;
+    } = {};
+
+    if (updates.title !== undefined) params.name = updates.title;
+    if (updates.description !== undefined) params.notes = updates.description;
+    if (updates.dueDate !== undefined) {
+      params.due_on = updates.dueDate ? updates.dueDate.toISOString().split('T')[0] : null;
+    }
+    if (updates.status === 'done') params.completed = true;
+
+    const asanaTask = await asanaClient.updateTask(externalId, params);
+
+    const task = mapAsanaTask(asanaTask);
+    await cacheManager.invalidateProvider('asana');
+    return task;
+  }
+
+  async completeTask(externalId: string): Promise<Task> {
+    const asanaTask = await asanaClient.updateTask(externalId, { completed: true });
+
+    const task = mapAsanaTask(asanaTask);
+    await cacheManager.invalidateProvider('asana');
+    return task;
   }
 
   // ═══════════════════════════════════════════════

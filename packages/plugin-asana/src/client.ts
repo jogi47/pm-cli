@@ -304,6 +304,64 @@ export class AsanaClient {
   }
 
   /**
+   * Create a new task
+   */
+  async createTask(params: {
+    name: string;
+    notes?: string;
+    due_on?: string;
+    projects?: string[];
+    assignee?: string;
+  }): Promise<AsanaTask> {
+    if (!this.tasksApi) throw new Error('Not connected');
+
+    const workspace = this.getDefaultWorkspace();
+    if (!workspace) throw new Error('No workspace found');
+
+    const data: Record<string, unknown> = {
+      name: params.name,
+      workspace: workspace.gid,
+    };
+
+    if (params.notes) data.notes = params.notes;
+    if (params.due_on) data.due_on = params.due_on;
+    if (params.projects && params.projects.length > 0) data.projects = params.projects;
+    if (params.assignee) data.assignee = params.assignee;
+
+    const response = await this.tasksApi.createTask(
+      { data },
+      { opt_fields: TASK_FIELDS.join(',') }
+    );
+    return response.data as AsanaTask;
+  }
+
+  /**
+   * Update an existing task
+   */
+  async updateTask(gid: string, params: {
+    name?: string;
+    notes?: string;
+    due_on?: string | null;
+    completed?: boolean;
+  }): Promise<AsanaTask> {
+    if (!this.tasksApi) throw new Error('Not connected');
+
+    const data: Record<string, unknown> = {};
+
+    if (params.name !== undefined) data.name = params.name;
+    if (params.notes !== undefined) data.notes = params.notes;
+    if (params.due_on !== undefined) data.due_on = params.due_on;
+    if (params.completed !== undefined) data.completed = params.completed;
+
+    const response = await this.tasksApi.updateTask(
+      gid,
+      { data },
+      { opt_fields: TASK_FIELDS.join(',') }
+    );
+    return response.data as AsanaTask;
+  }
+
+  /**
    * Get a single task by GID
    */
   async getTask(gid: string): Promise<AsanaTask | null> {

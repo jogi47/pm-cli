@@ -2,6 +2,37 @@
 
 import type { Task, ProviderType } from './task.js';
 
+export interface CreateTaskInput {
+  /** Task title */
+  title: string;
+
+  /** Task description */
+  description?: string;
+
+  /** Due date */
+  dueDate?: Date;
+
+  /** Project ID to add task to */
+  projectId?: string;
+
+  /** Assignee email */
+  assigneeEmail?: string;
+}
+
+export interface UpdateTaskInput {
+  /** New title */
+  title?: string;
+
+  /** New description */
+  description?: string;
+
+  /** New due date (null to clear) */
+  dueDate?: Date | null;
+
+  /** New status */
+  status?: 'todo' | 'in_progress' | 'done';
+}
+
 export interface TaskQueryOptions {
   /** Maximum number of tasks to return */
   limit?: number;
@@ -126,6 +157,25 @@ export interface PMPlugin {
    * Get the URL to open task in browser
    */
   getTaskUrl(externalId: string): string;
+
+  // ═══════════════════════════════════════════════
+  // WRITE OPERATIONS
+  // ═══════════════════════════════════════════════
+
+  /**
+   * Create a new task
+   */
+  createTask(input: CreateTaskInput): Promise<Task>;
+
+  /**
+   * Update an existing task
+   */
+  updateTask(externalId: string, updates: UpdateTaskInput): Promise<Task>;
+
+  /**
+   * Mark a task as complete
+   */
+  completeTask(externalId: string): Promise<Task>;
 
   // ═══════════════════════════════════════════════
   // WORKSPACE OPERATIONS (optional)
