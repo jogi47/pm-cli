@@ -6,15 +6,20 @@ A unified command-line interface for managing tasks across multiple project mana
 
 Currently supports:
 - **Asana** (fully implemented)
-- **Notion** (planned)
+- **Notion** (fully implemented)
 
 ## Features
 
 - Aggregate tasks from multiple PM tools in one place
-- Search, filter, and view tasks from the command line
+- Create, update, and complete tasks from the command line
+- Morning dashboard and summary views
+- Filter by status/priority and sort results
+- Search across all connected providers
+- Create git branches from tasks
+- Add comments to tasks
 - Switch between workspaces
 - Cached responses for fast repeat queries
-- JSON output for scripting
+- Multiple output modes: table, JSON, plain, ids-only
 
 ## Installation
 
@@ -151,6 +156,18 @@ pm workspace switch
 pm workspace -s asana
 ```
 
+### Dashboard & Summary
+
+```bash
+# Morning dashboard — overdue, due today, and in-progress tasks
+pm today
+pm today --source=asana --json
+
+# Provider status and task count statistics
+pm summary
+pm summary --json
+```
+
 ### Task Commands
 
 ```bash
@@ -160,6 +177,10 @@ pm tasks assigned --source=asana    # Filter by provider
 pm tasks assigned --limit=10        # Limit results
 pm tasks assigned --refresh         # Bypass cache
 pm tasks assigned --json            # JSON output
+pm tasks assigned --status=todo     # Filter by status
+pm tasks assigned --sort=priority   # Sort by field
+pm tasks assigned --plain           # Tab-separated, no colors
+pm tasks assigned --ids-only        # Just task IDs
 
 # List overdue tasks
 pm tasks overdue
@@ -173,6 +194,32 @@ pm tasks search "api" --limit=5
 pm tasks show ASANA-1234567890
 pm tasks show ASANA-123 --json      # JSON output
 pm tasks show ASANA-123 --open      # Open in browser
+
+# Create a task
+pm tasks create "Fix login bug"
+pm tasks create "Update docs" --source=asana --due=2026-03-01
+
+# Update a task
+pm tasks update ASANA-123456 --status in_progress
+pm tasks update ASANA-123456 --due 2026-03-15 --title "New title"
+
+# Mark tasks as done
+pm done ASANA-123456
+pm done ASANA-123456 ASANA-789012   # Batch complete
+
+# Open a task in browser
+pm open ASANA-123456
+```
+
+### Git & Comments
+
+```bash
+# Create a git branch from a task
+pm branch ASANA-123456 --prefix feat --checkout
+pm branch ASANA-123456 --no-id
+
+# Add a comment to a task
+pm comment ASANA-123456 "Fixed in commit abc"
 ```
 
 ## Project Structure
@@ -196,7 +243,7 @@ pm-cli/
 │   │       ├── mapper.ts     # Asana → Task mapping
 │   │       └── index.ts      # Plugin implementation
 │   │
-│   └── plugin-notion/        # @jogi47/pm-cli-plugin-notion (planned)
+│   └── plugin-notion/        # @jogi47/pm-cli-plugin-notion
 │
 ├── package.json
 ├── pnpm-workspace.yaml
@@ -227,7 +274,7 @@ pnpm test
 pnpm pm <command>
 ```
 
-For publishing to npm, see [PUBLISHING.md](PUBLISHING.md).
+For publishing to npm, see [jogi-docs/PUBLISHING.md](jogi-docs/PUBLISHING.md).
 
 ## Architecture
 
@@ -246,11 +293,17 @@ interface PMPlugin {
   disconnect(): Promise<void>;
   isAuthenticated(): Promise<boolean>;
 
-  // Task Operations
+  // Read Operations
   getAssignedTasks(options?: TaskQueryOptions): Promise<Task[]>;
   getOverdueTasks(options?: TaskQueryOptions): Promise<Task[]>;
   searchTasks(query: string, options?: TaskQueryOptions): Promise<Task[]>;
   getTask(externalId: string): Promise<Task | null>;
+
+  // Write Operations
+  createTask(input: CreateTaskInput): Promise<Task>;
+  updateTask(externalId: string, updates: UpdateTaskInput): Promise<Task>;
+  completeTask(externalId: string): Promise<Task>;
+  addComment?(externalId: string, body: string): Promise<void>;
 
   // Optional: Workspace Support
   supportsWorkspaces?(): boolean;
@@ -272,10 +325,14 @@ interface Task {
   status: 'todo' | 'in_progress' | 'done';
   dueDate?: Date;
   assignee?: string;
+  assigneeEmail?: string;
   project?: string;
   tags?: string[];
   source: 'asana' | 'notion';
   url: string;
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 ```
 

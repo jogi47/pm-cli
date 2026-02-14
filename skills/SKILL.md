@@ -12,7 +12,7 @@ You are operating `pm`, a unified CLI for managing tasks across multiple project
 `pm` aggregates tasks from multiple PM providers into a single command-line interface. It supports listing, searching, creating, updating, completing, and viewing tasks with cached responses and JSON output for scripting.
 
 **npm package:** `@jogi47/pm-cli` (install: `npm install -g @jogi47/pm-cli`)
-**Supported providers:** `asana` (fully implemented), `notion` (planned)
+**Supported providers:** `asana` (fully implemented), `notion` (fully implemented)
 
 ## Setup
 
@@ -127,12 +127,20 @@ List tasks assigned to the current user.
 | `--limit` | `-l` | `25` | Maximum number of tasks |
 | `--json` | | `false` | Output as JSON |
 | `--refresh` | `-r` | `false` | Bypass cache, fetch fresh data |
+| `--status` | | | Filter by status (`todo`, `in_progress`, `done`) |
+| `--priority` | | | Filter by priority (comma-separated: `low,medium,high,urgent`) |
+| `--sort` | | | Sort by field (`due`, `priority`, `status`, `source`, `title`) |
+| `--plain` | | `false` | Tab-separated output, no colors or borders |
+| `--ids-only` | | `false` | Output just task IDs, one per line |
 
 ```bash
 pm tasks assigned
 pm tasks assigned -s asana -l 10
 pm tasks assigned --json
 pm tasks assigned -r
+pm tasks assigned --status=todo --sort=priority
+pm tasks assigned --plain
+pm tasks assigned --ids-only
 ```
 
 ---
@@ -147,11 +155,17 @@ List tasks that are past their due date.
 | `--limit` | `-l` | `25` | Maximum number of tasks |
 | `--json` | | `false` | Output as JSON |
 | `--refresh` | `-r` | `false` | Bypass cache, fetch fresh data |
+| `--status` | | | Filter by status (`todo`, `in_progress`, `done`) |
+| `--priority` | | | Filter by priority (comma-separated: `low,medium,high,urgent`) |
+| `--sort` | | | Sort by field (`due`, `priority`, `status`, `source`, `title`) |
+| `--plain` | | `false` | Tab-separated output, no colors or borders |
+| `--ids-only` | | `false` | Output just task IDs, one per line |
 
 ```bash
 pm tasks overdue
 pm tasks overdue -s asana --json
 pm tasks overdue -r
+pm tasks overdue --sort=due --plain
 ```
 
 ---
@@ -169,11 +183,17 @@ Search for tasks matching a text query.
 | `--source` | `-s` | all | Filter by provider (`asana`, `notion`) |
 | `--limit` | `-l` | `25` | Maximum number of tasks |
 | `--json` | | `false` | Output as JSON |
+| `--status` | | | Filter by status (`todo`, `in_progress`, `done`) |
+| `--priority` | | | Filter by priority (comma-separated: `low,medium,high,urgent`) |
+| `--sort` | | | Sort by field (`due`, `priority`, `status`, `source`, `title`) |
+| `--plain` | | `false` | Tab-separated output, no colors or borders |
+| `--ids-only` | | `false` | Output just task IDs, one per line |
 
 ```bash
 pm tasks search "login bug"
 pm tasks search "api" -s asana -l 5
 pm tasks search "urgent" --json
+pm tasks search "deploy" --sort=due --ids-only
 ```
 
 Note: `search` does **not** have a `--refresh` flag — it always fetches live results.
@@ -287,10 +307,84 @@ pm open ASANA-123456
 pm open NOTION-abc123
 ```
 
+### `pm today`
+
+Morning dashboard — shows overdue, due today, and in-progress tasks in a grouped view.
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--source` | `-s` | all | Filter by provider (`asana`, `notion`) |
+| `--json` | | `false` | Output as JSON |
+
+```bash
+pm today
+pm today --source=asana
+pm today --json
+```
+
+---
+
+### `pm summary`
+
+Show provider connection status and task count statistics (overdue, due today, in progress, total).
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--json` | | `false` | Output as JSON |
+
+```bash
+pm summary
+pm summary --json
+```
+
+---
+
+### `pm branch <id>`
+
+Create a git branch named after a task. Fetches the task title and slugifies it into a branch name.
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `id` | Yes | Task ID in `PROVIDER-externalId` format |
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--prefix` | `-p` | | Branch prefix: `feat`, `fix`, `chore` |
+| `--checkout` | `-c` | `false` | Also switch to the new branch |
+| `--no-id` | | `false` | Omit task ID from branch name |
+
+```bash
+pm branch ASANA-123456 --prefix feat
+pm branch ASANA-123456 --prefix fix --checkout
+pm branch NOTION-abc123 --no-id
+```
+
+Branch name format: `prefix/PROVIDER-externalId-slugified-title` (or `prefix/slugified-title` with `--no-id`).
+
+---
+
+### `pm comment <id> "<message>"`
+
+Add a comment to a task.
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `id` | Yes | Task ID in `PROVIDER-externalId` format |
+| `message` | Yes | Comment text |
+
+```bash
+pm comment ASANA-123456 "Fixed in commit abc"
+pm comment NOTION-abc123 "Needs review"
+```
+
+---
+
 ## Output Modes
 
 - **Table** (default) — Human-readable table rendered in the terminal.
 - **JSON** (`--json`) — Machine-readable output. Use this when piping to `jq`, scripting, or parsing results programmatically.
+- **Plain** (`--plain`) — Tab-separated output, no colors or borders. Useful for piping to `awk`, `cut`, etc.
+- **IDs only** (`--ids-only`) — One task ID per line. Useful for scripting loops (e.g., `pm tasks overdue --ids-only | xargs -I{} pm done {}`).
 
 ## Caching Behavior
 
@@ -321,6 +415,13 @@ updatedAt     Last modification timestamp
 ```
 
 ## Common Workflows
+
+### Morning standup check
+
+```bash
+pm today
+pm summary
+```
 
 ### Check what's overdue
 
@@ -372,6 +473,30 @@ pm tasks overdue -s asana --json
 ```bash
 pm tasks assigned -r
 pm tasks overdue --refresh
+```
+
+### Create a branch from a task and start working
+
+```bash
+pm branch ASANA-123456 --prefix feat --checkout
+```
+
+### Add a comment to a task
+
+```bash
+pm comment ASANA-123456 "Deployed to staging"
+```
+
+### Filter high-priority tasks and sort by due date
+
+```bash
+pm tasks assigned --priority=high,urgent --sort=due
+```
+
+### Pipe task IDs for batch operations
+
+```bash
+pm tasks overdue --ids-only | xargs -I{} pm done {}
 ```
 
 ### Switch workspace when working across teams
