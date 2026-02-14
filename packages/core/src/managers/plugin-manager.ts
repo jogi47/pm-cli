@@ -1,8 +1,64 @@
 // src/managers/plugin-manager.ts
 
 import type { PMPlugin, ProviderInfo, CreateTaskInput, UpdateTaskInput } from '../models/plugin.js';
-import type { Task, ProviderType } from '../models/task.js';
+import type { Task, TaskStatus, ProviderType } from '../models/task.js';
 import { parseTaskId } from '../models/task.js';
+
+export interface FilterSortOptions {
+  status?: TaskStatus;
+  priority?: string[];
+  sort?: 'due' | 'priority' | 'status' | 'source' | 'title';
+}
+
+const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
+const STATUS_ORDER: Record<string, number> = { in_progress: 0, todo: 1, done: 2 };
+
+/**
+ * Filter and sort tasks after aggregation
+ */
+export function filterAndSortTasks(tasks: Task[], options: FilterSortOptions): Task[] {
+  let result = tasks;
+
+  if (options.status) {
+    result = result.filter(t => t.status === options.status);
+  }
+
+  if (options.priority && options.priority.length > 0) {
+    result = result.filter(t => t.priority && options.priority!.includes(t.priority));
+  }
+
+  if (options.sort) {
+    result = [...result];
+    switch (options.sort) {
+      case 'due':
+        result.sort((a, b) => {
+          if (!a.dueDate && !b.dueDate) return 0;
+          if (!a.dueDate) return 1;
+          if (!b.dueDate) return -1;
+          return a.dueDate.getTime() - b.dueDate.getTime();
+        });
+        break;
+      case 'priority':
+        result.sort((a, b) => {
+          const pa = a.priority ? PRIORITY_ORDER[a.priority] ?? 99 : 99;
+          const pb = b.priority ? PRIORITY_ORDER[b.priority] ?? 99 : 99;
+          return pa - pb;
+        });
+        break;
+      case 'status':
+        result.sort((a, b) => (STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99));
+        break;
+      case 'source':
+        result.sort((a, b) => a.source.localeCompare(b.source));
+        break;
+      case 'title':
+        result.sort((a, b) => a.title.localeCompare(b.title));
+        break;
+    }
+  }
+
+  return result;
+}
 
 class PluginManager {
   private plugins: Map<ProviderType, PMPlugin> = new Map();
@@ -216,6 +272,23 @@ class PluginManager {
     }
 
     return results;
+  }
+  /**
+   * Add a comment to a task (provider determined from task ID)
+   */
+  async addComment(taskId: string, body: string): Promise<void> {
+    const parsed = parseTaskId(taskId);
+    if (!parsed) throw new Error(`Invalid task ID format: ${taskId}`);
+
+    const plugin = this.getPlugin(parsed.source);
+    if (!plugin) throw new Error(`Unknown provider: ${parsed.source}`);
+    if (!(await plugin.isAuthenticated())) {
+      throw new Error(`Not connected to ${parsed.source}. Run: pm connect ${parsed.source}`);
+    }
+    if (!plugin.addComment) {
+      throw new Error(`${parsed.source} does not support comments`);
+    }
+    await plugin.addComment(parsed.externalId, body);
   }
 }
 

@@ -1,8 +1,8 @@
 // src/commands/tasks/search.ts
 
 import { Command, Args, Flags } from '@oclif/core';
-import { pluginManager, renderTasks, renderError } from '@jogi47/pm-cli-core';
-import type { OutputFormat, ProviderType } from '@jogi47/pm-cli-core';
+import { pluginManager, renderTasks, renderTasksPlain, renderTaskIds, renderError, filterAndSortTasks } from '@jogi47/pm-cli-core';
+import type { OutputFormat, ProviderType, TaskStatus, FilterSortOptions } from '@jogi47/pm-cli-core';
 import '../../init.js';
 
 export default class TasksSearch extends Command {
@@ -12,6 +12,8 @@ export default class TasksSearch extends Command {
     '<%= config.bin %> tasks search "login bug"',
     '<%= config.bin %> tasks search "api" --source=asana',
     '<%= config.bin %> tasks search "urgent" --json',
+    '<%= config.bin %> tasks search "fix" --status=todo --sort=priority',
+    '<%= config.bin %> tasks search "deploy" --plain',
   ];
 
   static override args = {
@@ -36,6 +38,25 @@ export default class TasksSearch extends Command {
       description: 'Output in JSON format',
       default: false,
     }),
+    status: Flags.string({
+      description: 'Filter by status (todo, in_progress, done)',
+      options: ['todo', 'in_progress', 'done'],
+    }),
+    priority: Flags.string({
+      description: 'Filter by priority (comma-separated: low,medium,high,urgent)',
+    }),
+    sort: Flags.string({
+      description: 'Sort by field (due, priority, status, source, title)',
+      options: ['due', 'priority', 'status', 'source', 'title'],
+    }),
+    plain: Flags.boolean({
+      description: 'Tab-separated output, no colors or borders',
+      default: false,
+    }),
+    'ids-only': Flags.boolean({
+      description: 'Output just task IDs, one per line',
+      default: false,
+    }),
   };
 
   async run(): Promise<void> {
@@ -45,12 +66,26 @@ export default class TasksSearch extends Command {
     await pluginManager.initialize();
 
     try {
-      const tasks = await pluginManager.searchTasks(args.query, {
+      let tasks = await pluginManager.searchTasks(args.query, {
         source: flags.source as ProviderType | undefined,
         limit: flags.limit,
       });
 
-      renderTasks(tasks, format);
+      const filterOpts: FilterSortOptions = {};
+      if (flags.status) filterOpts.status = flags.status as TaskStatus;
+      if (flags.priority) filterOpts.priority = flags.priority.split(',');
+      if (flags.sort) filterOpts.sort = flags.sort as FilterSortOptions['sort'];
+      if (filterOpts.status || filterOpts.priority || filterOpts.sort) {
+        tasks = filterAndSortTasks(tasks, filterOpts);
+      }
+
+      if (flags['ids-only']) {
+        renderTaskIds(tasks);
+      } else if (flags.plain) {
+        renderTasksPlain(tasks);
+      } else {
+        renderTasks(tasks, format);
+      }
     } catch (error) {
       renderError(error instanceof Error ? error.message : 'Failed to search tasks');
       this.exit(1);

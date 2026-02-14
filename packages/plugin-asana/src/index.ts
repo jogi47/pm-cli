@@ -168,6 +168,10 @@ export class AsanaPlugin implements PMPlugin {
     return task;
   }
 
+  async addComment(externalId: string, body: string): Promise<void> {
+    await asanaClient.addComment(externalId, body);
+  }
+
   // ═══════════════════════════════════════════════
   // WORKSPACE OPERATIONS
   // ═══════════════════════════════════════════════

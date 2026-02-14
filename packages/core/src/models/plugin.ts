@@ -177,6 +177,11 @@ export interface PMPlugin {
    */
   completeTask(externalId: string): Promise<Task>;
 
+  /**
+   * Add a comment to a task
+   */
+  addComment?(externalId: string, body: string): Promise<void>;
+
   // ═══════════════════════════════════════════════
   // WORKSPACE OPERATIONS (optional)
   // ═══════════════════════════════════════════════

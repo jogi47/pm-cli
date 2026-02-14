@@ -1,8 +1,8 @@
 // src/commands/tasks/assigned.ts
 
 import { Command, Flags } from '@oclif/core';
-import { pluginManager, renderTasks, renderError } from '@jogi47/pm-cli-core';
-import type { OutputFormat, ProviderType } from '@jogi47/pm-cli-core';
+import { pluginManager, renderTasks, renderTasksPlain, renderTaskIds, renderError, filterAndSortTasks } from '@jogi47/pm-cli-core';
+import type { OutputFormat, ProviderType, TaskStatus, FilterSortOptions } from '@jogi47/pm-cli-core';
 import '../../init.js';
 
 export default class TasksAssigned extends Command {
@@ -13,6 +13,10 @@ export default class TasksAssigned extends Command {
     '<%= config.bin %> tasks assigned --source=asana',
     '<%= config.bin %> tasks assigned --limit=10 --json',
     '<%= config.bin %> tasks assigned --refresh',
+    '<%= config.bin %> tasks assigned --status=todo',
+    '<%= config.bin %> tasks assigned --sort=priority',
+    '<%= config.bin %> tasks assigned --plain',
+    '<%= config.bin %> tasks assigned --ids-only',
   ];
 
   static override flags = {
@@ -35,6 +39,25 @@ export default class TasksAssigned extends Command {
       description: 'Bypass cache and fetch fresh data',
       default: false,
     }),
+    status: Flags.string({
+      description: 'Filter by status (todo, in_progress, done)',
+      options: ['todo', 'in_progress', 'done'],
+    }),
+    priority: Flags.string({
+      description: 'Filter by priority (comma-separated: low,medium,high,urgent)',
+    }),
+    sort: Flags.string({
+      description: 'Sort by field (due, priority, status, source, title)',
+      options: ['due', 'priority', 'status', 'source', 'title'],
+    }),
+    plain: Flags.boolean({
+      description: 'Tab-separated output, no colors or borders',
+      default: false,
+    }),
+    'ids-only': Flags.boolean({
+      description: 'Output just task IDs, one per line',
+      default: false,
+    }),
   };
 
   async run(): Promise<void> {
@@ -44,13 +67,27 @@ export default class TasksAssigned extends Command {
     await pluginManager.initialize();
 
     try {
-      const tasks = await pluginManager.aggregateTasks('assigned', {
+      let tasks = await pluginManager.aggregateTasks('assigned', {
         source: flags.source as ProviderType | undefined,
         limit: flags.limit,
         refresh: flags.refresh,
       });
 
-      renderTasks(tasks, format);
+      const filterOpts: FilterSortOptions = {};
+      if (flags.status) filterOpts.status = flags.status as TaskStatus;
+      if (flags.priority) filterOpts.priority = flags.priority.split(',');
+      if (flags.sort) filterOpts.sort = flags.sort as FilterSortOptions['sort'];
+      if (filterOpts.status || filterOpts.priority || filterOpts.sort) {
+        tasks = filterAndSortTasks(tasks, filterOpts);
+      }
+
+      if (flags['ids-only']) {
+        renderTaskIds(tasks);
+      } else if (flags.plain) {
+        renderTasksPlain(tasks);
+      } else {
+        renderTasks(tasks, format);
+      }
     } catch (error) {
       renderError(error instanceof Error ? error.message : 'Failed to fetch tasks');
       this.exit(1);
