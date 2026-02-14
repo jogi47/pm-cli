@@ -1,5 +1,5 @@
 {
-  "name": "pm-cli",
+  "name": "@jogi47/pm-cli",
   "version": "0.1.0",
   "description": "Unified project management CLI",
   "type": "module",
@@ -8,6 +8,10 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "files": ["dist", "bin"],
+  "publishConfig": {
+    "access": "public"
+  },
   "oclif": {
     "bin": "pm",
     "dirname": "pm-cli",
@@ -30,9 +34,8 @@
   "dependencies": {
     "@oclif/core": "^4.0.0",
     "@oclif/plugin-help": "^6.0.0",
-    "@pm-cli/core": "workspace:*",
-    "@pm-cli/plugin-asana": "workspace:*",
-    "@pm-cli/plugin-notion": "workspace:*",
+    "@jogi47/pm-cli-core": "workspace:*",
+    "@jogi47/pm-cli-plugin-asana": "workspace:*",
     "@inquirer/prompts": "^5.0.0",
     "open": "^10.0.0"
   },

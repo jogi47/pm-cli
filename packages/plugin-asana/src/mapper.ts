@@ -1,8 +1,8 @@
 // src/mapper.ts
 
-import type { Task, TaskStatus } from '@pm-cli/core';
+import type { Task, TaskStatus } from '@jogi47/pm-cli-core';
 import type { AsanaTask } from './client.js';
-import { createTaskId } from '@pm-cli/core';
+import { createTaskId } from '@jogi47/pm-cli-core';
 
 /**
  * Map Asana task to unified Task model

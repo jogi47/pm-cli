@@ -1,7 +1,7 @@
 // src/index.ts
 
-import type { PMPlugin, ProviderInfo, ProviderCredentials, TaskQueryOptions, CreateTaskInput, UpdateTaskInput, Task, ProviderType, Workspace } from '@pm-cli/core';
-import { cacheManager } from '@pm-cli/core';
+import type { PMPlugin, ProviderInfo, ProviderCredentials, TaskQueryOptions, CreateTaskInput, UpdateTaskInput, Task, ProviderType, Workspace } from '@jogi47/pm-cli-core';
+import { cacheManager } from '@jogi47/pm-cli-core';
 import { asanaClient } from './client.js';
 import { mapAsanaTask, mapAsanaTasks } from './mapper.js';
 

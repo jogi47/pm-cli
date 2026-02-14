@@ -2,8 +2,8 @@
 
 import { Command, Args } from '@oclif/core';
 import { input, password } from '@inquirer/prompts';
-import { pluginManager, renderSuccess, renderError, PROVIDER_CREDENTIALS } from '@pm-cli/core';
-import type { ProviderCredentials, ProviderType } from '@pm-cli/core';
+import { pluginManager, renderSuccess, renderError, PROVIDER_CREDENTIALS } from '@jogi47/pm-cli-core';
+import type { ProviderCredentials, ProviderType } from '@jogi47/pm-cli-core';
 import '../init.js';
 
 export default class Connect extends Command {

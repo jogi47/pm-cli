@@ -2,8 +2,8 @@
 
 import { Command, Args, Flags } from '@oclif/core';
 import { select } from '@inquirer/prompts';
-import { pluginManager, renderSuccess, renderError, renderInfo } from '@pm-cli/core';
-import type { ProviderType } from '@pm-cli/core';
+import { pluginManager, renderSuccess, renderError, renderInfo } from '@jogi47/pm-cli-core';
+import type { ProviderType } from '@jogi47/pm-cli-core';
 import '../init.js';
 
 export default class Workspace extends Command {

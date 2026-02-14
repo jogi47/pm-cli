@@ -1,8 +1,8 @@
 // src/commands/tasks/show.ts
 
 import { Command, Args, Flags } from '@oclif/core';
-import { pluginManager, renderTask, renderError, parseTaskId } from '@pm-cli/core';
-import type { OutputFormat } from '@pm-cli/core';
+import { pluginManager, renderTask, renderError, parseTaskId } from '@jogi47/pm-cli-core';
+import type { OutputFormat } from '@jogi47/pm-cli-core';
 import '../../init.js';
 
 export default class TasksShow extends Command {

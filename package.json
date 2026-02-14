@@ -9,7 +9,10 @@
     "lint": "pnpm -r lint",
     "test": "vitest",
     "clean": "pnpm -r clean",
-    "pm": "pnpm --filter pm-cli pm"
+    "pm": "pnpm --filter @jogi47/pm-cli pm",
+    "prepublish:check": "pnpm build && pnpm test && pnpm lint",
+    "publish:dry": "pnpm -r publish --dry-run --no-git-checks",
+    "publish:all": "pnpm -r publish --no-git-checks --access public"
   },
   "devDependencies": {
     "typescript": "^5.0.0",

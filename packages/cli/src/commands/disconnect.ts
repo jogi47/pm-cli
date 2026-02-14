@@ -1,8 +1,8 @@
 // src/commands/disconnect.ts
 
 import { Command, Args } from '@oclif/core';
-import { pluginManager, renderSuccess, renderError } from '@pm-cli/core';
-import type { ProviderType } from '@pm-cli/core';
+import { pluginManager, renderSuccess, renderError } from '@jogi47/pm-cli-core';
+import type { ProviderType } from '@jogi47/pm-cli-core';
 import '../init.js';
 
 export default class Disconnect extends Command {

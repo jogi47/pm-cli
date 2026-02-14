@@ -1,5 +1,7 @@
 # PM-CLI
 
+[![npm](https://img.shields.io/npm/v/@jogi47/pm-cli)](https://www.npmjs.com/package/@jogi47/pm-cli)
+
 A unified command-line interface for managing tasks across multiple project management tools.
 
 Currently supports:
@@ -19,7 +21,7 @@ Currently supports:
 ### Install from npm (recommended)
 
 ```bash
-pnpm add -g pm-cli
+pnpm add -g @jogi47/pm-cli
 ```
 
 The `pm` command is now available globally:
@@ -31,9 +33,9 @@ pm --help
 You can also use npm or yarn:
 
 ```bash
-npm install -g pm-cli
+npm install -g @jogi47/pm-cli
 # or
-yarn global add pm-cli
+yarn global add @jogi47/pm-cli
 ```
 
 ### Install from source
@@ -50,7 +52,7 @@ pnpm install
 pnpm build
 
 # Link the CLI globally
-pnpm link --global --filter pm-cli
+pnpm link --global --filter @jogi47/pm-cli
 ```
 
 The `pm` command is now available system-wide:
@@ -63,16 +65,16 @@ pm --help
 
 ```bash
 # If installed from npm
-pnpm remove -g pm-cli
+pnpm remove -g @jogi47/pm-cli
 
 # If installed from source
 cd pm-cli
-pnpm unlink --global --filter pm-cli
+pnpm unlink --global --filter @jogi47/pm-cli
 ```
 
 ## Agent Skill
 
-PM-CLI ships with an agent skill that teaches AI coding agents (Cl  aude Code, Cursor, etc.) how to use the `pm` CLI. Once installed, your agent can run pm-cli commands to manage tasks on your behalf.
+PM-CLI ships with an agent skill that teaches AI coding agents (Claude Code, Cursor, etc.) how to use the `pm` CLI. Once installed, your agent can run pm-cli commands to manage tasks on your behalf.
 
 ### Install the skill
 
@@ -178,28 +180,29 @@ pm tasks show ASANA-123 --open      # Open in browser
 ```
 pm-cli/
 ├── packages/
-│   ├── core/                 # @pm-cli/core
+│   ├── core/                 # @jogi47/pm-cli-core
 │   │   └── src/
 │   │       ├── models/       # Task, Plugin interfaces
 │   │       ├── managers/     # Auth, Cache, Plugin managers
 │   │       └── utils/        # Date, Error, Output utilities
 │   │
-│   ├── cli/                  # pm-cli (main CLI)
+│   ├── cli/                  # @jogi47/pm-cli (main CLI)
 │   │   └── src/
 │   │       └── commands/     # Oclif commands
 │   │
-│   ├── plugin-asana/         # @pm-cli/plugin-asana
+│   ├── plugin-asana/         # @jogi47/pm-cli-plugin-asana
 │   │   └── src/
 │   │       ├── client.ts     # Asana API client
 │   │       ├── mapper.ts     # Asana → Task mapping
 │   │       └── index.ts      # Plugin implementation
 │   │
-│   └── plugin-notion/        # @pm-cli/plugin-notion (planned)
+│   └── plugin-notion/        # @jogi47/pm-cli-plugin-notion (planned)
 │
 ├── package.json
 ├── pnpm-workspace.yaml
 ├── tsconfig.base.json
-└── vitest.config.ts
+├── vitest.config.ts
+└── PUBLISHING.md          # npm publishing guide
 ```
 
 ## Development
@@ -212,7 +215,7 @@ pnpm install
 pnpm build
 
 # Build specific package
-pnpm --filter @pm-cli/core build
+pnpm --filter @jogi47/pm-cli-core build
 
 # Run in development mode (watches for changes)
 pnpm dev
@@ -223,6 +226,8 @@ pnpm test
 # Run CLI in dev mode
 pnpm pm <command>
 ```
+
+For publishing to npm, see [PUBLISHING.md](PUBLISHING.md).
 
 ## Architecture
 

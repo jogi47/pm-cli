@@ -1,9 +1,8 @@
 // src/init.ts
 // Plugin initialization - must be imported before using pluginManager
 
-import { pluginManager } from '@pm-cli/core';
-import { AsanaPlugin } from '@pm-cli/plugin-asana';
-import { NotionPlugin } from '@pm-cli/plugin-notion';
+import { pluginManager } from '@jogi47/pm-cli-core';
+import { AsanaPlugin } from '@jogi47/pm-cli-plugin-asana';
 
 let initialized = false;
 

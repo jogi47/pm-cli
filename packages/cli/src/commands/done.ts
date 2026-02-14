@@ -1,7 +1,7 @@
 // src/commands/done.ts
 
 import { Command, Args, Flags } from '@oclif/core';
-import { pluginManager, renderSuccess, renderError } from '@pm-cli/core';
+import { pluginManager, renderSuccess, renderError } from '@jogi47/pm-cli-core';
 import '../init.js';
 
 export default class Done extends Command {

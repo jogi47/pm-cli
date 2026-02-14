@@ -1,7 +1,7 @@
 // src/client.ts
 
 import * as Asana from 'asana';
-import { authManager } from '@pm-cli/core';
+import { authManager } from '@jogi47/pm-cli-core';
 
 export interface AsanaUser {
   gid: string;

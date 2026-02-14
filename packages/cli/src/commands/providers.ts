@@ -1,8 +1,8 @@
 // src/commands/providers.ts
 
 import { Command, Flags } from '@oclif/core';
-import { pluginManager, renderProviders } from '@pm-cli/core';
-import type { OutputFormat } from '@pm-cli/core';
+import { pluginManager, renderProviders } from '@jogi47/pm-cli-core';
+import type { OutputFormat } from '@jogi47/pm-cli-core';
 import '../init.js';
 
 export default class Providers extends Command {

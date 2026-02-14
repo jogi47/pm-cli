@@ -1,8 +1,8 @@
 // src/commands/tasks/overdue.ts
 
 import { Command, Flags } from '@oclif/core';
-import { pluginManager, renderTasks, renderError } from '@pm-cli/core';
-import type { OutputFormat, ProviderType } from '@pm-cli/core';
+import { pluginManager, renderTasks, renderError } from '@jogi47/pm-cli-core';
+import type { OutputFormat, ProviderType } from '@jogi47/pm-cli-core';
 import '../../init.js';
 
 export default class TasksOverdue extends Command {

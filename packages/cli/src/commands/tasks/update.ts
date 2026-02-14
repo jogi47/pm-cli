@@ -1,8 +1,8 @@
 // src/commands/tasks/update.ts
 
 import { Command, Args, Flags } from '@oclif/core';
-import { pluginManager, renderTask, renderSuccess, renderError } from '@pm-cli/core';
-import type { OutputFormat, UpdateTaskInput } from '@pm-cli/core';
+import { pluginManager, renderTask, renderSuccess, renderError } from '@jogi47/pm-cli-core';
+import type { OutputFormat, UpdateTaskInput } from '@jogi47/pm-cli-core';
 import '../../init.js';
 
 export default class TasksUpdate extends Command {

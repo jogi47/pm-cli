@@ -1,7 +1,7 @@
 // src/commands/open.ts
 
 import { Command, Args } from '@oclif/core';
-import { pluginManager, renderError, parseTaskId } from '@pm-cli/core';
+import { pluginManager, renderError, parseTaskId } from '@jogi47/pm-cli-core';
 import '../init.js';
 
 export default class Open extends Command {

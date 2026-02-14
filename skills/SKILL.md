@@ -1,6 +1,6 @@
 ---
 name: pm-cli-usage
-description: Complete guide for using the pm CLI to manage tasks across Asana, Notion, and other project management providers
+description: Complete guide for using the pm CLI (`@jogi47/pm-cli`) to manage tasks across Asana, Notion, and other project management providers. Use when Claude needs to run pm commands to list, search, create, update, complete, or open tasks from the command line.
 ---
 
 # pm-cli Usage Guide
@@ -9,8 +9,9 @@ You are operating `pm`, a unified CLI for managing tasks across multiple project
 
 ## Tool Overview
 
-`pm` aggregates tasks from multiple PM providers into a single command-line interface. It supports listing, searching, and viewing tasks with cached responses and JSON output for scripting.
+`pm` aggregates tasks from multiple PM providers into a single command-line interface. It supports listing, searching, creating, updating, completing, and viewing tasks with cached responses and JSON output for scripting.
 
+**npm package:** `@jogi47/pm-cli` (install: `npm install -g @jogi47/pm-cli`)
 **Supported providers:** `asana` (fully implemented), `notion` (planned)
 
 ## Setup
@@ -198,6 +199,94 @@ pm tasks show ASANA-1234567890 --json
 pm tasks show ASANA-1234567890 -o
 ```
 
+---
+
+### `pm tasks create "<title>"`
+
+Create a new task in a provider.
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `title` | Yes | Task title (quote if it contains spaces) |
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--description` | `-d` | | Task description |
+| `--source` | `-s` | auto | Target provider (`asana`, `notion`). Required if multiple providers are connected |
+| `--project` | `-p` | | Project ID to add the task to |
+| `--due` | | | Due date (`YYYY-MM-DD`) |
+| `--assignee` | `-a` | | Assignee email |
+| `--json` | | `false` | Output as JSON |
+
+```bash
+pm tasks create "Fix login bug"
+pm tasks create "Update docs" --source=asana --due=2026-03-01
+pm tasks create "Review PR" -d "Check the auth changes" --json
+pm tasks create "Design review" -p PROJECT_ID -a user@example.com
+```
+
+If only one provider is connected, `--source` is inferred automatically.
+
+---
+
+### `pm tasks update <id>`
+
+Update an existing task. At least one update flag is required.
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `id` | Yes | Task ID in `PROVIDER-externalId` format |
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--title` | `-t` | | New task title |
+| `--description` | `-d` | | New task description |
+| `--due` | | | New due date (`YYYY-MM-DD`, or `"none"` to clear) |
+| `--status` | | | New status: `todo`, `in_progress`, `done` |
+| `--json` | | `false` | Output as JSON |
+
+```bash
+pm tasks update ASANA-123456 --title "New title"
+pm tasks update ASANA-123456 --due 2026-03-15 --status in_progress
+pm tasks update ASANA-123456 --due none           # Clear due date
+pm tasks update ASANA-123456 -d "Updated notes" --json
+```
+
+---
+
+### `pm done <id> [id...]`
+
+Mark one or more tasks as done. Accepts multiple task IDs.
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `ids` | Yes | One or more task IDs (`PROVIDER-externalId`) |
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--json` | | `false` | Output as JSON |
+
+```bash
+pm done ASANA-123456
+pm done ASANA-123456 ASANA-789012    # Complete multiple tasks
+pm done ASANA-123456 --json
+```
+
+---
+
+### `pm open <id>`
+
+Open a task in the default browser.
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `id` | Yes | Task ID in `PROVIDER-externalId` format |
+
+```bash
+pm open ASANA-123456
+pm open NOTION-abc123
+```
+
 ## Output Modes
 
 - **Table** (default) — Human-readable table rendered in the terminal.
@@ -245,10 +334,30 @@ pm tasks overdue
 pm tasks search "deploy pipeline"
 ```
 
+### Create a task with a due date
+
+```bash
+pm tasks create "Fix auth timeout" --due 2026-03-01
+```
+
+### Update a task's status
+
+```bash
+pm tasks update ASANA-123456 --status in_progress
+```
+
+### Mark tasks as done
+
+```bash
+pm done ASANA-123456
+pm done ASANA-123456 ASANA-789012    # Batch complete
+```
+
 ### Get task details and open in browser
 
 ```bash
 pm tasks show ASANA-1234567890 -o
+pm open ASANA-1234567890             # Shorthand
 ```
 
 ### Get JSON output for scripting
