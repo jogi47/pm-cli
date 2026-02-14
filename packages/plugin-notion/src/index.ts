@@ -280,6 +280,10 @@ export class NotionPlugin implements PMPlugin {
   async completeTask(externalId: string): Promise<Task> {
     return this.updateTask(externalId, { status: 'done' });
   }
+
+  async addComment(externalId: string, body: string): Promise<void> {
+    await notionClient.addComment(externalId, body);
+  }
 }
 
 // ═══════════════════════════════════════════════

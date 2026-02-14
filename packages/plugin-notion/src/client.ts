@@ -240,6 +240,25 @@ export class NotionClient {
 
     return schema;
   }
+  /**
+   * Add a comment by appending a paragraph block to a page
+   */
+  async addComment(pageId: string, text: string): Promise<void> {
+    if (!this.client) throw new Error('Not connected');
+
+    await this.client.blocks.children.append({
+      block_id: pageId,
+      children: [
+        {
+          object: 'block' as const,
+          type: 'paragraph' as const,
+          paragraph: {
+            rich_text: [{ type: 'text' as const, text: { content: text } }],
+          },
+        },
+      ],
+    });
+  }
 }
 
 // Export singleton

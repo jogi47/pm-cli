@@ -65,6 +65,7 @@ export class AsanaClient {
   private usersApi: Asana.UsersApi | null = null;
   private tasksApi: Asana.TasksApi | null = null;
   private userTaskListsApi: Asana.UserTaskListsApi | null = null;
+  private storiesApi: Asana.StoriesApi | null = null;
   private currentUser: AsanaUser | null = null;
   private workspaces: AsanaWorkspace[] = [];
   private selectedWorkspaceGid: string | null = null;
@@ -100,6 +101,7 @@ export class AsanaClient {
     this.usersApi = new Asana.UsersApi();
     this.tasksApi = new Asana.TasksApi();
     this.userTaskListsApi = new Asana.UserTaskListsApi();
+    this.storiesApi = new Asana.StoriesApi();
   }
 
   /**
@@ -130,6 +132,7 @@ export class AsanaClient {
     this.usersApi = null;
     this.tasksApi = null;
     this.userTaskListsApi = null;
+    this.storiesApi = null;
     this.currentUser = null;
     this.workspaces = [];
     this.selectedWorkspaceGid = null;
@@ -375,6 +378,16 @@ export class AsanaClient {
     } catch {
       return null;
     }
+  }
+  /**
+   * Add a comment (story) to a task
+   */
+  async addComment(taskGid: string, text: string): Promise<void> {
+    if (!this.storiesApi) throw new Error('Not connected');
+
+    await this.storiesApi.createStoryForTask(taskGid, {
+      data: { text },
+    });
   }
 }
 

@@ -2,7 +2,8 @@
 
 import Table from 'cli-table3';
 import chalk from 'chalk';
-import type { Task, TaskStatus } from '../models/task.js';
+import type { Task, TaskStatus, ProviderType } from '../models/task.js';
+import type { ProviderInfo } from '../models/plugin.js';
 
 export type OutputFormat = 'table' | 'json';
 
@@ -208,4 +209,117 @@ export function renderWarning(message: string): void {
  */
 export function renderInfo(message: string): void {
   console.log(chalk.blue('ℹ') + ' ' + message);
+}
+
+/**
+ * Render a morning dashboard grouping tasks by overdue / due today / in progress
+ */
+export function renderDashboard(tasks: Task[], format: OutputFormat): void {
+  if (format === 'json') {
+    console.log(JSON.stringify(tasks, null, 2));
+    return;
+  }
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const overdue: Task[] = [];
+  const dueToday: Task[] = [];
+  const inProgress: Task[] = [];
+
+  for (const task of tasks) {
+    if (task.dueDate) {
+      const taskDate = new Date(task.dueDate.getFullYear(), task.dueDate.getMonth(), task.dueDate.getDate());
+      if (taskDate.getTime() < today.getTime() && task.status !== 'done') {
+        overdue.push(task);
+        continue;
+      }
+      if (taskDate.getTime() === today.getTime() && task.status !== 'done') {
+        dueToday.push(task);
+        continue;
+      }
+    }
+    if (task.status === 'in_progress') {
+      inProgress.push(task);
+    }
+  }
+
+  // Sort overdue by most overdue first
+  overdue.sort((a, b) => {
+    if (!a.dueDate) return 1;
+    if (!b.dueDate) return -1;
+    return a.dueDate.getTime() - b.dueDate.getTime();
+  });
+
+  const printSection = (header: string, color: (s: string) => string, sectionTasks: Task[]) => {
+    if (sectionTasks.length === 0) return;
+    console.log();
+    console.log(color(`── ${header} (${sectionTasks.length}) ──`));
+    for (const task of sectionTasks) {
+      const due = task.dueDate
+        ? task.dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        : '';
+      console.log(`  ${chalk.cyan(task.id)}  ${truncate(task.title, 45)}  ${formatStatus(task.status)}  ${due ? chalk.gray(due) : ''}`);
+    }
+  };
+
+  if (overdue.length === 0 && dueToday.length === 0 && inProgress.length === 0) {
+    console.log(chalk.green('✓ All clear! No overdue, due-today, or in-progress tasks.'));
+    return;
+  }
+
+  printSection('Overdue', chalk.red, overdue);
+  printSection('Due Today', chalk.yellow, dueToday);
+  printSection('In Progress', chalk.blue, inProgress);
+
+  console.log();
+  console.log(chalk.gray(`${overdue.length} overdue · ${dueToday.length} due today · ${inProgress.length} in progress`));
+}
+
+/**
+ * Render provider and task count summary
+ */
+export function renderSummary(
+  providers: ProviderInfo[],
+  taskCounts: { overdue: number; dueToday: number; inProgress: number; total: number },
+  format: OutputFormat
+): void {
+  if (format === 'json') {
+    console.log(JSON.stringify({ providers, taskCounts }, null, 2));
+    return;
+  }
+
+  console.log();
+  console.log(chalk.bold('Providers'));
+  for (const p of providers) {
+    const status = p.connected ? chalk.green('● connected') : chalk.red('○ disconnected');
+    console.log(`  ${p.displayName.padEnd(10)} ${status}${p.workspace ? chalk.gray(`  ${p.workspace}`) : ''}`);
+  }
+
+  console.log();
+  console.log(chalk.bold('Tasks'));
+  console.log(`  Overdue:      ${taskCounts.overdue > 0 ? chalk.red(String(taskCounts.overdue)) : chalk.gray('0')}`);
+  console.log(`  Due today:    ${taskCounts.dueToday > 0 ? chalk.yellow(String(taskCounts.dueToday)) : chalk.gray('0')}`);
+  console.log(`  In progress:  ${taskCounts.inProgress > 0 ? chalk.blue(String(taskCounts.inProgress)) : chalk.gray('0')}`);
+  console.log(`  Total open:   ${chalk.white(String(taskCounts.total))}`);
+  console.log();
+}
+
+/**
+ * Render tasks as plain tab-separated text (no ANSI colors)
+ */
+export function renderTasksPlain(tasks: Task[]): void {
+  for (const task of tasks) {
+    const due = task.dueDate ? task.dueDate.toISOString().split('T')[0] : '';
+    console.log([task.id, task.title, task.status, due, task.project || ''].join('\t'));
+  }
+}
+
+/**
+ * Render just task IDs, one per line
+ */
+export function renderTaskIds(tasks: Task[]): void {
+  for (const task of tasks) {
+    console.log(task.id);
+  }
 }
