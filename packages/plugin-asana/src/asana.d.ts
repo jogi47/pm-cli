@@ -50,6 +50,8 @@ declare module 'asana' {
     getTask(taskGid: string, opts?: Record<string, unknown>): Promise<ResponseWrapper<Task>>;
     getTasksForUserTaskList(userTaskListGid: string, opts?: Record<string, unknown>): Promise<ResponseWrapper<Task[]>>;
     searchTasksForWorkspace(workspaceGid: string, opts?: Record<string, unknown>): Promise<ResponseWrapper<Task[]>>;
+    createTask(body: { data: Record<string, unknown> }, opts?: Record<string, unknown>): Promise<ResponseWrapper<Task>>;
+    updateTask(taskGid: string, body: { data: Record<string, unknown> }, opts?: Record<string, unknown>): Promise<ResponseWrapper<Task>>;
   }
 
   export class UserTaskListsApi {
