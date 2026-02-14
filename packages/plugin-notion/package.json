@@ -1,10 +1,16 @@
 {
-  "name": "@pm-cli/plugin-notion",
-  "version": "0.1.0",
+  "name": "@jogi47/pm-cli-plugin-notion",
+  "version": "0.2.0",
   "description": "Notion plugin for pm-cli",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -b",
     "dev": "tsc -b --watch",
@@ -12,7 +18,7 @@
     "lint": "eslint src"
   },
   "dependencies": {
-    "@pm-cli/core": "workspace:*",
+    "@jogi47/pm-cli-core": "workspace:*",
     "@notionhq/client": "^2.2.0"
   },
   "devDependencies": {

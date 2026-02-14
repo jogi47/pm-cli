@@ -3,6 +3,7 @@
 
 import { pluginManager } from '@jogi47/pm-cli-core';
 import { AsanaPlugin } from '@jogi47/pm-cli-plugin-asana';
+import { NotionPlugin } from '@jogi47/pm-cli-plugin-notion';
 
 let initialized = false;
 

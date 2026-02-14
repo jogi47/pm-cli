@@ -1,7 +1,7 @@
 // src/client.ts
 
 import { Client } from '@notionhq/client';
-import { authManager } from '@pm-cli/core';
+import { authManager } from '@jogi47/pm-cli-core';
 import type {
   PageObjectResponse,
   QueryDatabaseResponse,

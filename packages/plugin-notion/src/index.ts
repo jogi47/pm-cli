@@ -9,8 +9,8 @@ import type {
   UpdateTaskInput,
   Task,
   ProviderType,
-} from '@pm-cli/core';
-import { cacheManager, isOverdue } from '@pm-cli/core';
+} from '@jogi47/pm-cli-core';
+import { cacheManager, isOverdue } from '@jogi47/pm-cli-core';
 import { notionClient } from './client.js';
 import { mapNotionPage, mapNotionPages } from './mapper.js';
 

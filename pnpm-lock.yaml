@@ -29,6 +29,9 @@ importers:
       '@jogi47/pm-cli-plugin-asana':
         specifier: workspace:*
         version: link:../plugin-asana
+      '@jogi47/pm-cli-plugin-notion':
+        specifier: workspace:*
+        version: link:../plugin-notion
       '@oclif/core':
         specifier: ^4.0.0
         version: 4.8.0
@@ -92,12 +95,12 @@ importers:
 
   packages/plugin-notion:
     dependencies:
+      '@jogi47/pm-cli-core':
+        specifier: workspace:*
+        version: link:../core
       '@notionhq/client':
         specifier: ^2.2.0
         version: 2.3.0
-      '@pm-cli/core':
-        specifier: workspace:*
-        version: link:../core
     devDependencies:
       '@types/node':
         specifier: ^20.0.0

@@ -1,7 +1,7 @@
 // src/mapper.ts
 
-import type { Task, TaskStatus } from '@pm-cli/core';
-import { createTaskId } from '@pm-cli/core';
+import type { Task, TaskStatus } from '@jogi47/pm-cli-core';
+import { createTaskId } from '@jogi47/pm-cli-core';
 import type { NotionPage } from './client.js';
 
 // Property name aliases for detection
