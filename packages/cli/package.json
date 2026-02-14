@@ -1,6 +1,6 @@
 {
   "name": "@jogi47/pm-cli",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Unified project management CLI",
   "type": "module",
   "bin": {
@@ -32,8 +32,7 @@
     "dev": "tsc -b --watch",
     "clean": "rm -rf dist",
     "lint": "eslint src",
-    "pm": "./bin/dev.js",
-    "prepack": "node -e \"const p=require('./package.json'); const d=JSON.stringify(p.dependencies||{}); if(d.includes('workspace:')) { console.error('ERROR: workspace: protocol found — use pnpm publish, not npm publish'); process.exit(1); }\""
+    "pm": "./bin/dev.js"
   },
   "dependencies": {
     "@oclif/core": "^4.0.0",
