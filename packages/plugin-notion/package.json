@@ -1,6 +1,6 @@
 {
   "name": "@jogi47/pm-cli-plugin-notion",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Notion plugin for pm-cli",
   "type": "module",
   "main": "./dist/index.js",
