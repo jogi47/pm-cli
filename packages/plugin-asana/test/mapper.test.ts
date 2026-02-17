@@ -43,6 +43,17 @@ describe('Asana Mapper', () => {
   it('should map project name', () => {
     const task = mapAsanaTask(mockAsanaTask);
     expect(task.project).toBe('My Project');
+    expect(task.placement?.project).toEqual({ id: 'proj1', name: 'My Project' });
+  });
+
+  it('should map section placement when membership section exists', () => {
+    const withSection: AsanaTask = {
+      ...mockAsanaTask,
+      memberships: [{ section: { gid: 'sec1', name: 'Prioritised' } }],
+    };
+
+    const task = mapAsanaTask(withSection);
+    expect(task.placement?.section).toEqual({ id: 'sec1', name: 'Prioritised' });
   });
 
   it('should map tags', () => {

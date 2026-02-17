@@ -8,6 +8,9 @@ import { createTaskId } from '@jogi47/pm-cli-core';
  * Map Asana task to unified Task model
  */
 export function mapAsanaTask(asanaTask: AsanaTask): Task {
+  const project = asanaTask.projects?.[0];
+  const section = asanaTask.memberships?.[0]?.section;
+
   return {
     id: createTaskId('asana', asanaTask.gid),
     externalId: asanaTask.gid,
@@ -17,7 +20,11 @@ export function mapAsanaTask(asanaTask: AsanaTask): Task {
     dueDate: parseDueDate(asanaTask.due_on || asanaTask.due_at),
     assignee: asanaTask.assignee?.name,
     assigneeEmail: asanaTask.assignee?.email,
-    project: asanaTask.projects?.[0]?.name,
+    project: project?.name,
+    placement: {
+      project: project ? { id: project.gid, name: project.name } : undefined,
+      section: section ? { id: section.gid, name: section.name } : undefined,
+    },
     tags: asanaTask.tags?.map((t) => t.name),
     source: 'asana',
     url: asanaTask.permalink_url,

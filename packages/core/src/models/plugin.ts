@@ -15,6 +15,27 @@ export interface CreateTaskInput {
   /** Project ID to add task to */
   projectId?: string;
 
+  /** Project name to resolve in provider */
+  projectName?: string;
+
+  /** Section/column ID to place task into */
+  sectionId?: string;
+
+  /** Section/column name to resolve in provider */
+  sectionName?: string;
+
+  /** Workspace ID to resolve for creation context */
+  workspaceId?: string;
+
+  /** Workspace name to resolve for creation context */
+  workspaceName?: string;
+
+  /** Skip cache when resolving metadata */
+  refresh?: boolean;
+
+  /** Difficulty enum option name (provider-specific) */
+  difficulty?: string;
+
   /** Assignee email */
   assigneeEmail?: string;
 }

@@ -2,16 +2,19 @@
 
 import { Command, Args, Flags } from '@oclif/core';
 import { pluginManager, renderTask, renderSuccess, renderError } from '@jogi47/pm-cli-core';
-import type { OutputFormat, ProviderType } from '@jogi47/pm-cli-core';
+import type { CreateTaskInput, OutputFormat, ProviderType } from '@jogi47/pm-cli-core';
 import '../../init.js';
+
+const ASANA_ID_PATTERN = /^\d+$/;
 
 export default class TasksCreate extends Command {
   static override description = 'Create a new task';
 
   static override examples = [
     '<%= config.bin %> tasks create "Fix login bug"',
-    '<%= config.bin %> tasks create "Update docs" --source=asana --due=2026-03-01',
-    '<%= config.bin %> tasks create "Review PR" --description="Check the auth changes" --json',
+    '<%= config.bin %> tasks create "This is automated ticket" --source=asana --project "Teacher Feature Development" --section "Prioritised"',
+    '<%= config.bin %> tasks create "Tune lesson plan UX" --source=asana --project "Teacher Feature Development" --section "Prioritised" --difficulty "S"',
+    '<%= config.bin %> tasks create "Fix login redirect bug" --source=asana --project 1210726476060870 --section 1210726344951110 --json',
   ];
 
   static override args = {
@@ -33,7 +36,20 @@ export default class TasksCreate extends Command {
     }),
     project: Flags.string({
       char: 'p',
-      description: 'Project ID to add task to',
+      description: 'Project ID or name to add task to',
+    }),
+    section: Flags.string({
+      description: 'Section/column ID or name within the project (requires --project)',
+    }),
+    workspace: Flags.string({
+      description: 'Workspace ID or name for disambiguation',
+    }),
+    difficulty: Flags.string({
+      description: 'Difficulty option name (Asana project custom field, requires --project)',
+    }),
+    refresh: Flags.boolean({
+      description: 'Bypass metadata cache for project/section resolution',
+      default: false,
     }),
     due: Flags.string({
       description: 'Due date (YYYY-MM-DD)',
@@ -73,6 +89,13 @@ export default class TasksCreate extends Command {
       source = connected[0].name;
     }
 
+    const validationError = validateCreateFlags(flags.project, flags.section, flags.difficulty);
+    if (validationError) {
+      renderError(validationError);
+      this.exit(1);
+      return;
+    }
+
     // Parse due date if provided
     let dueDate: Date | undefined;
     if (flags.due) {
@@ -84,14 +107,21 @@ export default class TasksCreate extends Command {
       }
     }
 
+    const input = buildCreateTaskInput({
+      title: args.title,
+      description: flags.description,
+      dueDate,
+      assigneeEmail: flags.assignee,
+      project: flags.project,
+      section: flags.section,
+      workspace: flags.workspace,
+      difficulty: flags.difficulty,
+      refresh: flags.refresh,
+      source,
+    });
+
     try {
-      const task = await pluginManager.createTask(source, {
-        title: args.title,
-        description: flags.description,
-        dueDate,
-        projectId: flags.project,
-        assigneeEmail: flags.assignee,
-      });
+      const task = await pluginManager.createTask(source, input);
 
       renderSuccess(`Task created: ${task.id}`);
       renderTask(task, format);
@@ -100,4 +130,67 @@ export default class TasksCreate extends Command {
       this.exit(1);
     }
   }
+
+}
+
+export function splitIdOrName(value: string | undefined, source: ProviderType): { id?: string; name?: string } {
+  if (!value) return {};
+
+  if (source === 'asana' && ASANA_ID_PATTERN.test(value)) {
+    return { id: value };
+  }
+
+  return { name: value };
+}
+
+export function buildCreateTaskInput(args: {
+  title: string;
+  description?: string;
+  dueDate?: Date;
+  assigneeEmail?: string;
+  project?: string;
+  section?: string;
+  workspace?: string;
+  difficulty?: string;
+  refresh: boolean;
+  source: ProviderType;
+}): CreateTaskInput {
+  const input: CreateTaskInput = {
+    title: args.title,
+    description: args.description,
+    dueDate: args.dueDate,
+    assigneeEmail: args.assigneeEmail,
+    difficulty: args.difficulty,
+    refresh: args.refresh,
+  };
+
+  const project = splitIdOrName(args.project, args.source);
+  if (project.id) input.projectId = project.id;
+  if (project.name) input.projectName = project.name;
+
+  const section = splitIdOrName(args.section, args.source);
+  if (section.id) input.sectionId = section.id;
+  if (section.name) input.sectionName = section.name;
+
+  const workspace = splitIdOrName(args.workspace, args.source);
+  if (workspace.id) input.workspaceId = workspace.id;
+  if (workspace.name) input.workspaceName = workspace.name;
+
+  return input;
+}
+
+export function validateCreateFlags(
+  project: string | undefined,
+  section: string | undefined,
+  difficulty: string | undefined
+): string | null {
+  if (section && !project) {
+    return '--section requires --project';
+  }
+
+  if (difficulty && !project) {
+    return '--difficulty requires --project';
+  }
+
+  return null;
 }

@@ -233,7 +233,11 @@ Create a new task in a provider.
 |------|-------|---------|-------------|
 | `--description` | `-d` | | Task description |
 | `--source` | `-s` | auto | Target provider (`asana`, `notion`). Required if multiple providers are connected |
-| `--project` | `-p` | | Project ID to add the task to |
+| `--project` | `-p` | | Project ID or name to add the task to |
+| `--section` | | | Section/column ID or name within the project (Asana) |
+| `--workspace` | | | Workspace ID or name for project disambiguation (Asana) |
+| `--difficulty` | | | Difficulty option name from the project's Difficulty custom field (Asana) |
+| `--refresh` | | `false` | Bypass metadata cache when resolving project/section/custom-field values |
 | `--due` | | | Due date (`YYYY-MM-DD`) |
 | `--assignee` | `-a` | | Assignee email |
 | `--json` | | `false` | Output as JSON |
@@ -243,9 +247,17 @@ pm tasks create "Fix login bug"
 pm tasks create "Update docs" --source=asana --due=2026-03-01
 pm tasks create "Review PR" -d "Check the auth changes" --json
 pm tasks create "Design review" -p PROJECT_ID -a user@example.com
+pm tasks create "Automated ticket" --source=asana --project "Teacher Feature Development" --section "Prioritised"
+pm tasks create "Tune lesson plan UX" --source=asana --project "Teacher Feature Development" --section "Prioritised" --difficulty "S"
 ```
 
 If only one provider is connected, `--source` is inferred automatically.
+
+Create command rules:
+- `--section` requires `--project`.
+- `--difficulty` requires `--project`.
+- Name resolution for Asana project/section/workspace is exact and case-insensitive.
+- Use `--refresh` if cached project/section/custom-field metadata is stale.
 
 ---
 
@@ -379,6 +391,18 @@ pm comment NOTION-abc123 "Needs review"
 
 ---
 
+## Help Commands
+
+Use built-in help for command syntax and the latest flags:
+
+```bash
+pm --help
+pm tasks --help
+pm tasks create --help
+```
+
+---
+
 ## Output Modes
 
 - **Table** (default) — Human-readable table rendered in the terminal.
@@ -439,6 +463,16 @@ pm tasks search "deploy pipeline"
 
 ```bash
 pm tasks create "Fix auth timeout" --due 2026-03-01
+```
+
+### Create directly in a board column with difficulty (Asana)
+
+```bash
+pm tasks create "Tune lesson plan UX" \
+  --source asana \
+  --project "Teacher Feature Development" \
+  --section "Prioritised" \
+  --difficulty "S"
 ```
 
 ### Update a task's status

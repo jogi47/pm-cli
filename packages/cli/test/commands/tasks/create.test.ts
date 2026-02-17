@@ -1,0 +1,51 @@
+import { describe, expect, it } from 'vitest';
+import { buildCreateTaskInput, splitIdOrName, validateCreateFlags } from '../../../src/commands/tasks/create.js';
+
+describe('tasks create helpers', () => {
+  it('splits Asana numeric values as IDs', () => {
+    expect(splitIdOrName('1210726476060870', 'asana')).toEqual({ id: '1210726476060870' });
+  });
+
+  it('keeps non-id values as names', () => {
+    expect(splitIdOrName('Teacher Feature Development', 'asana')).toEqual({ name: 'Teacher Feature Development' });
+  });
+
+  it('treats numeric notion values as names (no Asana ID coercion)', () => {
+    expect(splitIdOrName('12345', 'notion')).toEqual({ name: '12345' });
+  });
+
+  it('builds create input with project/section/workspace name fields', () => {
+    const input = buildCreateTaskInput({
+      title: 'New task',
+      description: 'Task details',
+      project: 'Teacher Feature Development',
+      section: 'Prioritised',
+      workspace: 'Engineering',
+      difficulty: 'S',
+      refresh: true,
+      source: 'asana',
+    });
+
+    expect(input).toEqual({
+      title: 'New task',
+      description: 'Task details',
+      dueDate: undefined,
+      assigneeEmail: undefined,
+      difficulty: 'S',
+      refresh: true,
+      projectName: 'Teacher Feature Development',
+      sectionName: 'Prioritised',
+      workspaceName: 'Engineering',
+    });
+  });
+
+  it('validates that section requires project', () => {
+    expect(validateCreateFlags(undefined, 'Prioritised', undefined)).toBe('--section requires --project');
+    expect(validateCreateFlags('Teacher Feature Development', 'Prioritised', undefined)).toBeNull();
+  });
+
+  it('validates that difficulty requires project', () => {
+    expect(validateCreateFlags(undefined, undefined, 'S')).toBe('--difficulty requires --project');
+    expect(validateCreateFlags('Teacher Feature Development', undefined, 'S')).toBeNull();
+  });
+});

@@ -58,6 +58,14 @@ function truncate(str: string, maxLength: number): string {
 }
 
 /**
+ * Format placement entity for human output
+ */
+function formatPlacement(value: { id: string; name: string } | undefined): string {
+  if (!value) return chalk.gray('—');
+  return `${value.name} ${chalk.gray(`(${value.id})`)}`;
+}
+
+/**
  * Render a list of tasks
  */
 export function renderTasks(tasks: Task[], format: OutputFormat): void {
@@ -119,10 +127,14 @@ export function renderTask(task: Task, format: OutputFormat): void {
     ['Status', formatStatus(task.status)],
     ['Due Date', formatDate(task.dueDate)],
     ['Assignee', task.assignee || chalk.gray('Unassigned')],
-    ['Project', task.project || chalk.gray('—')],
+    ['Project', task.placement?.project ? formatPlacement(task.placement.project) : (task.project || chalk.gray('—'))],
     ['Source', task.source.toUpperCase()],
     ['URL', chalk.underline.blue(task.url)],
   ];
+
+  if (task.placement?.section) {
+    details.splice(4, 0, ['Section', formatPlacement(task.placement.section)]);
+  }
 
   if (task.tags && task.tags.length > 0) {
     details.push(['Tags', task.tags.map(t => chalk.bgGray(` ${t} `)).join(' ')]);

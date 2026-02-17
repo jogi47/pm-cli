@@ -198,6 +198,9 @@ pm tasks show ASANA-123 --open      # Open in browser
 # Create a task
 pm tasks create "Fix login bug"
 pm tasks create "Update docs" --source=asana --due=2026-03-01
+pm tasks create "This is automated ticket" --source=asana --project "Teacher Feature Development" --section "Prioritised"
+pm tasks create "Tune lesson plan UX" --source=asana --project "Teacher Feature Development" --section "Prioritised" --difficulty "S"
+pm tasks create "Fix login redirect bug" --source=asana --project 1210726476060870 --section 1210726344951110 --json
 
 # Update a task
 pm tasks update ASANA-123456 --status in_progress
@@ -209,6 +212,17 @@ pm done ASANA-123456 ASANA-789012   # Batch complete
 
 # Open a task in browser
 pm open ASANA-123456
+```
+
+### Help
+
+```bash
+# Global help
+pm --help
+
+# Task command help
+pm tasks --help
+pm tasks create --help
 ```
 
 ### Git & Comments

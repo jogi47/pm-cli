@@ -39,7 +39,37 @@ declare module 'asana' {
     permalink_url?: string;
     created_at?: string;
     modified_at?: string;
-    memberships?: Array<{ section?: { gid?: string; name?: string } }>;
+    memberships?: Array<{
+      project?: { gid?: string; name?: string };
+      section?: { gid?: string; name?: string };
+    }>;
+  }
+
+  interface Project {
+    gid?: string;
+    name?: string;
+    workspace?: { gid?: string; name?: string };
+  }
+
+  interface Section {
+    gid?: string;
+    name?: string;
+  }
+
+  interface EnumOption {
+    gid?: string;
+    name?: string;
+  }
+
+  interface CustomField {
+    gid?: string;
+    name?: string;
+    resource_subtype?: string;
+    enum_options?: EnumOption[];
+  }
+
+  interface CustomFieldSetting {
+    custom_field?: CustomField;
   }
 
   export class UsersApi {
@@ -52,6 +82,18 @@ declare module 'asana' {
     searchTasksForWorkspace(workspaceGid: string, opts?: Record<string, unknown>): Promise<ResponseWrapper<Task[]>>;
     createTask(body: { data: Record<string, unknown> }, opts?: Record<string, unknown>): Promise<ResponseWrapper<Task>>;
     updateTask(taskGid: string, body: { data: Record<string, unknown> }, opts?: Record<string, unknown>): Promise<ResponseWrapper<Task>>;
+  }
+
+  export class ProjectsApi {
+    getProjects(opts?: Record<string, unknown>): Promise<ResponseWrapper<Project[]>>;
+  }
+
+  export class SectionsApi {
+    getSectionsForProject(projectGid: string, opts?: Record<string, unknown>): Promise<ResponseWrapper<Section[]>>;
+  }
+
+  export class CustomFieldSettingsApi {
+    getCustomFieldSettingsForProject(projectGid: string, opts?: Record<string, unknown>): Promise<ResponseWrapper<CustomFieldSetting[]>>;
   }
 
   export class StoriesApi {

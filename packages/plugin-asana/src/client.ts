@@ -14,6 +14,36 @@ export interface AsanaWorkspace {
   name: string;
 }
 
+export interface AsanaProject {
+  gid: string;
+  name: string;
+  workspace?: {
+    gid: string;
+    name: string;
+  };
+}
+
+export interface AsanaSection {
+  gid: string;
+  name: string;
+}
+
+export interface AsanaEnumOption {
+  gid: string;
+  name: string;
+}
+
+export interface AsanaCustomField {
+  gid: string;
+  name: string;
+  resourceSubtype?: string;
+  enumOptions?: AsanaEnumOption[];
+}
+
+export interface AsanaCustomFieldSetting {
+  customField: AsanaCustomField;
+}
+
 export interface AsanaTask {
   gid: string;
   name: string;
@@ -40,6 +70,10 @@ export interface AsanaTask {
   created_at: string;
   modified_at: string;
   memberships?: Array<{
+    project?: {
+      gid: string;
+      name: string;
+    };
     section?: {
       gid: string;
       name: string;
@@ -47,12 +81,19 @@ export interface AsanaTask {
   }>;
 }
 
+interface MetadataCacheEntry<T> {
+  data: T;
+  expiresAt: number;
+}
+
 // Field list for API requests
 const TASK_FIELDS = [
   'gid', 'name', 'notes', 'completed', 'completed_at',
   'due_on', 'due_at', 'assignee.gid', 'assignee.name', 'assignee.email',
   'projects.gid', 'projects.name', 'tags.gid', 'tags.name',
-  'permalink_url', 'created_at', 'modified_at', 'memberships.section.name',
+  'permalink_url', 'created_at', 'modified_at',
+  'memberships.project.gid', 'memberships.project.name',
+  'memberships.section.gid', 'memberships.section.name',
 ];
 
 const TASK_DETAIL_FIELDS = [
@@ -60,15 +101,23 @@ const TASK_DETAIL_FIELDS = [
   'html_notes',
 ];
 
+const METADATA_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 export class AsanaClient {
   private apiClient: typeof Asana.ApiClient.instance | null = null;
   private usersApi: Asana.UsersApi | null = null;
   private tasksApi: Asana.TasksApi | null = null;
+  private projectsApi: Asana.ProjectsApi | null = null;
+  private sectionsApi: Asana.SectionsApi | null = null;
+  private customFieldSettingsApi: Asana.CustomFieldSettingsApi | null = null;
   private userTaskListsApi: Asana.UserTaskListsApi | null = null;
   private storiesApi: Asana.StoriesApi | null = null;
   private currentUser: AsanaUser | null = null;
   private workspaces: AsanaWorkspace[] = [];
   private selectedWorkspaceGid: string | null = null;
+  private projectsCacheByWorkspace: Record<string, MetadataCacheEntry<AsanaProject[]>> = {};
+  private sectionsCacheByProject: Record<string, MetadataCacheEntry<AsanaSection[]>> = {};
+  private customFieldSettingsCacheByProject: Record<string, MetadataCacheEntry<AsanaCustomFieldSetting[]>> = {};
 
   /**
    * Initialize the client with stored credentials
@@ -87,6 +136,19 @@ export class AsanaClient {
       return true;
     } catch {
       this.apiClient = null;
+      this.usersApi = null;
+      this.tasksApi = null;
+      this.projectsApi = null;
+      this.sectionsApi = null;
+      this.customFieldSettingsApi = null;
+      this.userTaskListsApi = null;
+      this.storiesApi = null;
+      this.currentUser = null;
+      this.workspaces = [];
+      this.selectedWorkspaceGid = null;
+      this.projectsCacheByWorkspace = {};
+      this.sectionsCacheByProject = {};
+      this.customFieldSettingsCacheByProject = {};
       return false;
     }
   }
@@ -100,6 +162,9 @@ export class AsanaClient {
 
     this.usersApi = new Asana.UsersApi();
     this.tasksApi = new Asana.TasksApi();
+    this.projectsApi = new Asana.ProjectsApi();
+    this.sectionsApi = new Asana.SectionsApi();
+    this.customFieldSettingsApi = new Asana.CustomFieldSettingsApi();
     this.userTaskListsApi = new Asana.UserTaskListsApi();
     this.storiesApi = new Asana.StoriesApi();
   }
@@ -110,6 +175,9 @@ export class AsanaClient {
   async connect(token: string, workspaceGid?: string): Promise<void> {
     this.setupClient(token);
     await this.loadUserInfo();
+    this.projectsCacheByWorkspace = {};
+    this.sectionsCacheByProject = {};
+    this.customFieldSettingsCacheByProject = {};
 
     // If workspace specified, use it; otherwise default to first
     if (workspaceGid) {
@@ -131,11 +199,17 @@ export class AsanaClient {
     this.apiClient = null;
     this.usersApi = null;
     this.tasksApi = null;
+    this.projectsApi = null;
+    this.sectionsApi = null;
+    this.customFieldSettingsApi = null;
     this.userTaskListsApi = null;
     this.storiesApi = null;
     this.currentUser = null;
     this.workspaces = [];
     this.selectedWorkspaceGid = null;
+    this.projectsCacheByWorkspace = {};
+    this.sectionsCacheByProject = {};
+    this.customFieldSettingsCacheByProject = {};
     authManager.removeCredentials('asana');
   }
 
@@ -307,6 +381,120 @@ export class AsanaClient {
   }
 
   /**
+   * Get projects in a workspace (with short-lived metadata cache)
+   */
+  async getProjects(workspaceGid: string, options?: { refresh?: boolean }): Promise<AsanaProject[]> {
+    if (!this.projectsApi) throw new Error('Not connected');
+
+    const cached = this.projectsCacheByWorkspace[workspaceGid];
+    if (!options?.refresh && cached && Date.now() <= cached.expiresAt) {
+      return cached.data;
+    }
+
+    const response = await this.projectsApi.getProjects({
+      workspace: workspaceGid,
+      archived: false,
+      opt_fields: 'gid,name,workspace.gid,workspace.name',
+      limit: 100,
+    });
+
+    const projects = (response.data || [])
+      .filter((project): project is { gid: string; name: string; workspace?: { gid?: string; name?: string } } => Boolean(project.gid && project.name))
+      .map((project) => ({
+        gid: project.gid,
+        name: project.name,
+        workspace: project.workspace?.gid && project.workspace?.name
+          ? { gid: project.workspace.gid, name: project.workspace.name }
+          : undefined,
+      }));
+
+    this.projectsCacheByWorkspace[workspaceGid] = {
+      data: projects,
+      expiresAt: Date.now() + METADATA_CACHE_TTL,
+    };
+
+    return projects;
+  }
+
+  /**
+   * Get sections in a project (with short-lived metadata cache)
+   */
+  async getSectionsForProject(projectGid: string, options?: { refresh?: boolean }): Promise<AsanaSection[]> {
+    if (!this.sectionsApi) throw new Error('Not connected');
+
+    const cached = this.sectionsCacheByProject[projectGid];
+    if (!options?.refresh && cached && Date.now() <= cached.expiresAt) {
+      return cached.data;
+    }
+
+    const response = await this.sectionsApi.getSectionsForProject(projectGid, {
+      opt_fields: 'gid,name',
+      limit: 100,
+    });
+
+    const sections = (response.data || [])
+      .filter((section): section is { gid: string; name: string } => Boolean(section.gid && section.name))
+      .map((section) => ({
+        gid: section.gid,
+        name: section.name,
+      }));
+
+    this.sectionsCacheByProject[projectGid] = {
+      data: sections,
+      expiresAt: Date.now() + METADATA_CACHE_TTL,
+    };
+
+    return sections;
+  }
+
+  /**
+   * Get custom field settings in a project (with short-lived metadata cache)
+   */
+  async getCustomFieldSettingsForProject(projectGid: string, options?: { refresh?: boolean }): Promise<AsanaCustomFieldSetting[]> {
+    if (!this.customFieldSettingsApi) throw new Error('Not connected');
+
+    const cached = this.customFieldSettingsCacheByProject[projectGid];
+    if (!options?.refresh && cached && Date.now() <= cached.expiresAt) {
+      return cached.data;
+    }
+
+    const response = await this.customFieldSettingsApi.getCustomFieldSettingsForProject(projectGid, {
+      opt_fields: 'custom_field.gid,custom_field.name,custom_field.resource_subtype,custom_field.enum_options.gid,custom_field.enum_options.name',
+      limit: 100,
+    });
+
+    const rawSettings = Array.isArray((response as { data?: unknown }).data)
+      ? (response as { data: Array<{ custom_field?: { gid?: string; name?: string; resource_subtype?: string; enum_options?: Array<{ gid?: string; name?: string }> } }> }).data
+      : [];
+
+    const settings: AsanaCustomFieldSetting[] = [];
+    for (const setting of rawSettings) {
+      const customField = setting.custom_field;
+      if (!customField?.gid || !customField.name) continue;
+
+      const enumOptions = (customField.enum_options || [])
+        .filter((option): option is { gid: string; name: string } => Boolean(option.gid && option.name))
+        .map((option) => ({ gid: option.gid, name: option.name }));
+
+      settings.push({
+        customField: {
+          gid: customField.gid,
+          name: customField.name,
+          resourceSubtype: customField.resource_subtype,
+          enumOptions,
+        },
+      });
+    }
+
+    this.customFieldSettingsCacheByProject[projectGid] = {
+      data: settings,
+      expiresAt: Date.now() + METADATA_CACHE_TTL,
+    };
+
+    return settings;
+  }
+
+  /**
    * Create a new task
    */
   async createTask(params: {
@@ -314,21 +502,26 @@ export class AsanaClient {
     notes?: string;
     due_on?: string;
     projects?: string[];
+    memberships?: Array<{ project: string; section?: string }>;
+    customFields?: Record<string, string>;
+    workspaceGid?: string;
     assignee?: string;
   }): Promise<AsanaTask> {
     if (!this.tasksApi) throw new Error('Not connected');
 
-    const workspace = this.getDefaultWorkspace();
-    if (!workspace) throw new Error('No workspace found');
+    const workspaceGid = params.workspaceGid || this.getDefaultWorkspace()?.gid;
+    if (!workspaceGid) throw new Error('No workspace found');
 
     const data: Record<string, unknown> = {
       name: params.name,
-      workspace: workspace.gid,
+      workspace: workspaceGid,
     };
 
     if (params.notes) data.notes = params.notes;
     if (params.due_on) data.due_on = params.due_on;
     if (params.projects && params.projects.length > 0) data.projects = params.projects;
+    if (params.memberships && params.memberships.length > 0) data.memberships = params.memberships;
+    if (params.customFields && Object.keys(params.customFields).length > 0) data.custom_fields = params.customFields;
     if (params.assignee) data.assignee = params.assignee;
 
     const response = await this.tasksApi.createTask(

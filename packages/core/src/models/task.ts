@@ -31,6 +31,18 @@ export interface Task {
   /** Project or parent container name */
   project?: string;
 
+  /** Structured project/section placement details */
+  placement?: {
+    project?: {
+      id: string;
+      name: string;
+    };
+    section?: {
+      id: string;
+      name: string;
+    };
+  };
+
   /** Tags/labels */
   tags?: string[];
 
