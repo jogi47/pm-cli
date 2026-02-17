@@ -2,6 +2,30 @@
 
 export type TaskStatus = 'todo' | 'in_progress' | 'done';
 export type ProviderType = 'asana' | 'notion';
+export type TaskCustomFieldType = 'enum' | 'multi_enum' | 'unsupported';
+
+export interface TaskCustomFieldResult {
+  /** Custom field identifier */
+  fieldId: string;
+
+  /** Custom field display name */
+  fieldName: string;
+
+  /** Normalized field type */
+  type: TaskCustomFieldType;
+
+  /** Resolved option IDs (empty when cleared) */
+  optionIds: string[];
+
+  /** Resolved option names (empty when cleared) */
+  optionNames: string[];
+
+  /** Apply status for create/update operations */
+  status: 'applied' | 'failed';
+
+  /** Optional provider error details */
+  message?: string;
+}
 
 export interface Task {
   /** Internal ID format: "{SOURCE}-{externalId}" e.g. "ASANA-1234567890" */
@@ -45,6 +69,9 @@ export interface Task {
 
   /** Tags/labels */
   tags?: string[];
+
+  /** Normalized custom field resolution/apply results */
+  customFieldResults?: TaskCustomFieldResult[];
 
   /** Source provider */
   source: ProviderType;

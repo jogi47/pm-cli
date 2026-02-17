@@ -237,6 +237,7 @@ Create a new task in a provider.
 | `--section` | | | Section/column ID or name within the project (Asana) |
 | `--workspace` | | | Workspace ID or name for project disambiguation (Asana) |
 | `--difficulty` | | | Difficulty option name from the project's Difficulty custom field (Asana) |
+| `--field` | | | Custom field assignment `<Field>=<Value[,Value]>` (repeatable, Asana v1) |
 | `--refresh` | | `false` | Bypass metadata cache when resolving project/section/custom-field values |
 | `--due` | | | Due date (`YYYY-MM-DD`) |
 | `--assignee` | `-a` | | Assignee email |
@@ -249,6 +250,7 @@ pm tasks create "Review PR" -d "Check the auth changes" --json
 pm tasks create "Design review" -p PROJECT_ID -a user@example.com
 pm tasks create "Automated ticket" --source=asana --project "Teacher Feature Development" --section "Prioritised"
 pm tasks create "Tune lesson plan UX" --source=asana --project "Teacher Feature Development" --section "Prioritised" --difficulty "S"
+pm tasks create "Cover flow API integration" --source=asana --project "Teacher Feature Development" --section "Prioritised" --field "Difficulty=XS" --field "Department=Frontend" --field "Other=Bugs,Analytics"
 ```
 
 If only one provider is connected, `--source` is inferred automatically.
@@ -256,6 +258,7 @@ If only one provider is connected, `--source` is inferred automatically.
 Create command rules:
 - `--section` requires `--project`.
 - `--difficulty` requires `--project`.
+- `--field` requires `--project`.
 - Name resolution for Asana project/section/workspace is exact and case-insensitive.
 - Use `--refresh` if cached project/section/custom-field metadata is stale.
 
@@ -275,12 +278,18 @@ Update an existing task. At least one update flag is required.
 | `--description` | `-d` | | New task description |
 | `--due` | | | New due date (`YYYY-MM-DD`, or `"none"` to clear) |
 | `--status` | | | New status: `todo`, `in_progress`, `done` |
+| `--project` | `-p` | | Project ID or name to scope `--field` resolution |
+| `--workspace` | | | Workspace ID or name for project resolution with `--field` |
+| `--field` | | | Custom field assignment `<Field>=<Value[,Value]>` (repeatable, Asana v1) |
+| `--refresh` | | `false` | Bypass metadata cache for project/custom-field resolution |
 | `--json` | | `false` | Output as JSON |
 
 ```bash
 pm tasks update ASANA-123456 --title "New title"
 pm tasks update ASANA-123456 --due 2026-03-15 --status in_progress
 pm tasks update ASANA-123456 --due none           # Clear due date
+pm tasks update ASANA-123456 --field "Importance=High" --field "Teacher Feature Release=PR4"
+pm tasks update ASANA-123456 --project "Teacher Feature Development" --field "Other="
 pm tasks update ASANA-123456 -d "Updated notes" --json
 ```
 
@@ -399,6 +408,7 @@ Use built-in help for command syntax and the latest flags:
 pm --help
 pm tasks --help
 pm tasks create --help
+pm tasks update --help
 ```
 
 ---

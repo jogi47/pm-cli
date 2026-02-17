@@ -43,6 +43,13 @@ declare module 'asana' {
       project?: { gid?: string; name?: string };
       section?: { gid?: string; name?: string };
     }>;
+    custom_fields?: Array<{
+      gid?: string;
+      name?: string;
+      resource_subtype?: string;
+      enum_value?: { gid?: string; name?: string };
+      multi_enum_values?: Array<{ gid?: string; name?: string }>;
+    }>;
   }
 
   interface Project {

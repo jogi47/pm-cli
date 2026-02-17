@@ -152,6 +152,16 @@ export function renderTask(task: Task, format: OutputFormat): void {
     console.log(task.description);
   }
 
+  if (task.customFieldResults && task.customFieldResults.length > 0) {
+    console.log();
+    console.log(chalk.gray('Custom Fields:'));
+    for (const field of task.customFieldResults) {
+      const state = field.status === 'applied' ? chalk.green('applied') : chalk.red('failed');
+      const value = field.optionNames.length > 0 ? field.optionNames.join(', ') : chalk.gray('(cleared)');
+      console.log(`${field.fieldName} ${chalk.gray(`(${field.fieldId})`)}: ${value} ${chalk.gray(`[${state}]`)}`);
+    }
+  }
+
   console.log();
 }
 

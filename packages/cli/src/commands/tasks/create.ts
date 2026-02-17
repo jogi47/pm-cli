@@ -2,10 +2,10 @@
 
 import { Command, Args, Flags } from '@oclif/core';
 import { pluginManager, renderTask, renderSuccess, renderError } from '@jogi47/pm-cli-core';
-import type { CreateTaskInput, OutputFormat, ProviderType } from '@jogi47/pm-cli-core';
+import type { CreateTaskInput, CustomFieldInput, OutputFormat, ProviderType } from '@jogi47/pm-cli-core';
+import { mergeLegacyDifficultyField, parseCustomFieldFlags } from '../../lib/task-field-parser.js';
+import { splitIdOrName } from '../../lib/task-id-resolver.js';
 import '../../init.js';
-
-const ASANA_ID_PATTERN = /^\d+$/;
 
 export default class TasksCreate extends Command {
   static override description = 'Create a new task';
@@ -14,6 +14,7 @@ export default class TasksCreate extends Command {
     '<%= config.bin %> tasks create "Fix login bug"',
     '<%= config.bin %> tasks create "This is automated ticket" --source=asana --project "Teacher Feature Development" --section "Prioritised"',
     '<%= config.bin %> tasks create "Tune lesson plan UX" --source=asana --project "Teacher Feature Development" --section "Prioritised" --difficulty "S"',
+    '<%= config.bin %> tasks create "Cover flow API integration" --source=asana --project "Teacher Feature Development" --section "Prioritised" --field "Difficulty=XS" --field "Other=Bugs,Analytics"',
     '<%= config.bin %> tasks create "Fix login redirect bug" --source=asana --project 1210726476060870 --section 1210726344951110 --json',
   ];
 
@@ -46,6 +47,10 @@ export default class TasksCreate extends Command {
     }),
     difficulty: Flags.string({
       description: 'Difficulty option name (Asana project custom field, requires --project)',
+    }),
+    field: Flags.string({
+      description: 'Custom field assignment: <Field>=<Value[,Value]> (repeatable)',
+      multiple: true,
     }),
     refresh: Flags.boolean({
       description: 'Bypass metadata cache for project/section resolution',
@@ -89,7 +94,16 @@ export default class TasksCreate extends Command {
       source = connected[0].name;
     }
 
-    const validationError = validateCreateFlags(flags.project, flags.section, flags.difficulty);
+    const parsedFields = parseCustomFieldFlags(flags.field);
+    if (parsedFields.error) {
+      renderError(parsedFields.error);
+      this.exit(1);
+      return;
+    }
+
+    const customFields = mergeLegacyDifficultyField(parsedFields.fields, flags.difficulty);
+
+    const validationError = validateCreateFlags(flags.project, flags.section, flags.difficulty, customFields);
     if (validationError) {
       renderError(validationError);
       this.exit(1);
@@ -116,6 +130,7 @@ export default class TasksCreate extends Command {
       section: flags.section,
       workspace: flags.workspace,
       difficulty: flags.difficulty,
+      customFields,
       refresh: flags.refresh,
       source,
     });
@@ -132,16 +147,7 @@ export default class TasksCreate extends Command {
   }
 
 }
-
-export function splitIdOrName(value: string | undefined, source: ProviderType): { id?: string; name?: string } {
-  if (!value) return {};
-
-  if (source === 'asana' && ASANA_ID_PATTERN.test(value)) {
-    return { id: value };
-  }
-
-  return { name: value };
-}
+export { splitIdOrName } from '../../lib/task-id-resolver.js';
 
 export function buildCreateTaskInput(args: {
   title: string;
@@ -152,6 +158,7 @@ export function buildCreateTaskInput(args: {
   section?: string;
   workspace?: string;
   difficulty?: string;
+  customFields?: CustomFieldInput[];
   refresh: boolean;
   source: ProviderType;
 }): CreateTaskInput {
@@ -161,6 +168,7 @@ export function buildCreateTaskInput(args: {
     dueDate: args.dueDate,
     assigneeEmail: args.assigneeEmail,
     difficulty: args.difficulty,
+    customFields: args.customFields,
     refresh: args.refresh,
   };
 
@@ -182,7 +190,8 @@ export function buildCreateTaskInput(args: {
 export function validateCreateFlags(
   project: string | undefined,
   section: string | undefined,
-  difficulty: string | undefined
+  difficulty: string | undefined,
+  customFields: CustomFieldInput[] | undefined
 ): string | null {
   if (section && !project) {
     return '--section requires --project';
@@ -190,6 +199,10 @@ export function validateCreateFlags(
 
   if (difficulty && !project) {
     return '--difficulty requires --project';
+  }
+
+  if (customFields && customFields.length > 0 && !project) {
+    return '--field requires --project';
   }
 
   return null;

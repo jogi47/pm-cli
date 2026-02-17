@@ -44,6 +44,14 @@ export interface AsanaCustomFieldSetting {
   customField: AsanaCustomField;
 }
 
+export interface AsanaTaskCustomField {
+  gid: string;
+  name: string;
+  resourceSubtype?: string;
+  enumValue?: AsanaEnumOption;
+  multiEnumValues?: AsanaEnumOption[];
+}
+
 export interface AsanaTask {
   gid: string;
   name: string;
@@ -79,6 +87,19 @@ export interface AsanaTask {
       name: string;
     };
   }>;
+  custom_fields?: Array<{
+    gid?: string;
+    name?: string;
+    resource_subtype?: string;
+    enum_value?: {
+      gid?: string;
+      name?: string;
+    };
+    multi_enum_values?: Array<{
+      gid?: string;
+      name?: string;
+    }>;
+  }>;
 }
 
 interface MetadataCacheEntry<T> {
@@ -94,6 +115,9 @@ const TASK_FIELDS = [
   'permalink_url', 'created_at', 'modified_at',
   'memberships.project.gid', 'memberships.project.name',
   'memberships.section.gid', 'memberships.section.name',
+  'custom_fields.gid', 'custom_fields.name', 'custom_fields.resource_subtype',
+  'custom_fields.enum_value.gid', 'custom_fields.enum_value.name',
+  'custom_fields.multi_enum_values.gid', 'custom_fields.multi_enum_values.name',
 ];
 
 const TASK_DETAIL_FIELDS = [
@@ -503,7 +527,7 @@ export class AsanaClient {
     due_on?: string;
     projects?: string[];
     memberships?: Array<{ project: string; section?: string }>;
-    customFields?: Record<string, string>;
+    customFields?: Record<string, string | string[] | null>;
     workspaceGid?: string;
     assignee?: string;
   }): Promise<AsanaTask> {
@@ -539,6 +563,7 @@ export class AsanaClient {
     notes?: string;
     due_on?: string | null;
     completed?: boolean;
+    customFields?: Record<string, string | string[] | null>;
   }): Promise<AsanaTask> {
     if (!this.tasksApi) throw new Error('Not connected');
 
@@ -548,6 +573,7 @@ export class AsanaClient {
     if (params.notes !== undefined) data.notes = params.notes;
     if (params.due_on !== undefined) data.due_on = params.due_on;
     if (params.completed !== undefined) data.completed = params.completed;
+    if (params.customFields && Object.keys(params.customFields).length > 0) data.custom_fields = params.customFields;
 
     const response = await this.tasksApi.updateTask(
       gid,

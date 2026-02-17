@@ -40,12 +40,17 @@ describe('tasks create helpers', () => {
   });
 
   it('validates that section requires project', () => {
-    expect(validateCreateFlags(undefined, 'Prioritised', undefined)).toBe('--section requires --project');
-    expect(validateCreateFlags('Teacher Feature Development', 'Prioritised', undefined)).toBeNull();
+    expect(validateCreateFlags(undefined, 'Prioritised', undefined, [])).toBe('--section requires --project');
+    expect(validateCreateFlags('Teacher Feature Development', 'Prioritised', undefined, [])).toBeNull();
   });
 
   it('validates that difficulty requires project', () => {
-    expect(validateCreateFlags(undefined, undefined, 'S')).toBe('--difficulty requires --project');
-    expect(validateCreateFlags('Teacher Feature Development', undefined, 'S')).toBeNull();
+    expect(validateCreateFlags(undefined, undefined, 'S', [])).toBe('--difficulty requires --project');
+    expect(validateCreateFlags('Teacher Feature Development', undefined, 'S', [])).toBeNull();
+  });
+
+  it('validates that field requires project', () => {
+    expect(validateCreateFlags(undefined, undefined, undefined, [{ field: 'Difficulty', values: ['S'] }])).toBe('--field requires --project');
+    expect(validateCreateFlags('Teacher Feature Development', undefined, undefined, [{ field: 'Difficulty', values: ['S'] }])).toBeNull();
   });
 });

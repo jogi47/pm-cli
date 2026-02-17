@@ -199,12 +199,16 @@ pm tasks show ASANA-123 --open      # Open in browser
 pm tasks create "Fix login bug"
 pm tasks create "Update docs" --source=asana --due=2026-03-01
 pm tasks create "This is automated ticket" --source=asana --project "Teacher Feature Development" --section "Prioritised"
-pm tasks create "Tune lesson plan UX" --source=asana --project "Teacher Feature Development" --section "Prioritised" --difficulty "S"
+pm tasks create "Tune lesson plan UX" --source=asana --project "Teacher Feature Development" --section "Prioritised" --difficulty "S"  # legacy shorthand
+pm tasks create "Cover flow API integration" --source=asana --project "Teacher Feature Development" --section "Prioritised" --field "Difficulty=XS" --field "Department=Frontend" --field "Other=Bugs,Analytics"
+pm tasks create "Clear release marker" --source=asana --project "Teacher Feature Development" --field "Teacher Feature Release="
 pm tasks create "Fix login redirect bug" --source=asana --project 1210726476060870 --section 1210726344951110 --json
 
 # Update a task
 pm tasks update ASANA-123456 --status in_progress
 pm tasks update ASANA-123456 --due 2026-03-15 --title "New title"
+pm tasks update ASANA-123456 --field "Importance=High" --field "Teacher Feature Release=PR4" --json
+pm tasks update ASANA-123456 --project "Teacher Feature Development" --field "Other="
 
 # Mark tasks as done
 pm done ASANA-123456
@@ -223,7 +227,18 @@ pm --help
 # Task command help
 pm tasks --help
 pm tasks create --help
+pm tasks update --help
 ```
+
+`--field` syntax:
+- Enum: `--field "Difficulty=XS"`
+- Multi-enum: `--field "Other=Bugs,Analytics"`
+- ID-based: `--field "1207357939780562=1207357939780564"`
+- Clear: `--field "Difficulty="` and `--field "Other="`
+
+Rules:
+- `pm tasks create`: `--field` and `--difficulty` require `--project`.
+- `pm tasks update`: `--field` resolves from task memberships by default, or from `--project` if provided.
 
 ### Git & Comments
 

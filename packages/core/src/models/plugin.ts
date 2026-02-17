@@ -2,6 +2,14 @@
 
 import type { Task, ProviderType } from './task.js';
 
+export interface CustomFieldInput {
+  /** Custom field identifier (provider field ID or case-insensitive field name) */
+  field: string;
+
+  /** Option identifiers or names (empty array means clear field value) */
+  values: string[];
+}
+
 export interface CreateTaskInput {
   /** Task title */
   title: string;
@@ -36,6 +44,9 @@ export interface CreateTaskInput {
   /** Difficulty enum option name (provider-specific) */
   difficulty?: string;
 
+  /** Custom fields to set */
+  customFields?: CustomFieldInput[];
+
   /** Assignee email */
   assigneeEmail?: string;
 }
@@ -52,6 +63,24 @@ export interface UpdateTaskInput {
 
   /** New status */
   status?: 'todo' | 'in_progress' | 'done';
+
+  /** Project ID to scope custom field resolution */
+  projectId?: string;
+
+  /** Project name to scope custom field resolution */
+  projectName?: string;
+
+  /** Workspace ID to scope project resolution */
+  workspaceId?: string;
+
+  /** Workspace name to scope project resolution */
+  workspaceName?: string;
+
+  /** Skip cache when resolving metadata */
+  refresh?: boolean;
+
+  /** Custom fields to set */
+  customFields?: CustomFieldInput[];
 }
 
 export interface TaskQueryOptions {

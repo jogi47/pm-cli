@@ -189,6 +189,10 @@ export class NotionPlugin implements PMPlugin {
   // ═══════════════════════════════════════════════
 
   async createTask(input: CreateTaskInput): Promise<Task> {
+    if ((input.customFields && input.customFields.length > 0) || input.difficulty) {
+      throw new Error('Provider "notion" does not support custom field updates yet.');
+    }
+
     const schema = await notionClient.getDatabaseSchema();
     const properties: Record<string, unknown> = {};
 
@@ -227,6 +231,10 @@ export class NotionPlugin implements PMPlugin {
   }
 
   async updateTask(externalId: string, updates: UpdateTaskInput): Promise<Task> {
+    if (updates.customFields && updates.customFields.length > 0) {
+      throw new Error('Provider "notion" does not support custom field updates yet.');
+    }
+
     const schema = await notionClient.getDatabaseSchema();
     const properties: Record<string, unknown> = {};
 

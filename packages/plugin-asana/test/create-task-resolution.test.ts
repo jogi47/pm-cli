@@ -198,6 +198,80 @@ describe('AsanaPlugin createTask resolution', () => {
     );
   });
 
+  it('sets enum and multi-enum custom fields via --field inputs', async () => {
+    vi.spyOn(asanaClient, 'getWorkspaces').mockReturnValue([{ gid: 'ws-1', name: 'Workspace One' }]);
+    vi.spyOn(asanaClient, 'getDefaultWorkspace').mockReturnValue({ gid: 'ws-1', name: 'Workspace One' });
+    vi.spyOn(asanaClient, 'getProjects').mockResolvedValue([
+      { gid: 'proj-1', name: 'Teacher Feature Development', workspace: { gid: 'ws-1', name: 'Workspace One' } },
+    ]);
+    vi.spyOn(asanaClient, 'getCustomFieldSettingsForProject').mockResolvedValue([
+      {
+        customField: {
+          gid: 'cf-importance',
+          name: 'Importance',
+          resourceSubtype: 'enum',
+          enumOptions: [
+            { gid: 'opt-high', name: 'High' },
+            { gid: 'opt-low', name: 'Low' },
+          ],
+        },
+      },
+      {
+        customField: {
+          gid: 'cf-other',
+          name: 'Other',
+          resourceSubtype: 'multi_enum',
+          enumOptions: [
+            { gid: 'opt-bugs', name: 'Bugs' },
+            { gid: 'opt-analytics', name: 'Analytics' },
+          ],
+        },
+      },
+    ]);
+
+    const createSpy = vi.spyOn(asanaClient, 'createTask').mockResolvedValue(
+      buildAsanaTask({
+        projects: [{ gid: 'proj-1', name: 'Teacher Feature Development' }],
+      })
+    );
+
+    const task = await plugin.createTask({
+      title: 'Set fields',
+      projectName: 'Teacher Feature Development',
+      customFields: [
+        { field: 'Importance', values: ['High'] },
+        { field: 'Other', values: ['Bugs', 'Analytics'] },
+      ],
+    });
+
+    expect(createSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        customFields: {
+          'cf-importance': 'opt-high',
+          'cf-other': ['opt-bugs', 'opt-analytics'],
+        },
+      })
+    );
+    expect(task.customFieldResults).toEqual([
+      {
+        fieldId: 'cf-importance',
+        fieldName: 'Importance',
+        type: 'enum',
+        optionIds: ['opt-high'],
+        optionNames: ['High'],
+        status: 'applied',
+      },
+      {
+        fieldId: 'cf-other',
+        fieldName: 'Other',
+        type: 'multi_enum',
+        optionIds: ['opt-bugs', 'opt-analytics'],
+        optionNames: ['Bugs', 'Analytics'],
+        status: 'applied',
+      },
+    ]);
+  });
+
   it('fails with available options when difficulty option is missing', async () => {
     vi.spyOn(asanaClient, 'getWorkspaces').mockReturnValue([{ gid: 'ws-1', name: 'Workspace One' }]);
     vi.spyOn(asanaClient, 'getDefaultWorkspace').mockReturnValue({ gid: 'ws-1', name: 'Workspace One' });
@@ -222,6 +296,6 @@ describe('AsanaPlugin createTask resolution', () => {
       title: 'Bad difficulty',
       projectName: 'Teacher Feature Development',
       difficulty: 'L',
-    })).rejects.toThrow('Available options: XS, S');
+    })).rejects.toThrow('Available options: XS (opt-xs), S (opt-s)');
   });
 });
