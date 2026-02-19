@@ -4,6 +4,7 @@ import { Command, Flags } from '@oclif/core';
 import { pluginManager, renderDashboard, renderError } from '@jogi47/pm-cli-core';
 import type { OutputFormat, ProviderType } from '@jogi47/pm-cli-core';
 import '../init.js';
+import { handleCommandError } from '../lib/command-error.js';
 
 export default class Today extends Command {
   static override description = 'Morning dashboard — overdue, due today, and in-progress tasks';
@@ -39,8 +40,7 @@ export default class Today extends Command {
 
       renderDashboard(tasks, format);
     } catch (error) {
-      renderError(error instanceof Error ? error.message : 'Failed to fetch tasks');
-      this.exit(1);
+      handleCommandError(error, 'Failed to fetch tasks');
     }
   }
 }

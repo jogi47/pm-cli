@@ -4,6 +4,7 @@ import { Command, Args, Flags } from '@oclif/core';
 import { pluginManager, renderTasks, renderTasksPlain, renderTaskIds, renderError, filterAndSortTasks } from '@jogi47/pm-cli-core';
 import type { OutputFormat, ProviderType, TaskStatus, FilterSortOptions } from '@jogi47/pm-cli-core';
 import '../../init.js';
+import { handleCommandError } from '../../lib/command-error.js';
 
 export default class TasksSearch extends Command {
   static override description = 'Search for tasks';
@@ -87,8 +88,7 @@ export default class TasksSearch extends Command {
         renderTasks(tasks, format);
       }
     } catch (error) {
-      renderError(error instanceof Error ? error.message : 'Failed to search tasks');
-      this.exit(1);
+      handleCommandError(error, 'Failed to search tasks');
     }
   }
 }

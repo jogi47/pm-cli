@@ -3,6 +3,7 @@
 import type { PMPlugin, ProviderInfo, CreateTaskInput, UpdateTaskInput } from '../models/plugin.js';
 import type { Task, TaskStatus, ProviderType } from '../models/task.js';
 import { parseTaskId } from '../models/task.js';
+import { PMCliError, ProviderError, NotConnectedError, formatError } from '../utils/errors.js';
 
 export interface FilterSortOptions {
   status?: TaskStatus;
@@ -138,15 +139,15 @@ class PluginManager {
 
     if (options?.source) {
       const plugin = this.getPlugin(options.source);
-      if (!plugin) throw new Error(`Unknown provider: ${options.source}`);
+      if (!plugin) throw new PMCliError({ message: `Unknown provider: ${options.source}`, reason: 'The provider is not registered.', suggestion: 'Use `pm providers` to list available providers.' });
       if (!(await plugin.isAuthenticated())) {
-        throw new Error(`Not connected to ${options.source}. Run: pm connect ${options.source}`);
+        throw new NotConnectedError(options.source);
       }
       plugins = [plugin];
     } else {
       plugins = await this.getConnectedPlugins();
       if (plugins.length === 0) {
-        throw new Error('No providers connected. Run: pm connect <provider>');
+        throw new PMCliError({ message: 'No providers connected', reason: 'No active provider sessions were found.', suggestion: 'Run: pm connect <provider>' });
       }
     }
 
@@ -164,7 +165,12 @@ class PluginManager {
             return await plugin.getOverdueTasks(queryOptions);
           }
         } catch (error) {
-          console.error(`Error fetching from ${plugin.name}:`, error);
+          const providerError = new ProviderError(plugin.name, `Failed to fetch ${operation} tasks`, error instanceof Error ? error : undefined, {
+            reason: error instanceof Error ? error.message : 'Unknown API error.',
+            suggestion: `Retry with --refresh or reconnect using \`pm connect ${plugin.name}\`.`,
+          });
+
+          console.warn(formatError(providerError));
           return [];
         }
       })
@@ -193,7 +199,7 @@ class PluginManager {
 
     if (options?.source) {
       const plugin = this.getPlugin(options.source);
-      if (!plugin) throw new Error(`Unknown provider: ${options.source}`);
+      if (!plugin) throw new PMCliError({ message: `Unknown provider: ${options.source}`, reason: 'The provider is not registered.', suggestion: 'Use `pm providers` to list available providers.' });
       plugins = [plugin];
     } else {
       plugins = await this.getConnectedPlugins();
@@ -215,9 +221,9 @@ class PluginManager {
     input: CreateTaskInput
   ): Promise<Task> {
     const plugin = this.getPlugin(source);
-    if (!plugin) throw new Error(`Unknown provider: ${source}`);
+    if (!plugin) throw new PMCliError({ message: `Unknown provider: ${source}`, reason: 'The provider is not registered.', suggestion: 'Use `pm providers` to list available providers.' });
     if (!(await plugin.isAuthenticated())) {
-      throw new Error(`Not connected to ${source}. Run: pm connect ${source}`);
+      throw new NotConnectedError(source);
     }
     return plugin.createTask(input);
   }
@@ -230,12 +236,12 @@ class PluginManager {
     updates: UpdateTaskInput
   ): Promise<Task> {
     const parsed = parseTaskId(taskId);
-    if (!parsed) throw new Error(`Invalid task ID format: ${taskId}`);
+    if (!parsed) throw new PMCliError({ message: `Invalid task ID format: ${taskId}`, reason: 'Task IDs must look like ASANA-123 or NOTION-abc.', suggestion: 'Copy an ID from `pm tasks assigned --ids-only` and try again.' });
 
     const plugin = this.getPlugin(parsed.source);
-    if (!plugin) throw new Error(`Unknown provider: ${parsed.source}`);
+    if (!plugin) throw new PMCliError({ message: `Unknown provider: ${parsed.source}`, reason: 'The provider is not registered.', suggestion: 'Use `pm providers` to list available providers.' });
     if (!(await plugin.isAuthenticated())) {
-      throw new Error(`Not connected to ${parsed.source}. Run: pm connect ${parsed.source}`);
+      throw new NotConnectedError(parsed.source);
     }
     return plugin.updateTask(parsed.externalId, updates);
   }
@@ -313,12 +319,12 @@ class PluginManager {
    */
   async addComment(taskId: string, body: string): Promise<void> {
     const parsed = parseTaskId(taskId);
-    if (!parsed) throw new Error(`Invalid task ID format: ${taskId}`);
+    if (!parsed) throw new PMCliError({ message: `Invalid task ID format: ${taskId}`, reason: 'Task IDs must look like ASANA-123 or NOTION-abc.', suggestion: 'Copy an ID from `pm tasks assigned --ids-only` and try again.' });
 
     const plugin = this.getPlugin(parsed.source);
-    if (!plugin) throw new Error(`Unknown provider: ${parsed.source}`);
+    if (!plugin) throw new PMCliError({ message: `Unknown provider: ${parsed.source}`, reason: 'The provider is not registered.', suggestion: 'Use `pm providers` to list available providers.' });
     if (!(await plugin.isAuthenticated())) {
-      throw new Error(`Not connected to ${parsed.source}. Run: pm connect ${parsed.source}`);
+      throw new NotConnectedError(parsed.source);
     }
     if (!plugin.addComment) {
       throw new Error(`${parsed.source} does not support comments`);

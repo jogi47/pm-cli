@@ -6,6 +6,7 @@ import type { CreateTaskInput, CustomFieldInput, OutputFormat, ProviderType } fr
 import { mergeLegacyDifficultyField, parseCustomFieldFlags } from '../../lib/task-field-parser.js';
 import { splitIdOrName } from '../../lib/task-id-resolver.js';
 import '../../init.js';
+import { handleCommandError } from '../../lib/command-error.js';
 
 export default class TasksCreate extends Command {
   static override description = 'Create a new task';
@@ -164,8 +165,7 @@ export default class TasksCreate extends Command {
         renderTasks(createdTasks, format);
       }
     } catch (error) {
-      renderError(error instanceof Error ? error.message : 'Failed to create task');
-      this.exit(1);
+      handleCommandError(error, 'Failed to create task');
     }
   }
 

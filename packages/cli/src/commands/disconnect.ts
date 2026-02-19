@@ -4,6 +4,7 @@ import { Command, Args } from '@oclif/core';
 import { pluginManager, renderSuccess, renderError } from '@jogi47/pm-cli-core';
 import type { ProviderType } from '@jogi47/pm-cli-core';
 import '../init.js';
+import { handleCommandError } from '../lib/command-error.js';
 
 export default class Disconnect extends Command {
   static override description = 'Disconnect from a project management provider';
@@ -43,8 +44,7 @@ export default class Disconnect extends Command {
       await plugin.disconnect();
       renderSuccess(`Disconnected from ${plugin.displayName}`);
     } catch (error) {
-      renderError(`Failed to disconnect: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      this.exit(1);
+      handleCommandError(error, 'Failed to disconnect');
     }
   }
 }

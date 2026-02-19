@@ -23,7 +23,8 @@
       "target": "./dist/commands"
     },
     "plugins": [
-      "@oclif/plugin-help"
+      "@oclif/plugin-help",
+      "@oclif/plugin-autocomplete"
     ],
     "topicSeparator": " "
   },
@@ -41,7 +42,8 @@
     "@jogi47/pm-cli-plugin-asana": "workspace:^",
     "@jogi47/pm-cli-plugin-notion": "workspace:^",
     "@inquirer/prompts": "^5.0.0",
-    "open": "^10.0.0"
+    "open": "^10.0.0",
+    "@oclif/plugin-autocomplete": "^3.2.30"
   },
   "devDependencies": {
     "@oclif/test": "^4.0.0",
