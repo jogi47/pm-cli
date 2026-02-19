@@ -273,6 +273,41 @@ class PluginManager {
 
     return results;
   }
+
+  /**
+   * Delete one or more tasks
+   */
+  async deleteTasks(taskIds: string[]): Promise<{ id: string; error?: string }[]> {
+    const results: { id: string; error?: string }[] = [];
+
+    for (const taskId of taskIds) {
+      try {
+        const parsed = parseTaskId(taskId);
+        if (!parsed) {
+          results.push({ id: taskId, error: `Invalid task ID format: ${taskId}` });
+          continue;
+        }
+
+        const plugin = this.getPlugin(parsed.source);
+        if (!plugin) {
+          results.push({ id: taskId, error: `Unknown provider: ${parsed.source}` });
+          continue;
+        }
+        if (!(await plugin.isAuthenticated())) {
+          results.push({ id: taskId, error: `Not connected to ${parsed.source}` });
+          continue;
+        }
+
+        await plugin.deleteTask(parsed.externalId);
+        results.push({ id: taskId });
+      } catch (error) {
+        results.push({ id: taskId, error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+    }
+
+    return results;
+  }
+
   /**
    * Add a comment to a task (provider determined from task ID)
    */

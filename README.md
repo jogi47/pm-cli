@@ -11,7 +11,7 @@ Currently supports:
 ## Features
 
 - Aggregate tasks from multiple PM tools in one place
-- Create, update, and complete tasks from the command line
+- Create, update, complete, and delete tasks from the command line
 - Morning dashboard and summary views
 - Filter by status/priority and sort results
 - Search across all connected providers
@@ -213,6 +213,10 @@ pm tasks update ASANA-123456 --project "Teacher Feature Development" --field "Ot
 # Mark tasks as done
 pm done ASANA-123456
 pm done ASANA-123456 ASANA-789012   # Batch complete
+
+# Delete tasks
+pm delete ASANA-123456
+pm delete ASANA-123456 ASANA-789012 # Batch delete
 
 # Open a task in browser
 pm open ASANA-123456
