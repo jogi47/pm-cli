@@ -43,23 +43,22 @@ export default class Delete extends Command {
 
     const results = await pluginManager.deleteTasks(taskIds);
 
+    const hasErrors = results.some((result) => Boolean(result.error));
+
     if (flags.json) {
       console.log(JSON.stringify(results, null, 2));
+      if (hasErrors) this.exit(1);
       return;
     }
 
-    let hasErrors = false;
     for (const result of results) {
       if (result.error) {
         renderError(`${result.id}: ${result.error}`);
-        hasErrors = true;
       } else {
         renderSuccess(`Deleted: ${result.id}`);
       }
     }
 
-    if (hasErrors) {
-      this.exit(1);
-    }
+    if (hasErrors) this.exit(1);
   }
 }
