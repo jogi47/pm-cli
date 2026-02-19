@@ -1,7 +1,7 @@
 // src/commands/tasks/create.ts
 
 import { Command, Args, Flags } from '@oclif/core';
-import { pluginManager, renderTask, renderSuccess, renderError } from '@jogi47/pm-cli-core';
+import { pluginManager, renderTask, renderSuccess, renderError, renderTasks } from '@jogi47/pm-cli-core';
 import type { CreateTaskInput, CustomFieldInput, OutputFormat, ProviderType } from '@jogi47/pm-cli-core';
 import { mergeLegacyDifficultyField, parseCustomFieldFlags } from '../../lib/task-field-parser.js';
 import { splitIdOrName } from '../../lib/task-id-resolver.js';
@@ -15,13 +15,15 @@ export default class TasksCreate extends Command {
     '<%= config.bin %> tasks create "This is automated ticket" --source=asana --project "Teacher Feature Development" --section "Prioritised"',
     '<%= config.bin %> tasks create "Tune lesson plan UX" --source=asana --project "Teacher Feature Development" --section "Prioritised" --difficulty "S"',
     '<%= config.bin %> tasks create "Cover flow API integration" --source=asana --project "Teacher Feature Development" --section "Prioritised" --field "Difficulty=XS" --field "Other=Bugs,Analytics"',
+    '<%= config.bin %> tasks create --source=asana --project "Teacher Feature Development" --section "Prioritised" --title "Fix login bug" --title "Ship onboarding follow-up"',
+    '<%= config.bin %> tasks create --source=asana --project "Teacher Feature Development" --title "Task A" --title "Task B" --field "Difficulty=S" --assignee dev@company.com',
     '<%= config.bin %> tasks create "Fix login redirect bug" --source=asana --project 1210726476060870 --section 1210726344951110 --json',
   ];
 
   static override args = {
     title: Args.string({
       description: 'Task title',
-      required: true,
+      required: false,
     }),
   };
 
@@ -29,6 +31,11 @@ export default class TasksCreate extends Command {
     description: Flags.string({
       char: 'd',
       description: 'Task description',
+    }),
+    title: Flags.string({
+      char: 't',
+      description: 'Task title (repeatable for bulk creation)',
+      multiple: true,
     }),
     source: Flags.string({
       char: 's',
@@ -121,25 +128,41 @@ export default class TasksCreate extends Command {
       }
     }
 
-    const input = buildCreateTaskInput({
-      title: args.title,
-      description: flags.description,
-      dueDate,
-      assigneeEmail: flags.assignee,
-      project: flags.project,
-      section: flags.section,
-      workspace: flags.workspace,
-      difficulty: flags.difficulty,
-      customFields,
-      refresh: flags.refresh,
-      source,
-    });
+    const titles = resolveTaskTitles(args.title, flags.title);
+    if (titles.length === 0) {
+      renderError('Provide at least one title as an argument or via --title');
+      this.exit(1);
+      return;
+    }
 
     try {
-      const task = await pluginManager.createTask(source, input);
+      const inputs = buildCreateTaskInputs({
+        titles,
+        description: flags.description,
+        dueDate,
+        assigneeEmail: flags.assignee,
+        project: flags.project,
+        section: flags.section,
+        workspace: flags.workspace,
+        difficulty: flags.difficulty,
+        customFields,
+        refresh: flags.refresh,
+        source,
+      });
+      const createdTasks = [];
 
-      renderSuccess(`Task created: ${task.id}`);
-      renderTask(task, format);
+      for (const input of inputs) {
+        const task = await pluginManager.createTask(source, input);
+        createdTasks.push(task);
+      }
+
+      if (createdTasks.length === 1) {
+        renderSuccess(`Task created: ${createdTasks[0].id}`);
+        renderTask(createdTasks[0], format);
+      } else {
+        renderSuccess(`${createdTasks.length} tasks created`);
+        renderTasks(createdTasks, format);
+      }
     } catch (error) {
       renderError(error instanceof Error ? error.message : 'Failed to create task');
       this.exit(1);
@@ -148,6 +171,42 @@ export default class TasksCreate extends Command {
 
 }
 export { splitIdOrName } from '../../lib/task-id-resolver.js';
+
+export function resolveTaskTitles(argTitle: string | undefined, flagTitles: string[] | undefined): string[] {
+  const titles = [argTitle, ...(flagTitles || [])]
+    .map(title => title?.trim())
+    .filter((title): title is string => Boolean(title));
+
+  return Array.from(new Set(titles));
+}
+
+export function buildCreateTaskInputs(args: {
+  titles: string[];
+  description?: string;
+  dueDate?: Date;
+  assigneeEmail?: string;
+  project?: string;
+  section?: string;
+  workspace?: string;
+  difficulty?: string;
+  customFields?: CustomFieldInput[];
+  refresh: boolean;
+  source: ProviderType;
+}): CreateTaskInput[] {
+  return args.titles.map(title => buildCreateTaskInput({
+    title,
+    description: args.description,
+    dueDate: args.dueDate,
+    assigneeEmail: args.assigneeEmail,
+    project: args.project,
+    section: args.section,
+    workspace: args.workspace,
+    difficulty: args.difficulty,
+    customFields: args.customFields,
+    refresh: args.refresh,
+    source: args.source,
+  }));
+}
 
 export function buildCreateTaskInput(args: {
   title: string;
