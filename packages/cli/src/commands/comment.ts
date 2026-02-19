@@ -3,6 +3,7 @@
 import { Command, Args } from '@oclif/core';
 import { pluginManager, renderError, renderSuccess } from '@jogi47/pm-cli-core';
 import '../init.js';
+import { handleCommandError } from '../lib/command-error.js';
 
 export default class Comment extends Command {
   static override description = 'Add a comment to a task';
@@ -32,8 +33,7 @@ export default class Comment extends Command {
       await pluginManager.addComment(args.id, args.message);
       renderSuccess(`Comment added to ${args.id}`);
     } catch (error) {
-      renderError(error instanceof Error ? error.message : 'Failed to add comment');
-      this.exit(1);
+      handleCommandError(error, 'Failed to add comment');
     }
   }
 }

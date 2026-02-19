@@ -5,6 +5,7 @@ import { input, password } from '@inquirer/prompts';
 import { pluginManager, renderSuccess, renderError, PROVIDER_CREDENTIALS } from '@jogi47/pm-cli-core';
 import type { ProviderCredentials, ProviderType } from '@jogi47/pm-cli-core';
 import '../init.js';
+import { handleCommandError } from '../lib/command-error.js';
 
 export default class Connect extends Command {
   static override description = 'Connect to a project management provider';
@@ -76,8 +77,7 @@ export default class Connect extends Command {
       this.log(`  User: ${info.userName}`);
       this.log(`  Workspace: ${info.workspace}`);
     } catch (error) {
-      renderError(`Failed to connect: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      this.exit(1);
+      handleCommandError(error, 'Failed to connect');
     }
   }
 }

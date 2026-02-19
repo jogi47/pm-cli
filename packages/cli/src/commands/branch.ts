@@ -4,6 +4,7 @@ import { Command, Args, Flags } from '@oclif/core';
 import { pluginManager, parseTaskId, slugify, renderError, renderSuccess } from '@jogi47/pm-cli-core';
 import { execSync } from 'node:child_process';
 import '../init.js';
+import { handleCommandError } from '../lib/command-error.js';
 
 export default class Branch extends Command {
   static override description = 'Create a git branch from a task';
@@ -86,8 +87,7 @@ export default class Branch extends Command {
         renderSuccess(`Switched to branch: ${branchName}`);
       }
     } catch (error) {
-      renderError(error instanceof Error ? error.message : 'Failed to create branch');
-      this.exit(1);
+      handleCommandError(error, 'Failed to create branch');
     }
   }
 }

@@ -7,6 +7,7 @@ import { parseTaskId } from '@jogi47/pm-cli-core';
 import { parseCustomFieldFlags } from '../../lib/task-field-parser.js';
 import { splitIdOrName } from '../../lib/task-id-resolver.js';
 import '../../init.js';
+import { handleCommandError } from '../../lib/command-error.js';
 
 export default class TasksUpdate extends Command {
   static override description = 'Update a task';
@@ -120,8 +121,7 @@ export default class TasksUpdate extends Command {
       renderSuccess(`Task updated: ${task.id}`);
       renderTask(task, format);
     } catch (error) {
-      renderError(error instanceof Error ? error.message : 'Failed to update task');
-      this.exit(1);
+      handleCommandError(error, 'Failed to update task');
     }
   }
 }

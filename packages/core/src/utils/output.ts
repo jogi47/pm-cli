@@ -4,6 +4,7 @@ import Table from 'cli-table3';
 import chalk from 'chalk';
 import type { Task, TaskStatus, ProviderType } from '../models/task.js';
 import type { ProviderInfo } from '../models/plugin.js';
+import { formatError } from './errors.js';
 
 export type OutputFormat = 'table' | 'json';
 
@@ -215,8 +216,9 @@ export function renderSuccess(message: string): void {
 /**
  * Render error message
  */
-export function renderError(message: string): void {
-  console.log(chalk.red('✗') + ' ' + message);
+export function renderError(message: string | unknown): void {
+  const formatted = typeof message === 'string' ? message : formatError(message);
+  console.log(chalk.red('✗') + ' ' + formatted);
 }
 
 /**

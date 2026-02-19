@@ -4,6 +4,7 @@ import { Command, Args, Flags } from '@oclif/core';
 import { pluginManager, renderTask, renderError, parseTaskId } from '@jogi47/pm-cli-core';
 import type { OutputFormat } from '@jogi47/pm-cli-core';
 import '../../init.js';
+import { handleCommandError } from '../../lib/command-error.js';
 
 export default class TasksShow extends Command {
   static override description = 'Show task details';
@@ -80,8 +81,7 @@ export default class TasksShow extends Command {
 
       renderTask(task, format);
     } catch (error) {
-      renderError(error instanceof Error ? error.message : 'Failed to fetch task');
-      this.exit(1);
+      handleCommandError(error, 'Failed to fetch task');
     }
   }
 }

@@ -4,6 +4,7 @@ import { Command, Flags } from '@oclif/core';
 import { pluginManager, renderSummary, renderError } from '@jogi47/pm-cli-core';
 import type { OutputFormat, Task } from '@jogi47/pm-cli-core';
 import '../init.js';
+import { handleCommandError } from '../lib/command-error.js';
 
 export default class Summary extends Command {
   static override description = 'Show provider connection status and task count statistics';
@@ -57,8 +58,7 @@ export default class Summary extends Command {
 
       renderSummary(providers, { overdue, dueToday, inProgress, total }, format);
     } catch (error) {
-      renderError(error instanceof Error ? error.message : 'Failed to fetch summary');
-      this.exit(1);
+      handleCommandError(error, 'Failed to fetch summary');
     }
   }
 }

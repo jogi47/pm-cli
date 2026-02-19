@@ -4,6 +4,7 @@ import { Command, Flags } from '@oclif/core';
 import { pluginManager, renderTasks, renderTasksPlain, renderTaskIds, renderError, filterAndSortTasks } from '@jogi47/pm-cli-core';
 import type { OutputFormat, ProviderType, TaskStatus, FilterSortOptions } from '@jogi47/pm-cli-core';
 import '../../init.js';
+import { handleCommandError } from '../../lib/command-error.js';
 
 export default class TasksOverdue extends Command {
   static override description = 'List overdue tasks';
@@ -86,8 +87,7 @@ export default class TasksOverdue extends Command {
         renderTasks(tasks, format);
       }
     } catch (error) {
-      renderError(error instanceof Error ? error.message : 'Failed to fetch tasks');
-      this.exit(1);
+      handleCommandError(error, 'Failed to fetch tasks');
     }
   }
 }

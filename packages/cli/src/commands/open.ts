@@ -3,6 +3,7 @@
 import { Command, Args } from '@oclif/core';
 import { pluginManager, renderError, parseTaskId } from '@jogi47/pm-cli-core';
 import '../init.js';
+import { handleCommandError } from '../lib/command-error.js';
 
 export default class Open extends Command {
   static override description = 'Open a task in the browser';
@@ -51,8 +52,7 @@ export default class Open extends Command {
       await open(url);
       this.log(`Opened in browser: ${url}`);
     } catch (error) {
-      renderError(error instanceof Error ? error.message : 'Failed to open task');
-      this.exit(1);
+      handleCommandError(error, 'Failed to open task');
     }
   }
 }
