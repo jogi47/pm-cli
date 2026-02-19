@@ -199,6 +199,19 @@ export class NotionClient {
   }
 
   /**
+   * Archive (soft-delete) a page
+   */
+  async archivePage(pageId: string): Promise<void> {
+    if (!this.client) throw new Error('Not connected');
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await this.client.pages.update({
+      page_id: pageId,
+      archived: true,
+    } as any);
+  }
+
+  /**
    * Search pages in the database by text
    */
   async searchPages(query: string, options?: { pageSize?: number }): Promise<NotionPage[]> {

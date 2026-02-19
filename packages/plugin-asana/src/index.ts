@@ -259,6 +259,11 @@ export class AsanaPlugin implements PMPlugin {
     return task;
   }
 
+  async deleteTask(externalId: string): Promise<void> {
+    await asanaClient.deleteTask(externalId);
+    await cacheManager.invalidateProvider('asana');
+  }
+
   async addComment(externalId: string, body: string): Promise<void> {
     await asanaClient.addComment(externalId, body);
   }

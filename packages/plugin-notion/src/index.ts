@@ -289,6 +289,11 @@ export class NotionPlugin implements PMPlugin {
     return this.updateTask(externalId, { status: 'done' });
   }
 
+  async deleteTask(externalId: string): Promise<void> {
+    await notionClient.archivePage(externalId);
+    await cacheManager.invalidateProvider('notion');
+  }
+
   async addComment(externalId: string, body: string): Promise<void> {
     await notionClient.addComment(externalId, body);
   }

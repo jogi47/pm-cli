@@ -228,6 +228,11 @@ export interface PMPlugin {
   completeTask(externalId: string): Promise<Task>;
 
   /**
+   * Delete a task
+   */
+  deleteTask(externalId: string): Promise<void>;
+
+  /**
    * Add a comment to a task
    */
   addComment?(externalId: string, body: string): Promise<void>;

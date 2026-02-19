@@ -89,6 +89,7 @@ declare module 'asana' {
     searchTasksForWorkspace(workspaceGid: string, opts?: Record<string, unknown>): Promise<ResponseWrapper<Task[]>>;
     createTask(body: { data: Record<string, unknown> }, opts?: Record<string, unknown>): Promise<ResponseWrapper<Task>>;
     updateTask(taskGid: string, body: { data: Record<string, unknown> }, opts?: Record<string, unknown>): Promise<ResponseWrapper<Task>>;
+    deleteTask(taskGid: string, opts?: Record<string, unknown>): Promise<ResponseWrapper<Record<string, never>>>;
   }
 
   export class ProjectsApi {

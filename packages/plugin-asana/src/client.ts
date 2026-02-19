@@ -584,6 +584,15 @@ export class AsanaClient {
   }
 
   /**
+   * Delete a task by GID
+   */
+  async deleteTask(gid: string): Promise<void> {
+    if (!this.tasksApi) throw new Error('Not connected');
+
+    await this.tasksApi.deleteTask(gid);
+  }
+
+  /**
    * Get a single task by GID
    */
   async getTask(gid: string): Promise<AsanaTask | null> {
