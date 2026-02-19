@@ -16,6 +16,7 @@ export default class TasksCreate extends Command {
     '<%= config.bin %> tasks create "Tune lesson plan UX" --source=asana --project "Teacher Feature Development" --section "Prioritised" --difficulty "S"',
     '<%= config.bin %> tasks create "Cover flow API integration" --source=asana --project "Teacher Feature Development" --section "Prioritised" --field "Difficulty=XS" --field "Other=Bugs,Analytics"',
     '<%= config.bin %> tasks create --source=asana --project "Teacher Feature Development" --section "Prioritised" --title "Fix login bug" --title "Ship onboarding follow-up"',
+    '<%= config.bin %> tasks create --source=asana --project "Teacher Feature Development" --title "Task A" --title "Task B" --field "Difficulty=S" --assignee dev@company.com',
     '<%= config.bin %> tasks create "Fix login redirect bug" --source=asana --project 1210726476060870 --section 1210726344951110 --json',
   ];
 
@@ -135,22 +136,22 @@ export default class TasksCreate extends Command {
     }
 
     try {
+      const inputs = buildCreateTaskInputs({
+        titles,
+        description: flags.description,
+        dueDate,
+        assigneeEmail: flags.assignee,
+        project: flags.project,
+        section: flags.section,
+        workspace: flags.workspace,
+        difficulty: flags.difficulty,
+        customFields,
+        refresh: flags.refresh,
+        source,
+      });
       const createdTasks = [];
 
-      for (const title of titles) {
-        const input = buildCreateTaskInput({
-          title,
-          description: flags.description,
-          dueDate,
-          assigneeEmail: flags.assignee,
-          project: flags.project,
-          section: flags.section,
-          workspace: flags.workspace,
-          difficulty: flags.difficulty,
-          customFields,
-          refresh: flags.refresh,
-          source,
-        });
+      for (const input of inputs) {
         const task = await pluginManager.createTask(source, input);
         createdTasks.push(task);
       }
@@ -177,6 +178,34 @@ export function resolveTaskTitles(argTitle: string | undefined, flagTitles: stri
     .filter((title): title is string => Boolean(title));
 
   return Array.from(new Set(titles));
+}
+
+export function buildCreateTaskInputs(args: {
+  titles: string[];
+  description?: string;
+  dueDate?: Date;
+  assigneeEmail?: string;
+  project?: string;
+  section?: string;
+  workspace?: string;
+  difficulty?: string;
+  customFields?: CustomFieldInput[];
+  refresh: boolean;
+  source: ProviderType;
+}): CreateTaskInput[] {
+  return args.titles.map(title => buildCreateTaskInput({
+    title,
+    description: args.description,
+    dueDate: args.dueDate,
+    assigneeEmail: args.assigneeEmail,
+    project: args.project,
+    section: args.section,
+    workspace: args.workspace,
+    difficulty: args.difficulty,
+    customFields: args.customFields,
+    refresh: args.refresh,
+    source: args.source,
+  }));
 }
 
 export function buildCreateTaskInput(args: {
