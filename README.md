@@ -19,6 +19,8 @@ Currently supports:
 - Add comments to tasks
 - Switch between workspaces
 - Cached responses for fast repeat queries
+- Built-in cache inspection and cache invalidation commands
+- Project-level configuration via `.pmrc.json`
 - Multiple output modes: table, JSON, plain, ids-only
 
 ## Installation
@@ -168,6 +170,38 @@ pm summary
 pm summary --json
 ```
 
+### Cache Commands
+
+```bash
+# Show cache file path + entry counts
+pm cache stats
+
+# Clear all cache entries
+pm cache clear
+
+# Clear cache for one provider
+pm cache clear --source=asana
+```
+
+### Config Commands
+
+```bash
+# Initialize project config file
+pm config init
+pm config init --force
+
+# Show where config files are loaded from
+pm config path
+
+# List merged config (user + project)
+pm config list
+
+# Read/write specific config keys
+pm config get defaultSource
+pm config set defaultLimit 10
+pm config set aliases.today "\"tasks assigned --status=in_progress\""
+```
+
 ### Task Commands
 
 ```bash
@@ -282,7 +316,6 @@ pm-cli/
 ├── pnpm-workspace.yaml
 ├── tsconfig.base.json
 ├── vitest.config.ts
-└── PUBLISHING.md          # npm publishing guide
 ```
 
 ## Development
@@ -307,7 +340,6 @@ pnpm test
 pnpm pm <command>
 ```
 
-For publishing to npm, see [jogi-docs/PUBLISHING.md](jogi-docs/PUBLISHING.md).
 
 ## Architecture
 
@@ -386,7 +418,8 @@ You can also set credentials via environment variables:
 
 ```bash
 export ASANA_TOKEN=your_token_here
-export NOTION_TOKEN=your_token_here
+# NOTION_TOKEN can provide the token, but Notion still requires a databaseId
+# (set during `pm connect notion`)
 ```
 
 ## Adding a New Provider

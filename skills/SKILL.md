@@ -9,7 +9,7 @@ You are operating `pm`, a unified CLI for managing tasks across multiple project
 
 ## Tool Overview
 
-`pm` aggregates tasks from multiple PM providers into a single command-line interface. It supports listing, searching, creating, updating, completing, and viewing tasks with cached responses and JSON output for scripting.
+`pm` aggregates tasks from multiple PM providers into a single command-line interface. It supports listing, searching, creating, updating, completing, deleting, and viewing tasks with cached responses, JSON output for scripting, plus cache/config management commands.
 
 **npm package:** `@jogi47/pm-cli` (install: `npm install -g @jogi47/pm-cli`)
 **Supported providers:** `asana` (fully implemented), `notion` (fully implemented)
@@ -29,10 +29,11 @@ The command interactively prompts for credentials. You cannot pass tokens as arg
 
 ```bash
 export ASANA_TOKEN=<token>
+# Optional token override for Notion:
 export NOTION_TOKEN=<token>
 ```
 
-Environment variables bypass the interactive `pm connect` flow.
+Environment variables can supply provider tokens. For Notion, a `databaseId` is also required and is typically captured via `pm connect notion`.
 
 ### 3. Select a workspace (if the provider has multiple)
 
@@ -196,7 +197,7 @@ pm tasks search "urgent" --json
 pm tasks search "deploy" --sort=due --ids-only
 ```
 
-Note: `search` does **not** have a `--refresh` flag — it always fetches live results.
+Note: `search` does **not** have a `--refresh` flag. Results may be served from cache.
 
 ---
 
@@ -295,6 +296,26 @@ pm tasks update ASANA-123456 -d "Updated notes" --json
 
 ---
 
+### `pm delete <id> [id...]`
+
+Delete one or more tasks. Accepts multiple task IDs.
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `ids` | Yes | One or more task IDs (`PROVIDER-externalId`) |
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--json` | | `false` | Output as JSON |
+
+```bash
+pm delete ASANA-123456
+pm delete ASANA-123456 ASANA-789012   # Delete multiple tasks
+pm delete ASANA-123456 --json
+```
+
+---
+
 ### `pm done <id> [id...]`
 
 Mark one or more tasks as done. Accepts multiple task IDs.
@@ -356,6 +377,89 @@ Show provider connection status and task count statistics (overdue, due today, i
 ```bash
 pm summary
 pm summary --json
+```
+
+---
+
+### `pm cache stats`
+
+Show cache file location and entry counts.
+
+```bash
+pm cache stats
+```
+
+---
+
+### `pm cache clear`
+
+Clear cache entries globally or for a single provider.
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--source` | | | Clear cache for one provider only (`asana`, `notion`) |
+
+```bash
+pm cache clear
+pm cache clear --source=asana
+```
+
+---
+
+### `pm config init`
+
+Create a default `.pmrc.json` in the current project.
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--force` | `-f` | `false` | Overwrite existing `.pmrc.json` |
+
+```bash
+pm config init
+pm config init --force
+```
+
+---
+
+### `pm config list`
+
+List merged configuration values from user and project config.
+
+```bash
+pm config list
+```
+
+---
+
+### `pm config get <key>`
+
+Read a merged config value by dot-notation key.
+
+```bash
+pm config get defaultSource
+pm config get notion.propertyMap.status
+```
+
+---
+
+### `pm config set <key> <value>`
+
+Set a project-level config value in `.pmrc.json`.
+
+```bash
+pm config set defaultLimit 10
+pm config set aliases.today "tasks assigned --status=in_progress"
+pm config set notion.propertyMap.status "Status"
+```
+
+---
+
+### `pm config path`
+
+Show project and user configuration file locations.
+
+```bash
+pm config path
 ```
 
 ---
@@ -424,7 +528,7 @@ pm tasks update --help
 
 - Responses are cached with a **5-minute TTL**.
 - Use `--refresh` / `-r` on `tasks assigned` and `tasks overdue` to bypass the cache and fetch fresh data.
-- `tasks search` always fetches live results (no cache bypass flag needed).
+- `tasks search` responses are cached; there is currently no `--refresh` flag on the command.
 - `tasks show` fetches directly from the provider.
 
 ## Unified Task Model
