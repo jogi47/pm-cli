@@ -41,7 +41,7 @@ M1 + M3.4 (piping) ──→ M10 (Bulk Operations)
 | Milestone | Status | Progress | Notes |
 |-----------|--------|----------|-------|
 | M1: Task CRUD & Polish | Done | 7/7 | All write operations implemented (create, update, done, delete, open) |
-| M2: Trello & Linear | Not Started | 0/4 | No plugin-trello or plugin-linear yet |
+| M2: Trello & Linear | Done | 4/4 | Trello + Linear plugins shipped with aggregation coverage |
 | M3: Daily Driver | Done | 6/6 | Dashboard, summary, filtering, branch, comment |
 | M4: DX & Extensibility | Done | 5/5 | Config/cache/dev docs/error handling complete; autocomplete dependency sync fixed and command is now discoverable |
 | M5: ClickUp & Notion | Half Done | 1/2 | Notion done; ClickUp not started |
@@ -121,14 +121,14 @@ M1 + M3.4 (piping) ──→ M10 (Bulk Operations)
 
 ---
 
-## M2: Trello & Linear Plugins — Not Started
+## M2: Trello & Linear Plugins — Done
 
 **Goal:** Add Trello (50M+ users) and Linear (modern engineering teams) integrations.
 
-- [ ] Make ProviderType extensible — add `'trello' | 'linear'`, update auth and commands
-- [ ] `@jogi47/pm-cli-plugin-trello` — client, mapper, plugin (REST API, free plan)
-- [ ] `@jogi47/pm-cli-plugin-linear` — client, mapper, plugin (GraphQL via `@linear/sdk`)
-- [ ] Cross-provider aggregation tests
+- [x] Make ProviderType extensible — add `'trello' | 'linear'`, update auth and commands
+- [x] `@jogi47/pm-cli-plugin-trello` — client, mapper, plugin (REST API, free plan)
+- [x] `@jogi47/pm-cli-plugin-linear` — client, mapper, plugin (GraphQL via `@linear/sdk`)
+- [x] Cross-provider aggregation tests
 
 ### 2.1 Make ProviderType extensible
 

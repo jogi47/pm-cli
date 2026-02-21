@@ -20,8 +20,8 @@ export default class TasksOverdue extends Command {
   static override flags = {
     source: Flags.string({
       char: 's',
-      description: 'Filter by provider (asana, notion)',
-      options: ['asana', 'notion'],
+      description: 'Filter by provider (asana, notion, trello, linear)',
+      options: ['asana', 'notion', 'trello', 'linear'],
     }),
     limit: Flags.integer({
       char: 'l',

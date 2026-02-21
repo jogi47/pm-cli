@@ -39,9 +39,9 @@ class AuthManager {
    */
   getCredentials(provider: ProviderType): ProviderCredentials | null {
     // First check environment variables
-    const envToken = this.getEnvToken(provider);
-    if (envToken) {
-      return { token: envToken };
+    const envCredentials = this.getEnvCredentials(provider);
+    if (envCredentials) {
+      return envCredentials;
     }
 
     // Then check stored credentials
@@ -106,19 +106,31 @@ class AuthManager {
    * Get all connected providers
    */
   getConnectedProviders(): ProviderType[] {
-    const providers: ProviderType[] = ['asana', 'notion'];
+    const providers: ProviderType[] = ['asana', 'notion', 'trello', 'linear'];
     return providers.filter(p => this.hasCredentials(p));
   }
 
   /**
    * Get token from environment variable
    */
-  private getEnvToken(provider: ProviderType): string | undefined {
-    const envVars: Record<ProviderType, string> = {
+  private getEnvCredentials(provider: ProviderType): ProviderCredentials | null {
+    if (provider === 'trello') {
+      const apiKey = process.env.TRELLO_API_KEY;
+      const token = process.env.TRELLO_TOKEN;
+      if (apiKey && token) {
+        return { token, apiKey };
+      }
+      return null;
+    }
+
+    const envVars: Record<Exclude<ProviderType, 'trello'>, string> = {
       asana: 'ASANA_TOKEN',
       notion: 'NOTION_TOKEN',
+      linear: 'LINEAR_API_KEY',
     };
-    return process.env[envVars[provider]];
+
+    const token = process.env[envVars[provider as Exclude<ProviderType, 'trello'>]];
+    return token ? { token } : null;
   }
 
   /**

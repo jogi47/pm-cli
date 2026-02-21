@@ -18,8 +18,8 @@ export default class Today extends Command {
   static override flags = {
     source: Flags.string({
       char: 's',
-      description: 'Filter by provider (asana, notion)',
-      options: ['asana', 'notion'],
+      description: 'Filter by provider (asana, notion, trello, linear)',
+      options: ['asana', 'notion', 'trello', 'linear'],
     }),
     json: Flags.boolean({
       description: 'Output in JSON format',
