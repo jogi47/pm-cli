@@ -12,6 +12,14 @@ describe('Task Model', () => {
     it('should create correct ID for Notion', () => {
       expect(createTaskId('notion', 'abc-def')).toBe('NOTION-abc-def');
     });
+
+    it('should create correct ID for Trello', () => {
+      expect(createTaskId('trello', 'card123')).toBe('TRELLO-card123');
+    });
+
+    it('should create correct ID for Linear', () => {
+      expect(createTaskId('linear', 'ENG-42')).toBe('LINEAR-ENG-42');
+    });
   });
 
   describe('parseTaskId', () => {
@@ -23,6 +31,16 @@ describe('Task Model', () => {
     it('should parse Notion task ID', () => {
       const result = parseTaskId('NOTION-abc-def-123');
       expect(result).toEqual({ source: 'notion', externalId: 'abc-def-123' });
+    });
+
+    it('should parse Trello task ID', () => {
+      const result = parseTaskId('TRELLO-card123');
+      expect(result).toEqual({ source: 'trello', externalId: 'card123' });
+    });
+
+    it('should parse Linear task ID', () => {
+      const result = parseTaskId('LINEAR-ENG-42');
+      expect(result).toEqual({ source: 'linear', externalId: 'ENG-42' });
     });
 
     it('should return null for invalid format', () => {

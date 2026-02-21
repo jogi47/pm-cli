@@ -279,4 +279,17 @@ export const PROVIDER_CREDENTIALS: Record<ProviderType, { fields: string[]; labe
       databaseId: 'Task Database ID (from database URL)',
     },
   },
+  trello: {
+    fields: ['apiKey', 'token'],
+    labels: {
+      apiKey: 'Trello API Key (from https://trello.com/power-ups/admin)',
+      token: 'Trello Token (from https://trello.com/1/authorize)',
+    },
+  },
+  linear: {
+    fields: ['token'],
+    labels: {
+      token: 'Linear API Key (from https://linear.app/settings/api)',
+    },
+  },
 };

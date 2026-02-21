@@ -41,6 +41,8 @@
     "@jogi47/pm-cli-core": "workspace:^",
     "@jogi47/pm-cli-plugin-asana": "workspace:^",
     "@jogi47/pm-cli-plugin-notion": "workspace:^",
+    "@jogi47/pm-cli-plugin-trello": "workspace:^",
+    "@jogi47/pm-cli-plugin-linear": "workspace:^",
     "@inquirer/prompts": "^5.0.0",
     "open": "^10.0.0",
     "@oclif/plugin-autocomplete": "^3.2.30"

@@ -29,9 +29,15 @@ importers:
       '@jogi47/pm-cli-plugin-asana':
         specifier: workspace:^
         version: link:../plugin-asana
+      '@jogi47/pm-cli-plugin-linear':
+        specifier: workspace:^
+        version: link:../plugin-linear
       '@jogi47/pm-cli-plugin-notion':
         specifier: workspace:^
         version: link:../plugin-notion
+      '@jogi47/pm-cli-plugin-trello':
+        specifier: workspace:^
+        version: link:../plugin-trello
       '@oclif/core':
         specifier: ^4.0.0
         version: 4.8.0
@@ -96,6 +102,12 @@ importers:
         specifier: ^5.0.0
         version: 5.9.3
 
+  packages/plugin-linear:
+    dependencies:
+      '@jogi47/pm-cli-core':
+        specifier: workspace:^
+        version: link:../core
+
   packages/plugin-notion:
     dependencies:
       '@jogi47/pm-cli-core':
@@ -111,6 +123,12 @@ importers:
       typescript:
         specifier: ^5.0.0
         version: 5.9.3
+
+  packages/plugin-trello:
+    dependencies:
+      '@jogi47/pm-cli-core':
+        specifier: workspace:^
+        version: link:../core
 
 packages:
 

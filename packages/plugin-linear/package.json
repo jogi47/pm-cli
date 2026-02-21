@@ -1,0 +1,23 @@
+{
+  "name": "@jogi47/pm-cli-plugin-linear",
+  "version": "0.2.3",
+  "description": "Linear plugin for pm-cli",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc -b --watch",
+    "clean": "rm -rf dist",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@jogi47/pm-cli-core": "workspace:^"
+  }
+}

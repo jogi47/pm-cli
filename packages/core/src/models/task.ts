@@ -1,7 +1,7 @@
 // src/models/task.ts
 
 export type TaskStatus = 'todo' | 'in_progress' | 'done';
-export type ProviderType = 'asana' | 'notion';
+export type ProviderType = 'asana' | 'notion' | 'trello' | 'linear';
 export type TaskCustomFieldType = 'enum' | 'multi_enum' | 'unsupported';
 
 export interface TaskCustomFieldResult {
@@ -100,7 +100,7 @@ export function createTaskId(source: ProviderType, externalId: string): string {
  * Parse internal task ID to get provider and external ID
  */
 export function parseTaskId(id: string): { source: ProviderType; externalId: string } | null {
-  const match = id.match(/^(ASANA|NOTION)-(.+)$/i);
+  const match = id.match(/^(ASANA|NOTION|TRELLO|LINEAR)-(.+)$/i);
   if (!match) return null;
 
   return {

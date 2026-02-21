@@ -19,7 +19,7 @@ export default class Connect extends Command {
     provider: Args.string({
       description: 'Provider to connect to',
       required: true,
-      options: ['asana', 'notion'],
+      options: ['asana', 'notion', 'trello', 'linear'],
     }),
   };
 

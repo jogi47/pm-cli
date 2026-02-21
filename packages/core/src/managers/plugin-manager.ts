@@ -14,6 +14,21 @@ export interface FilterSortOptions {
 const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
 const STATUS_ORDER: Record<string, number> = { in_progress: 0, todo: 1, done: 2 };
 
+
+function dedupeTasks(tasks: Task[]): Task[] {
+  const seen = new Set<string>();
+  const unique: Task[] = [];
+
+  for (const task of tasks) {
+    if (seen.has(task.id)) continue;
+    seen.add(task.id);
+    unique.push(task);
+  }
+
+  return unique;
+}
+
+
 /**
  * Filter and sort tasks after aggregation
  */
@@ -177,7 +192,7 @@ class PluginManager {
     );
 
     // Flatten and sort by due date
-    const allTasks = results.flat();
+    const allTasks = dedupeTasks(results.flat());
     allTasks.sort((a, b) => {
       if (!a.dueDate && !b.dueDate) return 0;
       if (!a.dueDate) return 1;
@@ -209,7 +224,7 @@ class PluginManager {
       plugins.map((plugin) => plugin.searchTasks(query, { limit: options?.limit }))
     );
 
-    const allTasks = results.flat();
+    const allTasks = dedupeTasks(results.flat());
     return options?.limit ? allTasks.slice(0, options.limit) : allTasks;
   }
 

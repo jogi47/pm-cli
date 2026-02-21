@@ -4,11 +4,29 @@
     "outDir": "./dist",
     "rootDir": "./src"
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "test"],
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "test"
+  ],
   "references": [
-    { "path": "../core" },
-    { "path": "../plugin-asana" },
-    { "path": "../plugin-notion" }
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../plugin-asana"
+    },
+    {
+      "path": "../plugin-notion"
+    },
+    {
+      "path": "../plugin-trello"
+    },
+    {
+      "path": "../plugin-linear"
+    }
   ]
 }
