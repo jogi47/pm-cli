@@ -43,7 +43,7 @@ M1 + M3.4 (piping) ──→ M10 (Bulk Operations)
 | M1: Task CRUD & Polish | Done | 7/7 | All write operations implemented (create, update, done, delete, open) |
 | M2: Trello & Linear | Not Started | 0/4 | No plugin-trello or plugin-linear yet |
 | M3: Daily Driver | Done | 6/6 | Dashboard, summary, filtering, branch, comment |
-| M4: DX & Extensibility | In Progress | 4/5 | Config/cache/dev docs/error handling completed; autocomplete wiring added but runtime command still pending dependency sync |
+| M4: DX & Extensibility | Done | 5/5 | Config/cache/dev docs/error handling complete; autocomplete dependency sync fixed and command is now discoverable |
 | M5: ClickUp & Notion | Half Done | 1/2 | Notion done; ClickUp not started |
 | M6: OSS Launch | Not Started | 0/7 | No CI/CD, changesets, templates |
 | REQ: Task Thread | Not Started | 0/3 | No ThreadEntry model or commands |
@@ -269,11 +269,11 @@ M1 + M3.4 (piping) ──→ M10 (Bulk Operations)
 
 ---
 
-## M4: DX & Extensibility — In Progress
+## M4: DX & Extensibility — Done
 
 **Goal:** Make pm-cli easy to customize, extend, and contribute to.
 
-- [ ] Shell completions (bash, zsh, fish) via `@oclif/plugin-autocomplete` (declared, but `pm autocomplete` command is not currently discoverable in this workspace)
+- [x] Shell completions (bash, zsh, fish) via `@oclif/plugin-autocomplete`
 - [x] `.pmrc.json` project-level configuration (`pm config get/set/list/init/path`)
 - [x] Cache management commands (`pm cache stats`, `pm cache clear`)
 - [x] Plugin development guide & template (`docs/plugin-development.md`, `examples/plugin-template/`)
@@ -282,7 +282,7 @@ M1 + M3.4 (piping) ──→ M10 (Bulk Operations)
 ### 4.1 Shell completions
 
 - Added `@oclif/plugin-autocomplete` to `packages/cli/package.json` (dependencies + `oclif.plugins` array)
-- Remaining: resolve dependency sync/runtime command discovery so `pm autocomplete` works end-to-end
+- Completed: dependency sync/runtime command discovery resolved so `pm autocomplete` works end-to-end
 
 ### 4.2 `.pmrc.json` — project-level configuration
 
