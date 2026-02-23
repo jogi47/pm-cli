@@ -23,8 +23,8 @@ export default class TasksAssigned extends Command {
   static override flags = {
     source: Flags.string({
       char: 's',
-      description: 'Filter by provider (asana, notion, trello, linear)',
-      options: ['asana', 'notion', 'trello', 'linear'],
+      description: 'Filter by provider (asana, notion, trello, linear, clickup)',
+      options: ['asana', 'notion', 'trello', 'linear', 'clickup'],
     }),
     limit: Flags.integer({
       char: 'l',

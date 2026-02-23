@@ -106,7 +106,7 @@ class AuthManager {
    * Get all connected providers
    */
   getConnectedProviders(): ProviderType[] {
-    const providers: ProviderType[] = ['asana', 'notion', 'trello', 'linear'];
+    const providers: ProviderType[] = ['asana', 'notion', 'trello', 'linear', 'clickup'];
     return providers.filter(p => this.hasCredentials(p));
   }
 
@@ -127,6 +127,7 @@ class AuthManager {
       asana: 'ASANA_TOKEN',
       notion: 'NOTION_TOKEN',
       linear: 'LINEAR_API_KEY',
+      clickup: 'CLICKUP_TOKEN',
     };
 
     const token = process.env[envVars[provider as Exclude<ProviderType, 'trello'>]];

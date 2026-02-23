@@ -43,6 +43,7 @@
     "@jogi47/pm-cli-plugin-notion": "workspace:^",
     "@jogi47/pm-cli-plugin-trello": "workspace:^",
     "@jogi47/pm-cli-plugin-linear": "workspace:^",
+    "@jogi47/pm-cli-plugin-clickup": "workspace:^",
     "@inquirer/prompts": "^5.0.0",
     "open": "^10.0.0",
     "@oclif/plugin-autocomplete": "^3.2.30"

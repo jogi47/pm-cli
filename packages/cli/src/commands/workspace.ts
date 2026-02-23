@@ -29,7 +29,7 @@ export default class Workspace extends Command {
     source: Flags.string({
       char: 's',
       description: 'Provider to manage workspace for',
-      options: ['asana', 'notion', 'trello', 'linear'],
+      options: ['asana', 'notion', 'trello', 'linear', 'clickup'],
       default: 'asana',
     }),
   };

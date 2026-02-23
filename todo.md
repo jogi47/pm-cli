@@ -14,7 +14,7 @@ pm-cli (pnpm monorepo)
 ├── @jogi47/pm-cli-plugin-notion  — Notion provider (implemented)
 ├── @jogi47/pm-cli-plugin-trello  — Trello provider (planned, M2)
 ├── @jogi47/pm-cli-plugin-linear  — Linear provider (planned, M2)
-└── @jogi47/pm-cli-plugin-clickup — ClickUp provider (planned, M5)
+└── @jogi47/pm-cli-plugin-clickup — ClickUp provider (implemented)
 ```
 
 ---
@@ -44,7 +44,7 @@ M1 + M3.4 (piping) ──→ M10 (Bulk Operations)
 | M2: Trello & Linear | Done | 4/4 | Trello + Linear plugins shipped with aggregation coverage |
 | M3: Daily Driver | Done | 6/6 | Dashboard, summary, filtering, branch, comment |
 | M4: DX & Extensibility | Done | 5/5 | Config/cache/dev docs/error handling complete; autocomplete dependency sync fixed and command is now discoverable |
-| M5: ClickUp & Notion | Half Done | 1/2 | Notion done; ClickUp not started |
+| M5: ClickUp & Notion | Done | 2/2 | Notion + ClickUp plugins shipped |
 | M6: OSS Launch | Not Started | 0/7 | No CI/CD, changesets, templates |
 | REQ: Task Thread | Not Started | 0/3 | No ThreadEntry model or commands |
 | M7: Standup & Reporting | Not Started | 0/2 | No standup or export commands |
@@ -321,12 +321,20 @@ M1 + M3.4 (piping) ──→ M10 (Bulk Operations)
 
 ---
 
-## M5: ClickUp & Notion Plugins — Half Done
+## M5: ClickUp & Notion Plugins — Done
 
 **Goal:** Expand provider coverage to ClickUp and Notion.
 
-- [ ] `@jogi47/pm-cli-plugin-clickup` — client, mapper, plugin (REST API, free plan)
+- [x] `@jogi47/pm-cli-plugin-clickup` — client, mapper, plugin (REST API, free plan)
 - [x] `@jogi47/pm-cli-plugin-notion` — fully implemented (shipped as part of M2 deliverable)
+
+### M5 completion notes
+
+- [x] Added `clickup` to `ProviderType` and task ID parsing
+- [x] Added ClickUp credentials support (`PROVIDER_CREDENTIALS`, `CLICKUP_TOKEN`)
+- [x] Registered `ClickUpPlugin` in CLI initialization and package dependencies
+- [x] Added `clickup` provider options across CLI flags (`connect`, `disconnect`, task listing/creation/search, cache clear, workspace, today)
+- [x] Added mapper and task ID tests for ClickUp
 
 ### ClickUp plugin
 

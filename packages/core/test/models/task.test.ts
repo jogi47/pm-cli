@@ -20,6 +20,10 @@ describe('Task Model', () => {
     it('should create correct ID for Linear', () => {
       expect(createTaskId('linear', 'ENG-42')).toBe('LINEAR-ENG-42');
     });
+
+    it('should create correct ID for ClickUp', () => {
+      expect(createTaskId('clickup', 'abc123')).toBe('CLICKUP-abc123');
+    });
   });
 
   describe('parseTaskId', () => {
@@ -41,6 +45,11 @@ describe('Task Model', () => {
     it('should parse Linear task ID', () => {
       const result = parseTaskId('LINEAR-ENG-42');
       expect(result).toEqual({ source: 'linear', externalId: 'ENG-42' });
+    });
+
+    it('should parse ClickUp task ID', () => {
+      const result = parseTaskId('CLICKUP-abc123');
+      expect(result).toEqual({ source: 'clickup', externalId: 'abc123' });
     });
 
     it('should return null for invalid format', () => {

@@ -40,8 +40,8 @@ export default class TasksCreate extends Command {
     }),
     source: Flags.string({
       char: 's',
-      description: 'Target provider (asana, notion, trello, linear)',
-      options: ['asana', 'notion', 'trello', 'linear'],
+      description: 'Target provider (asana, notion, trello, linear, clickup)',
+      options: ['asana', 'notion', 'trello', 'linear', 'clickup'],
     }),
     project: Flags.string({
       char: 'p',
