@@ -33,7 +33,7 @@
     "build": "tsc -b",
     "dev": "tsc -b --watch",
     "clean": "rm -rf dist",
-    "lint": "eslint src"
+    "lint": "tsc -b --pretty false"
   },
   "dependencies": {
     "conf": "^12.0.0",
