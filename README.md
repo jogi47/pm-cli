@@ -1,446 +1,171 @@
 # PM-CLI
 
 [![npm](https://img.shields.io/npm/v/@jogi47/pm-cli)](https://www.npmjs.com/package/@jogi47/pm-cli)
+[![CI](https://github.com/jogi47/pm-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/jogi47/pm-cli/actions/workflows/ci.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
 
-A unified command-line interface for managing tasks across multiple project management tools.
+Unified CLI for task management across multiple project-management providers.
 
-Currently supports:
-- **Asana** (fully implemented)
-- **Notion** (fully implemented)
+## Demo
 
-## Features
+> Add a terminal GIF here once captured via `vhs`.
 
-- Aggregate tasks from multiple PM tools in one place
-- Create, update, complete, and delete tasks from the command line
-- Morning dashboard and summary views
-- Filter by status/priority and sort results
-- Search across all connected providers
-- Create git branches from tasks
-- Add comments to tasks
-- Switch between workspaces
-- Cached responses for fast repeat queries
-- Built-in cache inspection and cache invalidation commands
-- Project-level configuration via `.pmrc.json`
-- Multiple output modes: table, JSON, plain, ids-only
+- Suggested output path: `docs/demo.gif`
+- Then update this section to:
 
-## Installation
+```md
+![pm-cli demo](./docs/demo.gif)
+```
 
-### Install from npm (recommended)
+## Install
 
 ```bash
 pnpm add -g @jogi47/pm-cli
-```
-
-The `pm` command is now available globally:
-
-```bash
-pm --help
-```
-
-You can also use npm or yarn:
-
-```bash
-npm install -g @jogi47/pm-cli
 # or
-yarn global add @jogi47/pm-cli
+npm install -g @jogi47/pm-cli
 ```
 
-### Install from source
+## 30-second quickstart
 
 ```bash
-# Clone the repository
-git clone <repo-url>
-cd pm-cli
-
-# Install dependencies
-pnpm install
-
-# Build all packages
-pnpm build
-
-# Link the CLI globally
-pnpm link --global --filter @jogi47/pm-cli
-```
-
-The `pm` command is now available system-wide:
-
-```bash
-pm --help
-```
-
-## Uninstall
-
-```bash
-# If installed from npm
-pnpm remove -g @jogi47/pm-cli
-
-# If installed from source
-cd pm-cli
-pnpm unlink --global --filter @jogi47/pm-cli
-```
-
-## Agent Skill
-
-PM-CLI ships with an agent skill that teaches AI coding agents (Claude Code, Cursor, etc.) how to use the `pm` CLI. Once installed, your agent can run pm-cli commands to manage tasks on your behalf.
-
-### Install the skill
-
-Browse the skill at [skills.sh](https://skills.sh) or install directly:
-
-```bash
-npx skills add jogi47/pm-cli -g -y
-```
-
-### What the skill provides
-
-- Complete command reference for all `pm` commands
-- Task ID format conventions (`PROVIDER-externalId`)
-- Flag and argument details for every subcommand
-- Common workflows (check overdue, search, force-refresh, switch workspace)
-- Caching behavior and output modes (table vs JSON)
-
-### Discover more skills
-
-```bash
-# Search for related skills
-npx skills find pm-cli
-
-# Check for updates to installed skills
-npx skills check
-
-# Update all installed skills
-npx skills update
-```
-
-Learn more about the agent skills ecosystem at [skills.sh](https://skills.sh).
-
-## Quick Start
-
-```bash
-# 1. Connect to Asana
+# 1) connect to a provider
 pm connect asana
-# Enter your Personal Access Token from https://app.asana.com/0/my-apps
 
-# 2. View your tasks
+# 2) pull your assigned work
 pm tasks assigned
 
-# 3. Search for tasks
-pm tasks search "bug"
+# 3) create + complete a task
+pm tasks create --title "Ship pm-cli"
+pm done ASANA-1234567890
 ```
 
-## Commands
+## Supported providers
 
-### Connection Management
+| Provider | Status | Auth |
+|---|---|---|
+| Asana | ✅ Implemented | `ASANA_TOKEN` |
+| Notion | ✅ Implemented | `NOTION_TOKEN` |
+| Trello | ✅ Implemented | `TRELLO_API_KEY` + `TRELLO_TOKEN` |
+| Linear | ✅ Implemented | `LINEAR_API_KEY` |
+| ClickUp | ✅ Implemented | `CLICKUP_TOKEN` |
+
+## Command reference
+
+### Core task commands
 
 ```bash
-# Connect to a provider
-pm connect asana
-pm connect notion
-
-# Disconnect from a provider
-pm disconnect asana
-
-# List all providers and their status
-pm providers
-pm providers --json
+pm tasks assigned [--source <provider>] [--status <status>] [--sort <field>]
+pm tasks overdue [--source <provider>]
+pm tasks search <query> [--source <provider>]
+pm tasks show <id> [--json] [--open]
+pm tasks create --title <text> [--source <provider>] [--due <date>] [--project <name|id>]
+pm tasks update <id> [--title <text>] [--status <todo|in_progress|done>] [--due <date>]
 ```
 
-### Workspace Management
+### Fast top-level actions
 
 ```bash
-# List available workspaces
+pm today [--source <provider>] [--json]
+pm summary [--json]
+pm done <id...>
+pm delete <id...>
+pm open <id>
+pm branch <id>
+pm comment <id> --text "message"
+```
+
+### Provider / auth / workspace
+
+```bash
+pm providers [--json]
+pm connect <provider>
+pm disconnect <provider>
 pm workspace
-
-# Switch to a different workspace
 pm workspace switch
-
-# Specify provider (default: asana)
-pm workspace -s asana
 ```
 
-### Dashboard & Summary
+### Config + cache
 
 ```bash
-# Morning dashboard — overdue, due today, and in-progress tasks
-pm today
-pm today --source=asana --json
-
-# Provider status and task count statistics
-pm summary
-pm summary --json
-```
-
-### Cache Commands
-
-```bash
-# Show cache file path + entry counts
-pm cache stats
-
-# Clear all cache entries
-pm cache clear
-
-# Clear cache for one provider
-pm cache clear --source=asana
-```
-
-### Config Commands
-
-```bash
-# Initialize project config file
-pm config init
-pm config init --force
-
-# Show where config files are loaded from
+pm config init [--force]
 pm config path
-
-# List merged config (user + project)
 pm config list
+pm config get <key>
+pm config set <key> <value>
 
-# Read/write specific config keys
-pm config get defaultSource
-pm config set defaultLimit 10
-pm config set aliases.today "\"tasks assigned --status=in_progress\""
+pm cache stats
+pm cache clear [--source <provider>]
 ```
 
-### Task Commands
+For full flag details, use:
 
 ```bash
-# List tasks assigned to you
-pm tasks assigned
-pm tasks assigned --source=asana    # Filter by provider
-pm tasks assigned --limit=10        # Limit results
-pm tasks assigned --refresh         # Bypass cache
-pm tasks assigned --json            # JSON output
-pm tasks assigned --status=todo     # Filter by status
-pm tasks assigned --sort=priority   # Sort by field
-pm tasks assigned --plain           # Tab-separated, no colors
-pm tasks assigned --ids-only        # Just task IDs
-
-# List overdue tasks
-pm tasks overdue
-pm tasks overdue --source=asana
-
-# Search for tasks
-pm tasks search "login bug"
-pm tasks search "api" --limit=5
-
-# Show task details
-pm tasks show ASANA-1234567890
-pm tasks show ASANA-123 --json      # JSON output
-pm tasks show ASANA-123 --open      # Open in browser
-
-# Create a task
-pm tasks create "Fix login bug"
-pm tasks create "Update docs" --source=asana --due=2026-03-01
-pm tasks create "This is automated ticket" --source=asana --project "Teacher Feature Development" --section "Prioritised"
-pm tasks create "Tune lesson plan UX" --source=asana --project "Teacher Feature Development" --section "Prioritised" --difficulty "S"  # legacy shorthand
-pm tasks create "Cover flow API integration" --source=asana --project "Teacher Feature Development" --section "Prioritised" --field "Difficulty=XS" --field "Department=Frontend" --field "Other=Bugs,Analytics"
-pm tasks create "Clear release marker" --source=asana --project "Teacher Feature Development" --field "Teacher Feature Release="
-pm tasks create "Fix login redirect bug" --source=asana --project 1210726476060870 --section 1210726344951110 --json
-
-# Update a task
-pm tasks update ASANA-123456 --status in_progress
-pm tasks update ASANA-123456 --due 2026-03-15 --title "New title"
-pm tasks update ASANA-123456 --field "Importance=High" --field "Teacher Feature Release=PR4" --json
-pm tasks update ASANA-123456 --project "Teacher Feature Development" --field "Other="
-
-# Mark tasks as done
-pm done ASANA-123456
-pm done ASANA-123456 ASANA-789012   # Batch complete
-
-# Delete tasks
-pm delete ASANA-123456
-pm delete ASANA-123456 ASANA-789012 # Batch delete
-
-# Open a task in browser
-pm open ASANA-123456
-```
-
-### Help
-
-```bash
-# Global help
 pm --help
-
-# Task command help
 pm tasks --help
 pm tasks create --help
-pm tasks update --help
 ```
 
-`--field` syntax:
-- Enum: `--field "Difficulty=XS"`
-- Multi-enum: `--field "Other=Bugs,Analytics"`
-- ID-based: `--field "1207357939780562=1207357939780564"`
-- Clear: `--field "Difficulty="` and `--field "Other="`
+## Architecture overview
 
-Rules:
-- `pm tasks create`: `--field` and `--difficulty` require `--project`.
-- `pm tasks update`: `--field` resolves from task memberships by default, or from `--project` if provided.
+```text
+CLI command
+  -> pluginManager (core)
+     -> provider plugin (asana/notion/trello/linear/clickup)
+        -> API client + mapper
+        -> cacheManager (5 min TTL)
+```
 
-### Git & Comments
+Monorepo packages:
+
+- `@jogi47/pm-cli-core`
+- `@jogi47/pm-cli`
+- `@jogi47/pm-cli-plugin-asana`
+- `@jogi47/pm-cli-plugin-notion`
+- `@jogi47/pm-cli-plugin-trello`
+- `@jogi47/pm-cli-plugin-linear`
+- `@jogi47/pm-cli-plugin-clickup`
+
+## Building plugins
+
+See core plugin contracts in `packages/core/src/models/plugin.ts` and registration in `packages/cli/src/init.ts`.
+
+
+## Releases with Changesets
 
 ```bash
-# Create a git branch from a task
-pm branch ASANA-123456 --prefix feat --checkout
-pm branch ASANA-123456 --no-id
-
-# Add a comment to a task
-pm comment ASANA-123456 "Fixed in commit abc"
+pnpm changeset
+pnpm changeset:version
+pnpm changeset:publish
 ```
 
-## Project Structure
+## Homebrew (tap formula)
 
-```
-pm-cli/
-├── packages/
-│   ├── core/                 # @jogi47/pm-cli-core
-│   │   └── src/
-│   │       ├── models/       # Task, Plugin interfaces
-│   │       ├── managers/     # Auth, Cache, Plugin managers
-│   │       └── utils/        # Date, Error, Output utilities
-│   │
-│   ├── cli/                  # @jogi47/pm-cli (main CLI)
-│   │   └── src/
-│   │       └── commands/     # Oclif commands
-│   │
-│   ├── plugin-asana/         # @jogi47/pm-cli-plugin-asana
-│   │   └── src/
-│   │       ├── client.ts     # Asana API client
-│   │       ├── mapper.ts     # Asana → Task mapping
-│   │       └── index.ts      # Plugin implementation
-│   │
-│   └── plugin-notion/        # @jogi47/pm-cli-plugin-notion
-│
-├── package.json
-├── pnpm-workspace.yaml
-├── tsconfig.base.json
-├── vitest.config.ts
+A starter formula is included at `packaging/homebrew/pm-cli.rb`.
+
+To publish via Homebrew:
+
+1. Copy that formula into your tap repository (`homebrew-pm-cli`) under `Formula/pm-cli.rb`.
+2. Replace `sha256` with the npm tarball checksum for the released version.
+3. Push and install:
+
+```bash
+brew tap yourorg/pm-cli
+brew install pm-cli
 ```
 
 ## Development
 
 ```bash
-# Install dependencies
 pnpm install
-
-# Build all packages
 pnpm build
-
-# Build specific package
-pnpm --filter @jogi47/pm-cli-core build
-
-# Run in development mode (watches for changes)
-pnpm dev
-
-# Run tests
 pnpm test
-
-# Run CLI in dev mode
-pnpm pm <command>
+pnpm lint
 ```
 
+## Contributing
 
-## Architecture
-
-### Plugin System
-
-PM-CLI uses a plugin architecture where each provider (Asana, Notion, etc.) is a separate package that implements the `PMPlugin` interface:
-
-```typescript
-interface PMPlugin {
-  name: ProviderType;
-  displayName: string;
-
-  // Lifecycle
-  initialize(): Promise<void>;
-  authenticate(credentials: ProviderCredentials): Promise<void>;
-  disconnect(): Promise<void>;
-  isAuthenticated(): Promise<boolean>;
-
-  // Read Operations
-  getAssignedTasks(options?: TaskQueryOptions): Promise<Task[]>;
-  getOverdueTasks(options?: TaskQueryOptions): Promise<Task[]>;
-  searchTasks(query: string, options?: TaskQueryOptions): Promise<Task[]>;
-  getTask(externalId: string): Promise<Task | null>;
-
-  // Write Operations
-  createTask(input: CreateTaskInput): Promise<Task>;
-  updateTask(externalId: string, updates: UpdateTaskInput): Promise<Task>;
-  completeTask(externalId: string): Promise<Task>;
-  addComment?(externalId: string, body: string): Promise<void>;
-
-  // Optional: Workspace Support
-  supportsWorkspaces?(): boolean;
-  getWorkspaces?(): Workspace[];
-  setWorkspace?(workspaceId: string): void;
-}
-```
-
-### Unified Task Model
-
-All tasks from different providers are normalized to a common format:
-
-```typescript
-interface Task {
-  id: string;           // e.g., "ASANA-1234567890"
-  externalId: string;   // Original provider ID
-  title: string;
-  description?: string;
-  status: 'todo' | 'in_progress' | 'done';
-  dueDate?: Date;
-  assignee?: string;
-  assigneeEmail?: string;
-  project?: string;
-  tags?: string[];
-  source: 'asana' | 'notion';
-  url: string;
-  priority?: 'low' | 'medium' | 'high' | 'urgent';
-  createdAt?: Date;
-  updatedAt?: Date;
-}
-```
-
-## Configuration
-
-Credentials are stored encrypted in:
-- **macOS**: `~/Library/Preferences/pm-cli/`
-- **Linux**: `~/.config/pm-cli/`
-- **Windows**: `%APPDATA%/pm-cli/`
-
-Cache is stored in:
-- **macOS/Linux**: `~/.cache/pm-cli/`
-- **Windows**: `%LOCALAPPDATA%/pm-cli/`
-
-### Environment Variables
-
-You can also set credentials via environment variables:
-
-```bash
-export ASANA_TOKEN=your_token_here
-# NOTION_TOKEN can provide the token, but Notion still requires a databaseId
-# (set during `pm connect notion`)
-```
-
-## Adding a New Provider
-
-1. Create a new package: `packages/plugin-<provider>/`
-2. Implement the `PMPlugin` interface
-3. Register in `packages/cli/src/init.ts`
-4. Add to `ProviderType` in `packages/core/src/models/task.ts`
-
-See `packages/plugin-asana/` for a complete example.
-
-## Tech Stack
-
-- **CLI Framework**: [Oclif](https://oclif.io/)
-- **Language**: TypeScript
-- **Package Manager**: pnpm (workspaces)
-- **Auth Storage**: [conf](https://github.com/sindresorhus/conf) (encrypted)
-- **Caching**: [lowdb](https://github.com/typicode/lowdb)
-- **Output**: [cli-table3](https://github.com/cli-table/cli-table3) + [chalk](https://github.com/chalk/chalk)
-- **Testing**: [Vitest](https://vitest.dev/)
+Please read [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## License
 
-MIT
+MIT — see [LICENSE](./LICENSE).

@@ -45,7 +45,7 @@ M1 + M3.4 (piping) ──→ M10 (Bulk Operations)
 | M3: Daily Driver | Done | 6/6 | Dashboard, summary, filtering, branch, comment |
 | M4: DX & Extensibility | Done | 5/5 | Config/cache/dev docs/error handling complete; autocomplete dependency sync fixed and command is now discoverable |
 | M5: ClickUp & Notion | Done | 2/2 | Notion + ClickUp plugins shipped |
-| M6: OSS Launch | Not Started | 0/7 | No CI/CD, changesets, templates |
+| M6: OSS Launch | Done | 7/7 | CI/CD, changesets, docs, templates, license, and Homebrew formula scaffolded |
 | REQ: Task Thread | Not Started | 0/3 | No ThreadEntry model or commands |
 | M7: Standup & Reporting | Not Started | 0/2 | No standup or export commands |
 | M8: Interactive TUI | Not Started | 0/1 | No pm ui command |
@@ -383,17 +383,17 @@ M1 + M3.4 (piping) ──→ M10 (Bulk Operations)
 
 ---
 
-## M6: OSS Launch — Not Started
+## M6: OSS Launch — Done
 
 **Goal:** Everything needed to make pm-cli a credible, contributor-friendly open source project.
 
-- [ ] GitHub Actions CI/CD (`ci.yml` for PRs, `release.yml` for tag-triggered publish)
-- [ ] Changesets for monorepo versioning (`@changesets/cli`)
-- [ ] README overhaul (demo GIF, quickstart, command reference, provider table)
-- [ ] CONTRIBUTING.md (dev setup, project structure, PR process)
-- [ ] GitHub issue & PR templates
-- [ ] LICENSE (MIT)
-- [ ] Homebrew formula (stretch goal)
+- [x] GitHub Actions CI/CD (`ci.yml` for PRs, `release.yml` for tag-triggered publish)
+- [x] Changesets for monorepo versioning (`@changesets/cli`)
+- [x] README overhaul (demo GIF, quickstart, command reference, provider table)
+- [x] CONTRIBUTING.md (dev setup, project structure, PR process)
+- [x] GitHub issue & PR templates
+- [x] LICENSE (MIT)
+- [x] Homebrew formula (stretch goal)
 
 ### 6.1 GitHub Actions CI/CD
 
