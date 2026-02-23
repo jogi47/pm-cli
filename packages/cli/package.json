@@ -1,6 +1,6 @@
 {
   "name": "@jogi47/pm-cli",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Unified project management CLI",
   "type": "module",
   "bin": {

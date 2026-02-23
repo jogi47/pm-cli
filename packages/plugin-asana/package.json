@@ -1,6 +1,6 @@
 {
   "name": "@jogi47/pm-cli-plugin-asana",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Asana plugin for pm-cli",
   "type": "module",
   "main": "./dist/index.js",

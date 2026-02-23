@@ -19,10 +19,19 @@ Unified CLI for task management across multiple project-management providers.
 
 ## Install
 
+### npm / pnpm
+
 ```bash
 pnpm add -g @jogi47/pm-cli
 # or
 npm install -g @jogi47/pm-cli
+```
+
+### Homebrew
+
+```bash
+brew tap jogi47/pm-cli
+brew install pm-cli
 ```
 
 ## 30-second quickstart
@@ -129,30 +138,6 @@ Monorepo packages:
 ## Building plugins
 
 See core plugin contracts in `packages/core/src/models/plugin.ts` and registration in `packages/cli/src/init.ts`.
-
-
-## Releases with Changesets
-
-```bash
-pnpm changeset
-pnpm changeset:version
-pnpm changeset:publish
-```
-
-## Homebrew (tap formula)
-
-A starter formula is included at `packaging/homebrew/pm-cli.rb`.
-
-To publish via Homebrew:
-
-1. Copy that formula into your tap repository (`homebrew-pm-cli`) under `Formula/pm-cli.rb`.
-2. Replace `sha256` with the npm tarball checksum for the released version.
-3. Push and install:
-
-```bash
-brew tap yourorg/pm-cli
-brew install pm-cli
-```
 
 ## Development
 

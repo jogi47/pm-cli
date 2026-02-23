@@ -39,6 +39,32 @@ pnpm lint
 pnpm pm tasks assigned
 ```
 
+## Releases (maintainers)
+
+Use Changesets to version and publish workspace packages:
+
+```bash
+pnpm changeset
+pnpm changeset:version
+pnpm changeset:publish
+```
+
+What each command does:
+
+1. `pnpm changeset`: records release notes and bump intent.
+2. `pnpm changeset:version`: updates package versions/changelogs.
+3. `pnpm changeset:publish`: publishes release artifacts to npm.
+
+## Homebrew formula publishing (maintainers)
+
+A starter formula is included at `packaging/homebrew/pm-cli.rb`.
+
+To publish/update via Homebrew:
+
+1. Copy the formula into your tap repository under `Formula/pm-cli.rb`.
+2. Replace `sha256` with the npm tarball checksum for the released version.
+3. Push the tap changes so users can install/upgrade via `brew`.
+
 ## Adding a CLI command
 
 1. Create command file under `packages/cli/src/commands/...`.
