@@ -3,7 +3,8 @@ class PmCli < Formula
 
   desc "Unified project management CLI"
   homepage "https://github.com/jogi47/pm-cli"
-  url "https://registry.npmjs.org/@jogi47/pm-cli/-/pm-cli-0.2.3.tgz"
+  version "0.2.3"
+  url "https://registry.npmjs.org/@jogi47/pm-cli/-/pm-cli-#{version}.tgz"
   sha256 "REPLACE_WITH_TARBALL_SHA256"
   license "MIT"
 

@@ -103,6 +103,7 @@ For full flag details, use:
 pm --help
 pm tasks --help
 pm tasks create --help
+pm tasks update --help
 ```
 
 ## Architecture overview
