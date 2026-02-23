@@ -1,6 +1,7 @@
 # PM CLI — Roadmap & Progress
 
 > Consolidated progress tracker for all milestones (M1-M10) and feature requests.
+> Last validated against repository state: 2026-02-23 (workspace packages at `0.2.4`).
 
 ---
 
@@ -12,8 +13,8 @@ pm-cli (pnpm monorepo)
 ├── @jogi47/pm-cli                — CLI commands (Oclif v4)
 ├── @jogi47/pm-cli-plugin-asana   — Asana provider (implemented)
 ├── @jogi47/pm-cli-plugin-notion  — Notion provider (implemented)
-├── @jogi47/pm-cli-plugin-trello  — Trello provider (planned, M2)
-├── @jogi47/pm-cli-plugin-linear  — Linear provider (planned, M2)
+├── @jogi47/pm-cli-plugin-trello  — Trello provider (implemented)
+├── @jogi47/pm-cli-plugin-linear  — Linear provider (implemented)
 └── @jogi47/pm-cli-plugin-clickup — ClickUp provider (implemented)
 ```
 
@@ -59,8 +60,8 @@ M1 + M3.4 (piping) ──→ M10 (Bulk Operations)
 **Goal:** Complete the core task lifecycle — create, update, complete, delete, and open tasks from the terminal.
 
 - [x] Extend PMPlugin interface with write operations (`CreateTaskInput`, `UpdateTaskInput`, optional methods)
-- [x] `pm tasks create` — create a new task with title, notes, due date, project, assignee, priority
-- [x] `pm tasks update <id>` — update task fields (title, notes, due, status, assignee, priority)
+- [x] `pm tasks create` — create tasks with title/description, due date, assignee, and provider-specific project/section/custom fields
+- [x] `pm tasks update <id>` — update task fields (title, description, due, status, project/workspace scope, custom fields)
 - [x] `pm done <ids...>` — quick-complete one or more tasks (top-level command)
 - [x] `pm delete <ids...>` — delete one or more tasks (top-level command)
 - [x] `pm open <id>` — open task in browser (top-level shortcut)
@@ -70,27 +71,34 @@ M1 + M3.4 (piping) ──→ M10 (Bulk Operations)
 
 **`pm tasks create`**
 
-| Flag | Short | Type | Required | Description |
+| Flag/Arg | Short | Type | Required | Description |
 |------|-------|------|----------|-------------|
-| `--title` | `-t` | string | Yes | Task title |
-| `--notes` | `-n` | string | No | Task description |
-| `--due` | `-d` | string | No | Due date (ISO or relative: "today", "tomorrow", "friday", "+3d") |
-| `--project` | `-p` | string | No | Project to add task to |
-| `--assignee` | `-a` | string | No | Assignee ("me" for self). Default: me |
-| `--priority` | | string | No | Priority (low, medium, high, urgent) |
-| `--source` | `-s` | string | No | Provider to create in (defaults to first connected) |
-| `--json` | | boolean | No | Output created task as JSON |
+| `title` (arg) | — | string | Conditional | Task title (required if `--title` is not provided) |
+| `--title` | `-t` | string[] | Conditional | Task title (repeatable; supports multi-create) |
+| `--description` | `-d` | string | No | Task description |
+| `--due` | — | string | No | Due date (`YYYY-MM-DD`) |
+| `--project` | `-p` | string | No | Project ID or name |
+| `--section` | — | string | No | Section/column ID or name (`--project` required) |
+| `--workspace` | — | string | No | Workspace ID or name for resolution |
+| `--difficulty` | — | string | No | Asana difficulty shorthand (`--project` required) |
+| `--field` | — | string[] | No | Custom field assignment, repeatable (`Field=Value[,Value]`) |
+| `--refresh` | — | boolean | No | Bypass metadata cache |
+| `--assignee` | `-a` | string | No | Assignee email |
+| `--source` | `-s` | string | No | Target provider |
+| `--json` | — | boolean | No | Output created task(s) as JSON |
 
 **`pm tasks update <id>`**
 
 | Flag | Short | Type | Description |
 |------|-------|------|-------------|
 | `--title` | `-t` | string | New title |
-| `--notes` | `-n` | string | New description |
-| `--due` | `-d` | string | New due date |
+| `--description` | `-d` | string | New description |
+| `--due` | — | string | New due date (`YYYY-MM-DD` or `none`) |
 | `--status` | | string | New status (todo, in_progress, done) |
-| `--assignee` | `-a` | string | New assignee |
-| `--priority` | | string | New priority |
+| `--project` | `-p` | string | Project ID or name to scope `--field` resolution |
+| `--workspace` | | string | Workspace ID or name to scope project resolution |
+| `--field` | | string[] | Custom field assignment, repeatable (`Field=Value[,Value]`) |
+| `--refresh` | | boolean | Bypass metadata cache for resolution |
 | `--json` | | boolean | Output updated task as JSON |
 
 **`pm done <ids...>`** — Variadic, accepts multiple task IDs. Top-level for speed.
@@ -693,7 +701,7 @@ Args: variadic task IDs. Example: `pm bulk update --status=in_progress ASANA-111
 | `pm tasks attachments <id>` | Planned | REQ | Read |
 | `pm config get\|set\|list\|init\|path` | Implemented | M4 | Config |
 | `pm cache stats\|clear` | Implemented | M4 | Config |
-| `pm autocomplete` | Partial | M4 | Config |
+| `pm autocomplete` | Implemented | M4 | Config |
 | `pm standup` | Planned | M7 | Read |
 | `pm export` | Planned | M7 | Read |
 | `pm ui` | Planned | M8 | Interactive |
