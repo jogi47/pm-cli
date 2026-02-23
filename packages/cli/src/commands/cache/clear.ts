@@ -7,7 +7,7 @@ export default class CacheClear extends Command {
   static override description = 'Clear all cache or cache for a single provider';
 
   static override flags = {
-    source: Flags.string({ options: ['asana', 'notion', 'trello', 'linear'], description: 'Clear cache for one provider only' }),
+    source: Flags.string({ options: ['asana', 'notion', 'trello', 'linear', 'clickup'], description: 'Clear cache for one provider only' }),
   };
 
   async run(): Promise<void> {

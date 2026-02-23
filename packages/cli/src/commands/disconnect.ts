@@ -18,7 +18,7 @@ export default class Disconnect extends Command {
     provider: Args.string({
       description: 'Provider to disconnect from',
       required: true,
-      options: ['asana', 'notion', 'trello', 'linear'],
+      options: ['asana', 'notion', 'trello', 'linear', 'clickup'],
     }),
   };
 

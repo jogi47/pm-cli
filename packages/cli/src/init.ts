@@ -6,6 +6,7 @@ import { AsanaPlugin } from '@jogi47/pm-cli-plugin-asana';
 import { NotionPlugin } from '@jogi47/pm-cli-plugin-notion';
 import { TrelloPlugin } from '@jogi47/pm-cli-plugin-trello';
 import { LinearPlugin } from '@jogi47/pm-cli-plugin-linear';
+import { ClickUpPlugin } from '@jogi47/pm-cli-plugin-clickup';
 
 let initialized = false;
 
@@ -17,6 +18,7 @@ export function initializePlugins(): void {
   pluginManager.registerPlugin(new NotionPlugin());
   pluginManager.registerPlugin(new TrelloPlugin());
   pluginManager.registerPlugin(new LinearPlugin());
+  pluginManager.registerPlugin(new ClickUpPlugin());
 
   initialized = true;
 }

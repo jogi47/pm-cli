@@ -292,4 +292,10 @@ export const PROVIDER_CREDENTIALS: Record<ProviderType, { fields: string[]; labe
       token: 'Linear API Key (from https://linear.app/settings/api)',
     },
   },
+  clickup: {
+    fields: ['token'],
+    labels: {
+      token: 'ClickUp Personal API Token (from https://app.clickup.com/settings/apps)',
+    },
+  },
 };
