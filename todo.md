@@ -441,26 +441,24 @@ M1 + M3.4 (piping) ──→ M10 (Bulk Operations)
 
 ## REQ: Task Thread (Comments & Attachments) — Not Started
 
-**Goal:** Read a task's full conversation thread and download attachments from the CLI.
+**Goal:** Read a task's full conversation thread with image attachments auto-downloaded to a temp directory.
 
 - [ ] `ThreadEntry` and `Attachment` models in core, add optional methods to PMPlugin
-- [ ] `pm tasks thread <id>` — display comment/activity thread (`--comments-only`, `--limit`)
-- [ ] `pm tasks attachments <id>` — list and download attachments (`--download`, `--all`, `--skip-videos`)
+- [ ] `pm tasks thread <id>` — display comment/activity thread with image attachments downloaded to temp dir
 
 ### Models
 
 **ThreadEntry:** `id` (PROVIDER-entryId), `externalId`, `taskId` (parent), `type` ('comment' | 'system'), `text`, `htmlText?`, `author`, `authorEmail?`, `createdAt`, `attachments?`
 
-**Attachment:** `id` (PROVIDER-attachmentId), `externalId`, `name` (filename), `url` (download URL), `permanentUrl?`, `mimeType?`, `size?` (bytes), `createdAt?`
+**Attachment:** `id` (PROVIDER-attachmentId), `externalId`, `name` (filename), `url` (download URL), `permanentUrl?`, `mimeType?`, `size?` (bytes), `createdAt?`, `localPath?` (temp file path), `isVideo?` (true if video — placeholder shown instead of downloading)
 
-**ThreadQueryOptions:** `commentsOnly?` (boolean), `limit?` (number)
+**ThreadQueryOptions:** `commentsOnly?` (boolean), `limit?` (number), `downloadImages?` (boolean), `tempDir?` (string)
 
 ### Plugin interface additions
 
 Optional methods on `PMPlugin`:
-- `getTaskThread?(externalId, options?: ThreadQueryOptions): Promise<ThreadEntry[]>`
-- `getTaskAttachments?(externalId): Promise<Attachment[]>`
-- `downloadAttachment?(attachment, destDir): Promise<string>` — returns file path
+- `getTaskThread?(externalId, options?: ThreadQueryOptions): Promise<ThreadEntry[]>` — returns thread with attachments metadata
+- `downloadAttachment?(attachment, destDir): Promise<string>` — downloads attachment, returns local file path
 
 ### `pm tasks thread <id>`
 
@@ -469,20 +467,17 @@ Optional methods on `PMPlugin`:
 | `--json` | | `false` | Output as JSON |
 | `--comments-only` | `-c` | `false` | Filter out system/auto-generated activity |
 | `--limit` | `-l` | all | Show only the last N entries |
-| `--open` | `-o` | `false` | Open task in browser instead |
+| `--open` | | `false` | Open task in browser instead |
+| `--download-images` | | `true` | Auto-download images to temp directory (default: `/tmp/pm-cli-attachments/{taskId}/`) |
+| `--temp-dir` | | `/tmp/pm-cli-attachments/{taskId}/` | Custom temp directory for downloads |
+| `--cleanup` | | `false` | Delete temp directory after displaying thread |
 
-### `pm tasks attachments <id>`
-
-| Flag | Short | Default | Description |
-|------|-------|---------|-------------|
-| `--json` | | `false` | Output as JSON |
-| `--download` | | `false` | Download attachments to disk |
-| `--dir` | `-d` | `./pm-attachments` | Download destination directory |
-| `--all` | `-a` | `false` | Download all file types (overrides default skips) |
-| `--skip-videos` | | `true` | Skip video files by default |
-| `--skip-docs` | | `true` | Skip document files by default |
-
-**Default download behavior:** Videos and documents are skipped by default — images/screenshots (the most common bug ticket attachments) are downloaded. Skipped files listed with `[skipped]` label. Use `--all` to download everything.
+**Behavior:**
+- By default, auto-downloads images to a temp directory so LLM can see the full context
+- Returns thread entries with `localPath` field populated for downloaded images
+- Videos are NOT downloaded — a placeholder with video name is shown instead
+- Documents are NOT downloaded — remote URL is provided for LLM to access
+- Use `--download-images=false` to skip downloads and just get remote URLs
 
 ### Asana API mapping
 
@@ -496,17 +491,16 @@ Optional methods on `PMPlugin`:
 |------|-------------|
 | `packages/core/src/models/thread.ts` | `ThreadEntry`, `Attachment`, `ThreadQueryOptions` interfaces |
 | `packages/cli/src/commands/tasks/thread.ts` | `pm tasks thread` command |
-| `packages/cli/src/commands/tasks/attachments.ts` | `pm tasks attachments` command |
 
 ### Files to modify
 
 | File | Change |
 |------|--------|
-| `packages/core/src/models/plugin.ts` | Add optional `getTaskThread`, `getTaskAttachments`, `downloadAttachment` |
-| `packages/core/src/utils/output.ts` | Add `renderThread()` and `renderAttachments()` |
+| `packages/core/src/models/plugin.ts` | Add optional `getTaskThread`, `downloadAttachment` |
+| `packages/core/src/utils/output.ts` | Add `renderThread()` with local paths displayed |
 | `packages/core/src/index.ts` | Export new models |
 | `packages/plugin-asana/src/client.ts` | Add `getStories()`, `getAttachments()`, `getAttachment()` |
-| `packages/plugin-asana/src/index.ts` | Implement thread/attachment methods |
+| `packages/plugin-asana/src/index.ts` | Implement thread method |
 | `packages/plugin-asana/src/mapper.ts` | Add `mapAsanaStory()` and `mapAsanaAttachment()` |
 
 ---
