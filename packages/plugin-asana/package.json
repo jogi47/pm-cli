@@ -1,6 +1,6 @@
 {
   "name": "@jogi47/pm-cli-plugin-asana",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Asana plugin for pm-cli",
   "type": "module",
   "main": "./dist/index.js",
@@ -24,7 +24,7 @@
     "lint": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@jogi47/pm-cli-core": "workspace:^",
+    "@jogi47/pm-cli-core": "^0.2.5",
     "asana": "^3.0.0"
   },
   "peerDependencies": {

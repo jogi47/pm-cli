@@ -1,6 +1,6 @@
 {
   "name": "@jogi47/pm-cli-plugin-notion",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Notion plugin for pm-cli",
   "type": "module",
   "main": "./dist/index.js",
@@ -18,7 +18,7 @@
     "lint": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@jogi47/pm-cli-core": "workspace:^",
+    "@jogi47/pm-cli-core": "^0.2.5",
     "@notionhq/client": "^2.2.0"
   },
   "devDependencies": {
