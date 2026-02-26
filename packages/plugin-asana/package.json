@@ -24,7 +24,7 @@
     "lint": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@jogi47/pm-cli-core": "^0.2.5",
+    "@jogi47/pm-cli-core": "workspace:^",
     "asana": "^3.0.0"
   },
   "peerDependencies": {

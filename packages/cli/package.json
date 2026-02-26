@@ -38,12 +38,12 @@
   "dependencies": {
     "@oclif/core": "^4.0.0",
     "@oclif/plugin-help": "^6.0.0",
-    "@jogi47/pm-cli-core": "^0.2.5",
-    "@jogi47/pm-cli-plugin-asana": "^0.2.5",
-    "@jogi47/pm-cli-plugin-notion": "^0.2.5",
-    "@jogi47/pm-cli-plugin-trello": "^0.2.5",
-    "@jogi47/pm-cli-plugin-linear": "^0.2.5",
-    "@jogi47/pm-cli-plugin-clickup": "^0.2.5",
+    "@jogi47/pm-cli-core": "workspace:^",
+    "@jogi47/pm-cli-plugin-asana": "workspace:^",
+    "@jogi47/pm-cli-plugin-notion": "workspace:^",
+    "@jogi47/pm-cli-plugin-trello": "workspace:^",
+    "@jogi47/pm-cli-plugin-linear": "workspace:^",
+    "@jogi47/pm-cli-plugin-clickup": "workspace:^",
     "@inquirer/prompts": "^5.0.0",
     "open": "^10.0.0",
     "@oclif/plugin-autocomplete": "^3.2.30"

@@ -102,6 +102,17 @@ export interface AsanaTask {
   }>;
 }
 
+
+export interface AsanaStory {
+  gid: string;
+  text?: string;
+  created_at: string;
+  created_by?: {
+    gid: string;
+    name: string;
+  };
+}
+
 interface MetadataCacheEntry<T> {
   data: T;
   expiresAt: number;
@@ -608,14 +619,28 @@ export class AsanaClient {
     }
   }
   /**
+   * Fetch stories/comments for a task
+   */
+  async getTaskStories(taskGid: string): Promise<AsanaStory[]> {
+    if (!this.storiesApi) throw new Error('Not connected');
+
+    const response = await this.storiesApi.getStoriesForTask(taskGid, {
+      opt_fields: 'gid,text,created_at,created_by.gid,created_by.name',
+      limit: 100,
+    });
+
+    return (response.data || []) as AsanaStory[];
+  }
+
+  /**
    * Add a comment (story) to a task
    */
   async addComment(taskGid: string, text: string): Promise<void> {
     if (!this.storiesApi) throw new Error('Not connected');
 
-    await this.storiesApi.createStoryForTask(taskGid, {
+    await this.storiesApi.createStoryForTask({
       data: { text },
-    });
+    }, taskGid);
   }
 }
 
