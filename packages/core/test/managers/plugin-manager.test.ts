@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { pluginManager } from '../../src/managers/plugin-manager.js';
 import type { PMPlugin } from '../../src/models/plugin.js';
-import type { Task } from '../../src/models/task.js';
+import type { Task, ThreadEntry } from '../../src/models/task.js';
 
 function task(id: string, source: Task['source']): Task {
   return {
@@ -14,7 +14,17 @@ function task(id: string, source: Task['source']): Task {
   };
 }
 
-function buildPlugin(name: Task['source'], tasks: Task[], opts?: { throwAssigned?: boolean }): PMPlugin {
+
+function entry(id: string, source: Task['source']): ThreadEntry {
+  return {
+    id,
+    body: `entry-${id}`,
+    source,
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+  };
+}
+
+function buildPlugin(name: Task['source'], tasks: Task[], opts?: { throwAssigned?: boolean; thread?: ThreadEntry[] }): PMPlugin {
   return {
     name,
     displayName: name,
@@ -36,6 +46,7 @@ function buildPlugin(name: Task['source'], tasks: Task[], opts?: { throwAssigned
     async updateTask() { throw new Error('not used'); },
     async completeTask() { throw new Error('not used'); },
     async deleteTask() {},
+    async getTaskThread() { return opts?.thread ?? []; },
   };
 }
 
@@ -65,5 +76,28 @@ describe('pluginManager aggregation', () => {
     const result = await pluginManager.aggregateTasks('assigned');
     expect(result.map((t) => t.id)).toEqual(['ASANA-1']);
     expect(warnSpy).toHaveBeenCalledOnce();
+  });
+});
+
+
+describe('pluginManager thread operations', () => {
+  beforeEach(() => {
+    const manager = pluginManager as unknown as { plugins: Map<string, PMPlugin>; initialized: boolean };
+    manager.plugins = new Map();
+    manager.initialized = false;
+  });
+
+  it('routes thread fetch to provider by task ID', async () => {
+    pluginManager.registerPlugin(buildPlugin('asana', [], { thread: [entry('story-1', 'asana')] }));
+
+    const result = await pluginManager.getTaskThread('ASANA-123');
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('story-1');
+  });
+
+  it('rejects invalid task IDs for thread fetch', async () => {
+    pluginManager.registerPlugin(buildPlugin('asana', []));
+
+    await expect(pluginManager.getTaskThread('bad-id')).rejects.toThrow('Invalid task ID format');
   });
 });

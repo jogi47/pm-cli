@@ -268,7 +268,21 @@ export class AsanaPlugin implements PMPlugin {
     await asanaClient.addComment(externalId, body);
   }
 
-  // ═══════════════════════════════════════════════
+  async getTaskThread(externalId: string) {
+    const stories = await this.runAsanaOperation('fetch task thread', async () => asanaClient.getTaskStories(externalId));
+
+    return stories
+      .filter(story => story.text && story.text.trim().length > 0)
+      .map(story => ({
+        id: story.gid,
+        body: story.text!.trim(),
+        author: story.created_by?.name,
+        source: 'asana',
+        createdAt: new Date(story.created_at),
+      }))
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  }
+
   // WORKSPACE OPERATIONS
   // ═══════════════════════════════════════════════
 

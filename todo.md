@@ -47,7 +47,7 @@ M1 + M3.4 (piping) ──→ M10 (Bulk Operations)
 | M4: DX & Extensibility | Done | 5/5 | Config/cache/dev docs/error handling complete; autocomplete dependency sync fixed and command is now discoverable |
 | M5: ClickUp & Notion | Done | 2/2 | Notion + ClickUp plugins shipped |
 | M6: OSS Launch | Done | 7/7 | CI/CD, changesets, docs, templates, license, and Homebrew formula scaffolded |
-| REQ: Task Thread | Not Started | 0/3 | No ThreadEntry model or commands |
+| REQ: Task Thread | In Progress | 2/3 | ThreadEntry model + `pm tasks thread` shipped; attachments pending |
 | M7: Standup & Reporting | Not Started | 0/2 | No standup or export commands |
 | M8: Interactive TUI | Not Started | 0/1 | No pm ui command |
 | M9: Git Integration | Not Started | 0/3 | No link/unlink/status/commit commands |
@@ -444,7 +444,7 @@ M1 + M3.4 (piping) ──→ M10 (Bulk Operations)
 **Goal:** Read a task's full conversation thread with image attachments auto-downloaded to a temp directory.
 
 - [ ] `ThreadEntry` and `Attachment` models in core, add optional methods to PMPlugin
-- [ ] `pm tasks thread <id>` — display comment/activity thread with image attachments downloaded to temp dir
+- [x] `pm tasks thread <id>` — display comment/activity thread with image attachments downloaded to temp dir
 
 ### Models
 
@@ -691,7 +691,7 @@ Args: variadic task IDs. Example: `pm bulk update --status=in_progress ASANA-111
 | `pm summary` | Implemented | M3 | Read |
 | `pm branch <id>` | Implemented | M3 | Git |
 | `pm comment <id> <msg>` | Implemented | M3 | Write |
-| `pm tasks thread <id>` | Planned | REQ | Read |
+| `pm tasks thread <id>` | Implemented | REQ | Read |
 | `pm tasks attachments <id>` | Planned | REQ | Read |
 | `pm config get\|set\|list\|init\|path` | Implemented | M4 | Config |
 | `pm cache stats\|clear` | Implemented | M4 | Config |

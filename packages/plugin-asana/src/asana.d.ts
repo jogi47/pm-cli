@@ -20,6 +20,13 @@ declare module 'asana' {
     workspaces?: Array<{ gid?: string; name?: string }>;
   }
 
+  interface Story {
+    gid?: string;
+    text?: string;
+    created_at?: string;
+    created_by?: { gid?: string; name?: string };
+  }
+
   interface UserTaskList {
     gid?: string;
   }
@@ -105,7 +112,8 @@ declare module 'asana' {
   }
 
   export class StoriesApi {
-    createStoryForTask(taskGid: string, body: { data: Record<string, unknown> }, opts?: Record<string, unknown>): Promise<ResponseWrapper<unknown>>;
+    createStoryForTask(body: { data: Record<string, unknown> }, taskGid: string, opts?: Record<string, unknown>): Promise<ResponseWrapper<unknown>>;
+    getStoriesForTask(taskGid: string, opts?: Record<string, unknown>): Promise<ResponseWrapper<Story[]>>;
   }
 
   export class UserTaskListsApi {

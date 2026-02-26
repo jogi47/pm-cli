@@ -2,7 +2,7 @@
 
 import Table from 'cli-table3';
 import chalk from 'chalk';
-import type { Task, TaskStatus, ProviderType } from '../models/task.js';
+import type { Task, TaskStatus, ProviderType, ThreadEntry } from '../models/task.js';
 import type { ProviderInfo } from '../models/plugin.js';
 import { formatError } from './errors.js';
 
@@ -346,4 +346,37 @@ export function renderTaskIds(tasks: Task[]): void {
   for (const task of tasks) {
     console.log(task.id);
   }
+}
+
+
+/**
+ * Render task thread entries
+ */
+export function renderThreadEntries(entries: ThreadEntry[], format: OutputFormat): void {
+  if (format === 'json') {
+    console.log(JSON.stringify(entries, null, 2));
+    return;
+  }
+
+  if (entries.length === 0) {
+    console.log(chalk.gray('No thread entries found.'));
+    return;
+  }
+
+  for (const entry of entries) {
+    const timestamp = entry.createdAt.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+
+    const author = entry.author || 'Unknown';
+    console.log(`${chalk.bold(author)} ${chalk.gray(`(${timestamp})`)}`);
+    console.log(entry.body);
+    console.log();
+  }
+
+  console.log(chalk.gray(`${entries.length} thread entr${entries.length === 1 ? 'y' : 'ies'}`));
 }

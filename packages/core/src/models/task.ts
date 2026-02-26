@@ -4,6 +4,23 @@ export type TaskStatus = 'todo' | 'in_progress' | 'done';
 export type ProviderType = 'asana' | 'notion' | 'trello' | 'linear' | 'clickup';
 export type TaskCustomFieldType = 'enum' | 'multi_enum' | 'unsupported';
 
+export interface ThreadEntry {
+  /** Provider-specific entry ID */
+  id: string;
+
+  /** Entry content text */
+  body: string;
+
+  /** Author display name */
+  author?: string;
+
+  /** Provider source */
+  source: ProviderType;
+
+  /** Creation timestamp */
+  createdAt: Date;
+}
+
 export interface TaskCustomFieldResult {
   /** Custom field identifier */
   fieldId: string;

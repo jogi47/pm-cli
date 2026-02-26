@@ -1,6 +1,6 @@
 // src/models/plugin.ts
 
-import type { Task, ProviderType } from './task.js';
+import type { Task, ProviderType, ThreadEntry } from './task.js';
 
 export interface CustomFieldInput {
   /** Custom field identifier (provider field ID or case-insensitive field name) */
@@ -236,6 +236,11 @@ export interface PMPlugin {
    * Add a comment to a task
    */
   addComment?(externalId: string, body: string): Promise<void>;
+
+  /**
+   * Fetch task conversation/thread entries
+   */
+  getTaskThread?(externalId: string): Promise<ThreadEntry[]>;
 
   // ═══════════════════════════════════════════════
   // WORKSPACE OPERATIONS (optional)

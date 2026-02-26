@@ -1,7 +1,7 @@
 // src/managers/plugin-manager.ts
 
 import type { PMPlugin, ProviderInfo, CreateTaskInput, UpdateTaskInput } from '../models/plugin.js';
-import type { Task, TaskStatus, ProviderType } from '../models/task.js';
+import type { Task, TaskStatus, ProviderType, ThreadEntry } from '../models/task.js';
 import { parseTaskId } from '../models/task.js';
 import { PMCliError, ProviderError, NotConnectedError, formatError } from '../utils/errors.js';
 
@@ -327,6 +327,25 @@ class PluginManager {
     }
 
     return results;
+  }
+
+  /**
+   * Fetch thread entries for a task (provider determined from task ID)
+   */
+  async getTaskThread(taskId: string): Promise<ThreadEntry[]> {
+    const parsed = parseTaskId(taskId);
+    if (!parsed) throw new PMCliError({ message: `Invalid task ID format: ${taskId}`, reason: 'Task IDs must look like ASANA-123 or NOTION-abc.', suggestion: 'Copy an ID from `pm tasks assigned --ids-only` and try again.' });
+
+    const plugin = this.getPlugin(parsed.source);
+    if (!plugin) throw new PMCliError({ message: `Unknown provider: ${parsed.source}`, reason: 'The provider is not registered.', suggestion: 'Use `pm providers` to list available providers.' });
+    if (!(await plugin.isAuthenticated())) {
+      throw new NotConnectedError(parsed.source);
+    }
+    if (!plugin.getTaskThread) {
+      throw new Error(`${parsed.source} does not support task threads`);
+    }
+
+    return plugin.getTaskThread(parsed.externalId);
   }
 
   /**
