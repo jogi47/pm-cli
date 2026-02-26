@@ -342,7 +342,11 @@ class PluginManager {
       throw new NotConnectedError(parsed.source);
     }
     if (!plugin.getTaskThread) {
-      throw new Error(`${parsed.source} does not support task threads`);
+      throw new PMCliError({
+        message: `${parsed.source} does not support task threads`,
+        reason: 'The plugin does not implement this feature.',
+        suggestion: 'Use `pm providers` to list available providers and their capabilities.',
+      });
     }
 
     return plugin.getTaskThread(parsed.externalId);

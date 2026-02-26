@@ -1,42 +1,15 @@
 // src/commands/tasks/thread.ts
 
 import { Args, Command, Flags } from '@oclif/core';
-import { parseTaskId, pluginManager, renderError } from '@jogi47/pm-cli-core';
-import type { OutputFormat } from '@jogi47/pm-cli-core';
+import {
+  parseTaskId,
+  pluginManager,
+  renderError,
+  renderThreadEntries,
+  type OutputFormat,
+} from '@jogi47/pm-cli-core';
 import '../../init.js';
 import { handleCommandError } from '../../lib/command-error.js';
-
-type ThreadEntry = {
-  id: string;
-  body: string;
-  author?: string;
-  createdAt: Date;
-};
-
-function renderThreadEntries(entries: ThreadEntry[], format: OutputFormat): void {
-  if (format === 'json') {
-    console.log(JSON.stringify(entries, null, 2));
-    return;
-  }
-
-  if (entries.length === 0) {
-    console.log('No thread entries found.');
-    return;
-  }
-
-  for (const entry of entries) {
-    const ts = entry.createdAt.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
-    console.log(`${entry.author || 'Unknown'} (${ts})`);
-    console.log(entry.body);
-    console.log();
-  }
-}
 
 export default class TasksThread extends Command {
   static override description = 'Show task conversation/thread entries';
@@ -72,7 +45,7 @@ export default class TasksThread extends Command {
     }
 
     await pluginManager.initialize();
-    const plugin = pluginManager.getPlugin(parsed.source) as { isAuthenticated: () => Promise<boolean>; getTaskThread?: (externalId: string) => Promise<ThreadEntry[]> } | undefined;
+    const plugin = pluginManager.getPlugin(parsed.source);
 
     if (!plugin) {
       renderError(`Unknown provider: ${parsed.source}`);

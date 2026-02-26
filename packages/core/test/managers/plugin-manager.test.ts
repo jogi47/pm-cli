@@ -24,8 +24,12 @@ function entry(id: string, source: Task['source']): ThreadEntry {
   };
 }
 
-function buildPlugin(name: Task['source'], tasks: Task[], opts?: { throwAssigned?: boolean; thread?: ThreadEntry[] }): PMPlugin {
-  return {
+function buildPlugin(
+  name: Task['source'],
+  tasks: Task[],
+  opts?: { throwAssigned?: boolean; thread?: ThreadEntry[]; supportsThread?: boolean }
+): PMPlugin {
+  const plugin: PMPlugin = {
     name,
     displayName: name,
     async initialize() {},
@@ -46,8 +50,13 @@ function buildPlugin(name: Task['source'], tasks: Task[], opts?: { throwAssigned
     async updateTask() { throw new Error('not used'); },
     async completeTask() { throw new Error('not used'); },
     async deleteTask() {},
-    async getTaskThread() { return opts?.thread ?? []; },
   };
+
+  if (opts?.supportsThread !== false) {
+    plugin.getTaskThread = async () => opts?.thread ?? [];
+  }
+
+  return plugin;
 }
 
 describe('pluginManager aggregation', () => {
@@ -99,5 +108,15 @@ describe('pluginManager thread operations', () => {
     pluginManager.registerPlugin(buildPlugin('asana', []));
 
     await expect(pluginManager.getTaskThread('bad-id')).rejects.toThrow('Invalid task ID format');
+  });
+
+  it('rejects when provider does not support thread fetch', async () => {
+    pluginManager.registerPlugin(buildPlugin('asana', [], { supportsThread: false }));
+
+    await expect(pluginManager.getTaskThread('ASANA-123')).rejects.toMatchObject({
+      name: 'PMCliError',
+      message: 'asana does not support task threads',
+      reason: 'The plugin does not implement this feature.',
+    });
   });
 });
