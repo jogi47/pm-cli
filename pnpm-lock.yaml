@@ -27,23 +27,23 @@ importers:
         specifier: ^5.0.0
         version: 5.5.0
       '@jogi47/pm-cli-core':
-        specifier: ^0.2.5
-        version: 0.2.5
+        specifier: workspace:^
+        version: link:../core
       '@jogi47/pm-cli-plugin-asana':
-        specifier: ^0.2.5
-        version: 0.2.5(@oclif/core@4.8.0)
+        specifier: workspace:^
+        version: link:../plugin-asana
       '@jogi47/pm-cli-plugin-clickup':
-        specifier: ^0.2.5
-        version: 0.2.5
+        specifier: workspace:^
+        version: link:../plugin-clickup
       '@jogi47/pm-cli-plugin-linear':
-        specifier: ^0.2.5
-        version: 0.2.5
+        specifier: workspace:^
+        version: link:../plugin-linear
       '@jogi47/pm-cli-plugin-notion':
-        specifier: ^0.2.5
-        version: 0.2.5
+        specifier: workspace:^
+        version: link:../plugin-notion
       '@jogi47/pm-cli-plugin-trello':
-        specifier: ^0.2.5
-        version: 0.2.5
+        specifier: workspace:^
+        version: link:../plugin-trello
       '@oclif/core':
         specifier: ^4.0.0
         version: 4.8.0
@@ -92,8 +92,8 @@ importers:
   packages/plugin-asana:
     dependencies:
       '@jogi47/pm-cli-core':
-        specifier: ^0.2.5
-        version: 0.2.5
+        specifier: workspace:^
+        version: link:../core
       '@oclif/core':
         specifier: ^4.0.0
         version: 4.8.0
@@ -111,20 +111,20 @@ importers:
   packages/plugin-clickup:
     dependencies:
       '@jogi47/pm-cli-core':
-        specifier: ^0.2.5
-        version: 0.2.5
+        specifier: workspace:^
+        version: link:../core
 
   packages/plugin-linear:
     dependencies:
       '@jogi47/pm-cli-core':
-        specifier: ^0.2.5
-        version: 0.2.5
+        specifier: workspace:^
+        version: link:../core
 
   packages/plugin-notion:
     dependencies:
       '@jogi47/pm-cli-core':
-        specifier: ^0.2.5
-        version: 0.2.5
+        specifier: workspace:^
+        version: link:../core
       '@notionhq/client':
         specifier: ^2.2.0
         version: 2.3.0
@@ -139,8 +139,8 @@ importers:
   packages/plugin-trello:
     dependencies:
       '@jogi47/pm-cli-core':
-        specifier: ^0.2.5
-        version: 0.2.5
+        specifier: workspace:^
+        version: link:../core
 
 packages:
 
@@ -491,26 +491,6 @@ packages:
   '@jest/schemas@29.6.3':
     resolution: {integrity: sha512-mo5j5X+jIZmJQveBKeS/clAueipV7KgiX1vMgCxam1RNYiqE1w62n0/tJJnHtjW8ZHcQco5gY85jA3mi0L+nSA==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
-
-  '@jogi47/pm-cli-core@0.2.5':
-    resolution: {integrity: sha512-CBjAAebZYUooUC7wpE7gF7+WBPcaP6zKhbiwuTjMPCqU4mIZAUyM6LR5uJCtT1ByM5rBnBc/K5IYTEcFa7Yx/g==}
-
-  '@jogi47/pm-cli-plugin-asana@0.2.5':
-    resolution: {integrity: sha512-K77zg0zWGwYzf5dXIsD/BHkJta4QmaXCn+N9tZt1d63biAXdNFf9kRI+ckVw/1mIsIJNgeUcvpNqhRt0bpvbog==}
-    peerDependencies:
-      '@oclif/core': ^4.0.0
-
-  '@jogi47/pm-cli-plugin-clickup@0.2.5':
-    resolution: {integrity: sha512-4xQJ02JxoM3YXC78E/bQJZ3v0qXESHUFQS3cnesqvgU1T2gpIyP0lNRC2M+zycXn5H9Gt/FVNFV6HVLwVh4F/A==}
-
-  '@jogi47/pm-cli-plugin-linear@0.2.5':
-    resolution: {integrity: sha512-X1IDIY4sLKpUrzEiryjQiQLVE2m4I6l1/srP6dXcSA1p9xb9UOrFWwuVYsHYuUfQuyKToTYYfRtGjIaAwr1y5g==}
-
-  '@jogi47/pm-cli-plugin-notion@0.2.5':
-    resolution: {integrity: sha512-GE/zBwMe7QXI1qZaN1K4fA/Pv50Hb9OyIGyT2ZUMv8Lkq/XlZCjVe8M+jr/lTuwWUcpT4KQZoWjnfEoiqD+hsA==}
-
-  '@jogi47/pm-cli-plugin-trello@0.2.5':
-    resolution: {integrity: sha512-Kv24+2XPBXBimTDugssY94ecddQwR307Wzg4e2Bj8STb3cQuiyYDl5QsqfchYEpGoUGRBsUA+wHxF5Es0/dnrA==}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -2345,41 +2325,6 @@ snapshots:
   '@jest/schemas@29.6.3':
     dependencies:
       '@sinclair/typebox': 0.27.10
-
-  '@jogi47/pm-cli-core@0.2.5':
-    dependencies:
-      chalk: 5.6.2
-      cli-table3: 0.6.5
-      conf: 12.0.0
-      lowdb: 7.0.1
-
-  '@jogi47/pm-cli-plugin-asana@0.2.5(@oclif/core@4.8.0)':
-    dependencies:
-      '@jogi47/pm-cli-core': 0.2.5
-      '@oclif/core': 4.8.0
-      asana: 3.1.5(@babel/core@7.29.0)
-    transitivePeerDependencies:
-      - '@babel/core'
-      - supports-color
-
-  '@jogi47/pm-cli-plugin-clickup@0.2.5':
-    dependencies:
-      '@jogi47/pm-cli-core': 0.2.5
-
-  '@jogi47/pm-cli-plugin-linear@0.2.5':
-    dependencies:
-      '@jogi47/pm-cli-core': 0.2.5
-
-  '@jogi47/pm-cli-plugin-notion@0.2.5':
-    dependencies:
-      '@jogi47/pm-cli-core': 0.2.5
-      '@notionhq/client': 2.3.0
-    transitivePeerDependencies:
-      - encoding
-
-  '@jogi47/pm-cli-plugin-trello@0.2.5':
-    dependencies:
-      '@jogi47/pm-cli-core': 0.2.5
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
