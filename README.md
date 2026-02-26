@@ -148,6 +148,12 @@ pnpm test
 pnpm lint
 ```
 
+## Publishing
+
+For maintainers and automation agents, follow the publish playbook:
+
+- [jogi-docs/PUBLISHING.md](./jogi-docs/PUBLISHING.md)
+
 ## Contributing
 
 Please read [CONTRIBUTING.md](./CONTRIBUTING.md).
