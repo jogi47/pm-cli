@@ -1,6 +1,6 @@
 {
   "name": "@jogi47/pm-cli-plugin-trello",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Trello plugin for pm-cli",
   "type": "module",
   "main": "./dist/index.js",

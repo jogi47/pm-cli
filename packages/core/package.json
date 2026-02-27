@@ -1,6 +1,6 @@
 {
   "name": "@jogi47/pm-cli-core",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Core models, managers, and utilities for pm-cli",
   "type": "module",
   "main": "./dist/index.js",
