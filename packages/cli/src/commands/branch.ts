@@ -5,7 +5,7 @@ import { pluginManager, parseTaskId, slugify, renderError, renderSuccess } from 
 import { execFileSync } from 'node:child_process';
 import '../init.js';
 import { handleCommandError } from '../lib/command-error.js';
-import { sanitizeBranchSegment } from '../lib/branch-name.js';
+import { isValidGitBranchName, sanitizeBranchSegment } from '../lib/branch-name.js';
 
 
 export default class Branch extends Command {
@@ -83,8 +83,8 @@ export default class Branch extends Command {
       }
 
       branchName = sanitizeBranchSegment(branchName);
-      if (!branchName) {
-        renderError('Could not build a safe branch name from the selected task.');
+      if (!branchName || !isValidGitBranchName(branchName)) {
+        renderError('Could not build a valid and safe git branch name from the selected task.');
         this.exit(1);
         return;
       }
