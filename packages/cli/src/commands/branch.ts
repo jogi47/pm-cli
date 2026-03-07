@@ -2,9 +2,11 @@
 
 import { Command, Args, Flags } from '@oclif/core';
 import { pluginManager, parseTaskId, slugify, renderError, renderSuccess } from '@jogi47/pm-cli-core';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import '../init.js';
 import { handleCommandError } from '../lib/command-error.js';
+import { sanitizeBranchSegment } from '../lib/branch-name.js';
+
 
 export default class Branch extends Command {
   static override description = 'Create a git branch from a task';
@@ -73,17 +75,25 @@ export default class Branch extends Command {
         return;
       }
 
-      const slug = slugify(task.title);
-      let branchName = flags['no-id'] ? slug : `${args.id.toLowerCase()}-${slug}`;
+      const slug = sanitizeBranchSegment(slugify(task.title));
+      const taskIdSegment = sanitizeBranchSegment(`${parsed.source}-${parsed.externalId}`);
+      let branchName = flags['no-id'] ? slug : `${taskIdSegment}-${slug}`;
       if (flags.prefix) {
         branchName = `${flags.prefix}/${branchName}`;
       }
 
-      execSync(`git branch ${branchName}`, { stdio: 'pipe' });
+      branchName = sanitizeBranchSegment(branchName);
+      if (!branchName) {
+        renderError('Could not build a safe branch name from the selected task.');
+        this.exit(1);
+        return;
+      }
+
+      execFileSync('git', ['branch', branchName], { stdio: 'pipe' });
       renderSuccess(`Created branch: ${branchName}`);
 
       if (flags.checkout) {
-        execSync(`git checkout ${branchName}`, { stdio: 'pipe' });
+        execFileSync('git', ['checkout', branchName], { stdio: 'pipe' });
         renderSuccess(`Switched to branch: ${branchName}`);
       }
     } catch (error) {
