@@ -137,9 +137,17 @@ class ConfigManager {
     for (let index = 0; index < keys.length - 1; index++) {
       const key = keys[index];
       const existing = current[key];
-      if (existing === null || typeof existing !== 'object' || Array.isArray(existing)) {
+      
+      if (existing === undefined) {
         current[key] = {};
+      } else if (existing === null || typeof existing !== 'object' || Array.isArray(existing)) {
+        throw new PMCliError({
+          message: `Cannot set config path '${keyPath}'`,
+          reason: `Intermediate key '${key}' exists but is not an object.`,
+          suggestion: `Check your config file or use a different path.`
+        });
       }
+      
       current = current[key] as Record<string, unknown>;
     }
 

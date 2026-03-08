@@ -73,18 +73,18 @@ describe('pluginManager aggregation', () => {
     pluginManager.registerPlugin(buildPlugin('trello', [task('TRELLO-1', 'trello'), task('ASANA-1', 'trello')]));
 
     const result = await pluginManager.aggregateTasks('assigned');
-    expect(result.map((t) => t.id)).toEqual(['ASANA-1', 'NOTION-1', 'TRELLO-1']);
+    expect(result.tasks.map((t) => t.id)).toEqual(['ASANA-1', 'NOTION-1', 'TRELLO-1']);
+    expect(result.errors).toHaveLength(0);
   });
 
   it('continues aggregating when one provider fails', async () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
     pluginManager.registerPlugin(buildPlugin('asana', [task('ASANA-1', 'asana')]));
     pluginManager.registerPlugin(buildPlugin('linear', [task('LINEAR-1', 'linear')], { throwAssigned: true }));
 
     const result = await pluginManager.aggregateTasks('assigned');
-    expect(result.map((t) => t.id)).toEqual(['ASANA-1']);
-    expect(warnSpy).toHaveBeenCalledOnce();
+    expect(result.tasks.map((t) => t.id)).toEqual(['ASANA-1']);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].message).toContain('Failed to fetch assigned tasks');
   });
 });
 

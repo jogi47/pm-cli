@@ -1,7 +1,7 @@
 // src/managers/auth-manager.ts
 
 import Conf from 'conf';
-import type { ProviderType } from '../models/task.js';
+import { type ProviderType, SUPPORTED_PROVIDERS } from '../models/task.js';
 import type { ProviderCredentials } from '../models/plugin.js';
 
 interface StoredCredential {
@@ -106,8 +106,7 @@ class AuthManager {
    * Get all connected providers
    */
   getConnectedProviders(): ProviderType[] {
-    const providers: ProviderType[] = ['asana', 'notion', 'trello', 'linear', 'clickup'];
-    return providers.filter(p => this.hasCredentials(p));
+    return SUPPORTED_PROVIDERS.filter(p => this.hasCredentials(p));
   }
 
   /**

@@ -1,7 +1,7 @@
 // src/commands/summary.ts
 
 import { Command, Flags } from '@oclif/core';
-import { pluginManager, renderSummary, renderError } from '@jogi47/pm-cli-core';
+import { pluginManager, renderSummary, renderError, formatError } from '@jogi47/pm-cli-core';
 import type { OutputFormat, Task } from '@jogi47/pm-cli-core';
 import '../init.js';
 import { handleCommandError } from '../lib/command-error.js';
@@ -32,7 +32,13 @@ export default class Summary extends Command {
 
       let tasks: Task[];
       try {
-        tasks = await pluginManager.aggregateTasks('assigned');
+        const result = await pluginManager.aggregateTasks('assigned');
+        tasks = result.tasks;
+        if (result.errors && result.errors.length > 0) {
+          for (const err of result.errors) {
+            console.warn(`\nWarning:\n${formatError(err)}`);
+          }
+        }
       } catch {
         tasks = [];
       }

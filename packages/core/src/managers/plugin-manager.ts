@@ -149,7 +149,7 @@ class PluginManager {
   async aggregateTasks(
     operation: 'assigned' | 'overdue',
     options?: { source?: ProviderType; limit?: number; refresh?: boolean }
-  ): Promise<Task[]> {
+  ): Promise<{ tasks: Task[]; errors: ProviderError[] }> {
     let plugins: PMPlugin[];
 
     if (options?.source) {
@@ -171,6 +171,8 @@ class PluginManager {
       refresh: options?.refresh,
     };
 
+    const errors: ProviderError[] = [];
+
     const results = await Promise.all(
       plugins.map(async (plugin) => {
         try {
@@ -184,8 +186,7 @@ class PluginManager {
             reason: error instanceof Error ? error.message : 'Unknown API error.',
             suggestion: `Retry with --refresh or reconnect using \`pm connect ${plugin.name}\`.`,
           });
-
-          console.warn(formatError(providerError));
+          errors.push(providerError);
           return [];
         }
       })
@@ -200,7 +201,10 @@ class PluginManager {
       return a.dueDate.getTime() - b.dueDate.getTime();
     });
 
-    return options?.limit ? allTasks.slice(0, options.limit) : allTasks;
+    return {
+      tasks: options?.limit ? allTasks.slice(0, options.limit) : allTasks,
+      errors
+    };
   }
 
   /**
@@ -209,7 +213,7 @@ class PluginManager {
   async searchTasks(
     query: string,
     options?: { source?: ProviderType; limit?: number }
-  ): Promise<Task[]> {
+  ): Promise<{ tasks: Task[]; errors: ProviderError[] }> {
     let plugins: PMPlugin[];
 
     if (options?.source) {
@@ -220,12 +224,28 @@ class PluginManager {
       plugins = await this.getConnectedPlugins();
     }
 
+    const errors: ProviderError[] = [];
+
     const results = await Promise.all(
-      plugins.map((plugin) => plugin.searchTasks(query, { limit: options?.limit }))
+      plugins.map(async (plugin) => {
+        try {
+          return await plugin.searchTasks(query, { limit: options?.limit });
+        } catch (error) {
+          const providerError = new ProviderError(plugin.name, `Failed to search tasks`, error instanceof Error ? error : undefined, {
+            reason: error instanceof Error ? error.message : 'Unknown API error.',
+            suggestion: `Retry with --refresh or reconnect using \`pm connect ${plugin.name}\`.`,
+          });
+          errors.push(providerError);
+          return [];
+        }
+      })
     );
 
     const allTasks = dedupeTasks(results.flat());
-    return options?.limit ? allTasks.slice(0, options.limit) : allTasks;
+    return {
+      tasks: options?.limit ? allTasks.slice(0, options.limit) : allTasks,
+      errors
+    };
   }
 
   /**

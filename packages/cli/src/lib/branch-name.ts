@@ -5,12 +5,20 @@ const GIT_FORBIDDEN_CHARS = /[\u0000-\u001F\u007F ~^:?*\[]/;
  * Sanitize user/provider input into a branch-name segment.
  */
 export function sanitizeBranchSegment(value: string): string {
-  return value
+  let sanitized = value
     .toLowerCase()
     .replace(/[^a-z0-9./_-]/g, '-')
     .replace(/-{2,}/g, '-')
     .replace(/\.{2,}/g, '.')
-    .replace(/\/{2,}/g, '/')
+    .replace(/\/{2,}/g, '/');
+
+  // Prevent segments starting with '.'
+  sanitized = sanitized.replace(/\/\./g, '/-');
+
+  // Prevent segments ending with '.lock'
+  sanitized = sanitized.replace(/\.lock(?=\/|$)/g, '-lock');
+
+  return sanitized
     .replace(/^[-./]+|[-./]+$/g, '')
     .slice(0, MAX_BRANCH_SEGMENT_LENGTH);
 }

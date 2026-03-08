@@ -1,10 +1,11 @@
 // src/managers/cache-manager.ts
 
-import { Low } from 'lowdb';
-import { JSONFile } from 'lowdb/node';
+import { Low, Adapter } from 'lowdb';
+import { TextFile } from 'lowdb/node';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { mkdirSync, existsSync } from 'node:fs';
+import crypto from 'node:crypto';
 import type { Task, ProviderType } from '../models/task.js';
 
 interface CacheEntry<T> {
@@ -17,6 +18,42 @@ interface CacheEntry<T> {
 interface CacheStore {
   tasks: Record<string, CacheEntry<Task[]>>;
   taskDetails: Record<string, CacheEntry<Task>>;
+}
+
+class EncryptedJSONFile implements Adapter<CacheStore> {
+  private adapter: TextFile;
+  private key = crypto.createHash('sha256').update('pm-cli-secure-storage-key-v1').digest();
+
+  constructor(filename: string) {
+    this.adapter = new TextFile(filename);
+  }
+
+  async read(): Promise<CacheStore | null> {
+    const data = await this.adapter.read();
+    if (!data) return null;
+    try {
+      const parts = data.split(':');
+      const iv = Buffer.from(parts.shift()!, 'hex');
+      const encryptedText = Buffer.from(parts.join(':'), 'hex');
+      const decipher = crypto.createDecipheriv('aes-256-cbc', this.key, iv);
+      let decrypted = decipher.update(encryptedText);
+      decrypted = Buffer.concat([decrypted, decipher.final()]);
+      return JSON.parse(decrypted.toString());
+    } catch (e) {
+      // If decryption fails (e.g. file was plaintext before this update), treat as empty
+      return null;
+    }
+  }
+
+  async write(obj: CacheStore): Promise<void> {
+    const text = JSON.stringify(obj);
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv('aes-256-cbc', this.key, iv);
+    let encrypted = cipher.update(text);
+    encrypted = Buffer.concat([encrypted, cipher.final()]);
+    const data = iv.toString('hex') + ':' + encrypted.toString('hex');
+    await this.adapter.write(data);
+  }
 }
 
 const DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes
@@ -40,7 +77,7 @@ class CacheManager {
   private async ensureInitialized(): Promise<void> {
     if (this.initialized) return;
 
-    const adapter = new JSONFile<CacheStore>(this.dbPath);
+    const adapter = new EncryptedJSONFile(this.dbPath);
     this.db = new Low(adapter, { tasks: {}, taskDetails: {} });
     await this.db.read();
     this.initialized = true;
@@ -75,7 +112,7 @@ class CacheManager {
     if (!entry) return null;
     if (Date.now() > entry.expiresAt) {
       delete this.db!.data.tasks[key];
-      await this.db!.write();
+      // Do not write to db on read operations to avoid side effects
       return null;
     }
 
@@ -118,7 +155,7 @@ class CacheManager {
     if (!entry) return null;
     if (Date.now() > entry.expiresAt) {
       delete this.db!.data.taskDetails[taskId];
-      await this.db!.write();
+      // Do not write to db on read operations to avoid side effects
       return null;
     }
 

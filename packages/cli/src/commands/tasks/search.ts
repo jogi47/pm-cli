@@ -1,7 +1,7 @@
 // src/commands/tasks/search.ts
 
 import { Command, Args, Flags } from '@oclif/core';
-import { pluginManager, renderTasks, renderTasksPlain, renderTaskIds, renderError, filterAndSortTasks } from '@jogi47/pm-cli-core';
+import { pluginManager, renderTasks, renderTasksPlain, renderTaskIds, renderError, filterAndSortTasks, formatError } from '@jogi47/pm-cli-core';
 import type { OutputFormat, ProviderType, TaskStatus, FilterSortOptions } from '@jogi47/pm-cli-core';
 import '../../init.js';
 import { handleCommandError } from '../../lib/command-error.js';
@@ -67,10 +67,18 @@ export default class TasksSearch extends Command {
     await pluginManager.initialize();
 
     try {
-      let tasks = await pluginManager.searchTasks(args.query, {
+      const result = await pluginManager.searchTasks(args.query, {
         source: flags.source as ProviderType | undefined,
         limit: flags.limit,
       });
+
+      let tasks = result.tasks;
+
+      if (result.errors && result.errors.length > 0) {
+        for (const err of result.errors) {
+          console.warn(`\nWarning:\n${formatError(err)}`);
+        }
+      }
 
       const filterOpts: FilterSortOptions = {};
       if (flags.status) filterOpts.status = flags.status as TaskStatus;

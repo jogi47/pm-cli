@@ -2,6 +2,7 @@
 
 export type TaskStatus = 'todo' | 'in_progress' | 'done';
 export type ProviderType = 'asana' | 'notion' | 'trello' | 'linear' | 'clickup';
+export const SUPPORTED_PROVIDERS: ProviderType[] = ['asana', 'notion', 'trello', 'linear', 'clickup'];
 export type TaskCustomFieldType = 'enum' | 'multi_enum' | 'unsupported';
 
 export interface ThreadEntry {

@@ -1,7 +1,7 @@
 // src/commands/today.ts
 
 import { Command, Flags } from '@oclif/core';
-import { pluginManager, renderDashboard, renderError } from '@jogi47/pm-cli-core';
+import { pluginManager, renderDashboard, renderError, formatError } from '@jogi47/pm-cli-core';
 import type { OutputFormat, ProviderType } from '@jogi47/pm-cli-core';
 import '../init.js';
 import { handleCommandError } from '../lib/command-error.js';
@@ -34,9 +34,17 @@ export default class Today extends Command {
     await pluginManager.initialize();
 
     try {
-      const tasks = await pluginManager.aggregateTasks('assigned', {
+      const result = await pluginManager.aggregateTasks('assigned', {
         source: flags.source as ProviderType | undefined,
       });
+
+      const tasks = result.tasks;
+
+      if (result.errors && result.errors.length > 0) {
+        for (const err of result.errors) {
+          console.warn(`\nWarning:\n${formatError(err)}`);
+        }
+      }
 
       renderDashboard(tasks, format);
     } catch (error) {
