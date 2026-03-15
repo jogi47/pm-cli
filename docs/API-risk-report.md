@@ -1,577 +1,537 @@
-# PM CLI — API Risk Report
+# pm-cli api risk report
 
-> Concrete analysis of rate limits, free plan restrictions, deprecation risks,
-> and mitigation strategies for every provider pm-cli integrates with.
->
-> Based on official API documentation and developer community reports.
-> Last updated: February 2026.
+last reviewed against repository: 2026-03-15
+external research baseline carried forward from earlier report: february 2026
+status: active operational document
 
----
+## purpose
 
-## Implementation Status
+This document tracks provider-specific API risks that still matter to the
+current `pm-cli` codebase.
 
-| Provider | Plugin Package | Status | Milestone |
-|----------|---------------|--------|-----------|
-| **Asana** | `pm-cli-plugin-asana` | **Implemented** | — |
-| **Notion** | `pm-cli-plugin-notion` | **Implemented** | — |
-| **Trello** | `pm-cli-plugin-trello` | Planned | M2 |
-| **Linear** | `pm-cli-plugin-linear` | Planned | M2 |
-| **ClickUp** | `pm-cli-plugin-clickup` | Planned | M5 |
+It is intentionally a live current-state document.
 
-> Sections 1 (Asana) and 5 (Notion) describe **currently active** integrations.
-> Sections 2 (Trello), 3 (Linear), and 4 (ClickUp) are **pre-implementation research** for planned plugins.
+It should answer:
 
----
+- which providers are actually implemented
+- which constraints still matter operationally
+- which risks are already mitigated in the codebase
+- which risks remain open and actionable
 
-## Risk Summary Matrix
+This file should not be used as a milestone history log.
 
-| Risk | Asana | Notion | Trello | Linear | ClickUp |
-|------|-------|--------|--------|--------|---------|
-| **Rate limit (free)** | 150 req/min | 3 req/sec | 100 req/10s | 5,000 req/hr | 100 req/min |
-| **Rate limit (paid)** | 1,500 req/min | Same (for now) | Same | Same | 1,000-10,000 req/min |
-| **Search restricted on free?** | YES (402) | No | No (but stricter limits) | No | No |
-| **Write ops on free?** | Full | Full | Full | Full (250 issue cap) | Full (60 custom field uses) |
-| **Token expiration** | Never (except Enterprise) | Never | Configurable (`never` option) | Never (personal keys) | Never |
-| **API deprecation risk** | Medium (breaking changes active) | Low (indefinite version support) | Medium (OAuth 2.0 migration coming) | High (SDK churn) | Low (v2 stable, v3 gradual) |
-| **Reliability** | Good | Good (slow on large DBs) | Good | Good | Poor (documented perf issues) |
-| **Overall risk for pm-cli** | LOW-MEDIUM | LOW-MEDIUM | LOW | LOW-MEDIUM | MEDIUM-HIGH |
+If a note is purely historical, move it to `docs/archives/`.
 
----
+## current implementation status
 
-## 1. Asana (Implemented)
+All five provider packages are implemented in the repository:
 
-### Rate Limits
+| Provider | Package | Status |
+|---|---|---|
+| Asana | `pm-cli-plugin-asana` | implemented |
+| Notion | `pm-cli-plugin-notion` | implemented |
+| Trello | `pm-cli-plugin-trello` | implemented |
+| Linear | `pm-cli-plugin-linear` | implemented |
+| ClickUp | `pm-cli-plugin-clickup` | implemented |
 
-| Metric | Free Plan | Paid Plan |
-|--------|-----------|-----------|
-| Requests per minute | **150** | **1,500** |
-| Concurrent GET requests | 50 | 50 |
-| Concurrent POST/PUT/DELETE | 15 | 15 |
-| Search endpoint | **60 req/min** (paid only) | 60 req/min |
-| Pagination max page size | 100 items | 100 items |
+## official api references and integration path
 
-**How it works:** Limits are per-token (each PAT gets independent quota). No `X-RateLimit-Remaining` headers proactively — you only find out when you hit 429. The `Retry-After` header tells you how long to wait.
+This section is the canonical pointer to the provider documentation that should
+be used when reviewing or extending each plugin.
 
-**Computational cost limits:** Asana also enforces a cost-based limit tied to graph traversal complexity. Fetching tasks with deeply nested subtasks, many custom fields, or >1,000 tasks in a project can trigger additional throttling even under the request rate limit.
+The CLI does talk to the providers through their public APIs. The only question
+is whether it does so through an official SDK or through direct HTTP requests.
 
-### Free Plan Restrictions
+| Provider | Official docs | Current integration path in repo | Current auth style in repo |
+|---|---|---|---|
+| Asana | https://developers.asana.com/docs/authentication and https://developers.asana.com/docs/rate-limits | official `asana` sdk via `packages/plugin-asana/src/client.ts` | personal access token in `Authorization: Bearer ...` |
+| Notion | https://developers.notion.com/reference/authentication and https://developers.notion.com/reference/request-limits | official `@notionhq/client` sdk via `packages/plugin-notion/src/client.ts` | integration token with database access |
+| Trello | https://developer.atlassian.com/cloud/trello/guides/rest-api/api-introduction/ and https://developer.atlassian.com/cloud/trello/guides/rest-api/rate-limits/ | direct REST calls via `fetch` in `packages/plugin-trello/src/client.ts` | api key + token as query params |
+| Linear | https://linear.app/developers/graphql and https://linear.app/developers/rate-limiting | direct GraphQL over `fetch` in `packages/plugin-linear/src/client.ts` | personal api key in `Authorization` header |
+| ClickUp | https://developer.clickup.com/docs/index and https://developer.clickup.com/docs/rate-limits | direct REST calls via `fetch` in `packages/plugin-clickup/src/client.ts` | personal token in `Authorization` header |
 
-| Feature | Free Plan | Impact |
-|---------|-----------|--------|
-| Task search (`/tasks/search`) | **402 Payment Required** | Cannot use `pm tasks search` or `pm tasks overdue` |
-| Task CRUD (create/update/complete) | Full access | No impact |
-| Comments (`/tasks/{id}/stories`) | Full access | No impact |
-| Workspaces | Full access | No impact |
-| Custom fields | Limited | Minor impact |
-| Portfolios API | Blocked | No impact (not used by pm-cli) |
+### why this section exists
 
-**Critical risk:** Search is paid-only. `pm tasks search` and `pm tasks overdue` will fail with HTTP 402 on free plans. Must implement client-side filtering as fallback or show a clear error message.
+- future plugin work should start from official docs, not blog posts or SDK
+  examples copied from random sources
+- provider behavior should be validated against these references when auth,
+  pagination, search, write flows, or rate-limit handling change
+- this repo should document whether a plugin is intentionally using an official
+  SDK or intentionally bypassing one
 
-### Deprecation Risks
+## best-practice alignment against provider apis
 
-**Active breaking changes (already enforced):**
+This is the short answer to "are we using the providers in a best-practice
+way?".
 
-1. **Workspace parameter required** (Sept 2025) — `GET /projects`, `GET /users`, `GET /tags` now fail without a `workspace` or `team` parameter for multi-workspace users. **pm-cli already handles this** via workspace selection flow.
+| Provider | Good alignment | Current gaps |
+|---|---|---|
+| Asana | uses official sdk; uses bearer auth; supports workspace-aware flows | sdk is range-pinned, not exact; known free-plan/search degradation is not surfaced clearly |
+| Notion | uses official sdk; requires database id explicitly; handles schema lookup for title property | no request queue/backoff on `429`; no generalized handling for payload-size/rich-text limits |
+| Trello | uses documented REST endpoints and auth model | no use of rate-limit headers; no throttling; no explicit long-term auth migration strategy |
+| Linear | uses documented GraphQL endpoint and header auth; checks GraphQL `errors` array | no use of request/complexity headers; no backoff or query-cost controls |
+| ClickUp | uses documented v2 REST endpoints and header auth | no use of rate-limit headers; no retry/backoff; no timeout strategy; workspace/list assumptions are still thin |
 
-2. **assignee_status deprecated** — The `assignee_status` property on tasks is removed. GET returns nothing, PUT is ignored. Use new user task list API instead.
+### practical rule
 
-3. **New Asana URL format** — Browser URLs changing. May affect `pm open` if URL patterns are hardcoded.
+For every provider plugin, "best practice" should mean at least:
 
-**Detection:** Asana sends `Asana-Change` response headers when your request is affected by an upcoming breaking change. **Recommendation:** Log these headers to warn users proactively.
+1. use the official public API and official docs as the source of truth
+2. use the provider's recommended auth flow for the product shape of this CLI
+3. respect documented rate-limit behavior, including `429` and reset headers
+4. prefer provider-supported pagination and filtering instead of client-side
+   overfetch where possible
+5. surface provider-specific plan or capability limitations clearly to users
+6. keep SDK versions pinned deliberately when an SDK is used
 
-**Deprecation process:** Asana uses opt-in/opt-out headers (`Asana-Enable`, `Asana-Disable`) with a typical 3-4 month transition window. No API versioning system — changes deployed via feature flags.
+## current feature surface by provider
 
-### Mitigation Strategy
+This table reflects the codebase today, not the original planning milestones.
 
-| # | Action | Status |
-|---|--------|--------|
-| 1 | Handle 402 errors gracefully for search — show "requires paid Asana plan" message | TODO |
-| 2 | Implement client-side task filtering as fallback for free plan users | TODO |
-| 3 | Use opt_fields parameter to minimize data fetched (reduces cost-based throttling) | Partial — used in some queries |
-| 4 | Log Asana-Change headers to detect upcoming breaking changes | TODO |
-| 5 | Cache workspace GID on first run (avoid repeated /workspaces calls) | Done — workspace stored in auth config |
-| 6 | Implement retry with Retry-After header on 429 responses | TODO |
-| 7 | Pin `asana` SDK version (currently `^3.0.0`, should be exact) | TODO |
+| Provider | list/search/basic crud | comments | thread/activity | attachment download | workspaces | advanced custom-field support |
+|---|---|---|---|---|---|---|
+| Asana | yes | yes | yes | yes | yes | yes |
+| Notion | yes | yes | no | no | no | no |
+| Trello | yes | yes | no | no | no | no |
+| Linear | yes | yes | no | no | no | no |
+| ClickUp | yes | yes | no | no | no | no |
 
----
+Notes:
 
-## 2. Trello (Planned — M2)
+- thread and attachment flows are currently implemented only on the Asana path
+- workspace switching is operationally meaningful only for Asana today
+- advanced create/update field resolution is currently concentrated in the
+  Asana plugin
 
-### Rate Limits
+## risk summary
 
-| Metric | Value | Scope |
-|--------|-------|-------|
-| Per API key | **300 req / 10 seconds** | Per application |
-| Per token | **100 req / 10 seconds** | Per user |
-| `/1/members/` endpoints | **100 req / 900 seconds** (15 min) | Per token |
-| `/1/search` endpoint | **Undocumented** (stricter than general) | Per token |
-| 429 error blocking threshold | **200 errors / 10 sec → key blocked** | Per API key |
+This section focuses on active engineering risks for the current implementation.
 
-**Dual-layer limiting:** Trello enforces BOTH key-level and token-level limits simultaneously. Your CLI will be throttled by whichever is more restrictive (usually the 100 req/10s token limit).
-
-**Rate limit headers** (returned on every response):
-```
-x-rate-limit-api-token-remaining: <count>
-x-rate-limit-api-key-remaining: <count>
-x-rate-limit-api-token-interval-ms: 10000
-x-rate-limit-api-key-interval-ms: 10000
-```
-
-**Critical danger:** If your CLI generates >200 rate limit errors in a 10-second window, Trello **blocks the entire API key** for the remainder of the window. Aggressive retry logic can trigger this.
+| Provider | Main risk type | Current severity | Why it matters now |
+|---|---|---|---|
+| Asana | free-plan search restrictions and rate-limit handling | medium | search/overdue behavior can degrade on some plans; retry logic is not implemented |
+| Notion | rate limiting and schema variability | medium | property mapping and throughput remain user-schema dependent |
+| Trello | auth migration and search/rate-limit discipline | low to medium | current plugin works, but future auth changes could affect long-term support |
+| Linear | schema churn and GraphQL rate/compexity handling | low to medium | current plugin avoids sdk churn, but API evolution still matters |
+| ClickUp | reliability and custom-field/rate-limit constraints | medium to high | platform performance and free-plan custom-field limits can affect UX |
 
-### Free Plan Restrictions
+## repository-level observations
 
-| Feature | Free Plan | Impact |
-|---------|-----------|--------|
-| Boards per workspace | **10 max** | Limits scope, not API access |
-| Collaborators per workspace | **10 max** | View-only if exceeded |
-| API endpoints | **All available** | No restrictions |
-| Rate limits | **Same as paid** | No difference |
-| Power-Ups per board | 1 | No API impact |
-| Open cards per board | 5,000 (all plans) | Hard limit |
+These are cross-provider facts about the current codebase.
 
-**No API-specific restrictions between free and paid plans.** The 10-board limit is a workspace creation constraint, not an API access constraint.
+### 1. no universal provider-side rate limiter yet
 
-### Deprecation Risks
+Current state:
 
-**OAuth 2.0 migration (RFC-89, March 2025):**
-- Trello announced migration from API key + token to OAuth 2.0 (3LO)
-- **Explicitly stated:** "This is not a deprecation notice"
-- **Promised:** At least 6 months notice before sunsetting current auth
-- **No concrete deadline** as of February 2026
-- **CLI concern:** OAuth 2.0 requires callback URLs, which is awkward for CLI tools. Trello is exploring Atlassian API Tokens and device flow as alternatives.
+- requests are sent directly through provider clients
+- there is no shared token bucket or provider-specific throttling layer in
+  `core`
+- there is no centralized retry/backoff strategy
 
-**Recent API deprecations (all minor):**
-- SCIM API deprecated (Dec 2025)
-- Legacy compliance route removed (June 2025)
-- Board preference endpoint deprecated (Dec 2025)
-- None affect core card/board CRUD operations
-
-**No v1 API sunset announced.** Unlike Jira/Confluence which have aggressive migration timelines, Trello's v1 REST API has no deprecation date.
-
-### Pagination
+Impact:
 
-| Resource | Max per request | Pagination method |
-|----------|----------------|-------------------|
-| Cards | 1,000 | `before`/`since` parameters |
-| Actions | 1,000 | `before`/`since` parameters |
-| Boards | All (no pagination) | N/A |
-| Lists | All (no pagination) | N/A |
-| Search results | Undocumented | `cards_limit` parameter |
+- bursty usage can still trigger provider-specific rate limits
+- different providers will continue to handle throttling inconsistently until a
+  shared strategy exists
 
-**Tip:** Fetch nested resources in single requests to reduce API calls:
-```
-GET /1/boards/{id}?cards=all&card_fields=name,desc,idList
-```
-
-### Mitigation Strategy (for implementation)
-
-| # | Action |
-|---|--------|
-| 1 | Monitor x-rate-limit-api-token-remaining header on every response |
-| 2 | Implement a 429 error counter — if >50 errors in 10s, pause all requests |
-| 3 | Cache board metadata (changes infrequently) with 1-hour TTL |
-| 4 | Use nested resource fetching (e.g., ?cards=all) to reduce calls |
-| 5 | For /1/members/ endpoints, implement 15-minute window tracking |
-| 6 | For search, cache results aggressively and use sparingly |
-| 7 | Monitor RFC-89 for OAuth 2.0 migration timeline |
-| 8 | Request tokens with expiration=never for CLI use |
-
----
-
-## 3. Linear (Planned — M2)
-
-### Rate Limits
+### 2. caching is uniform, not provider-tuned
 
-| Metric | Authenticated | Unauthenticated |
-|--------|--------------|-----------------|
-| Requests per hour | **5,000** | 60 |
-| Complexity points per hour | **250,000** | 10,000 |
-| Max complexity per query | **10,000 points** | 10,000 points |
+Current state:
 
-**Dual-limit system:** Linear enforces both request count AND complexity points. For a CLI tool, the **complexity limit is the real constraint** because GraphQL queries with nested connections multiply costs.
+- the repository uses a uniform 5-minute TTL through `cacheManager`
+- cache path is `~/.cache/pm-cli/cache.json`
 
-**How complexity is calculated:**
-- Each property: 0.1 points
-- Each object: 1 point
-- Connections multiply by pagination argument (default: 50)
-- Score rounds up to nearest integer
+Impact:
 
-**Example:** Fetching 50 issues with 3 properties each = 1 + 50 + 15 = **66 points**. Same query with `first: 10` = **14 points**.
+- good enough for now
+- not ideal for providers with very different latency or quota profiles
 
-**Scope:** Per-user, not per-key. Creating multiple API keys does NOT increase limits — all keys for the same user share the same quota.
+### 3. provider health visibility is minimal
 
-**Error handling:** Rate limit errors return HTTP 400 (not 429) with `"extensions": { "code": "RATELIMITED" }`. No explicit `Retry-After` header documented.
+Current state:
 
-### Free Plan Restrictions
+- `pm providers` shows connection status and basic user/workspace details
+- it does not show:
+  - rate-limit state
+  - last failure state
+  - recent latency
+  - plan-related warnings
 
-| Feature | Free Plan | Impact |
-|---------|-----------|--------|
-| Active issues | **250 max** | Cannot create beyond limit |
-| Archived issues | Unlimited | No impact |
-| API access | **Full** | Same rate limits as paid |
-| Webhooks | Available | No restrictions |
-| All endpoints | Available | No restrictions |
+Impact:
 
-**The 250 active issue cap is the only constraint.** Archiving issues lets you stay on free tier indefinitely. No API endpoint restrictions.
+- troubleshooting remains reactive
 
-### SDK Stability Risk
+### 4. provider-specific graceful degradation is incomplete
 
-**This is Linear's biggest risk for pm-cli.**
+Current state:
 
-The `@linear/sdk` releases major versions extremely frequently with breaking changes:
-- v74.0.0 (Feb 6, 2025) — Removed `userDemoteAdmin` and similar methods
-- v73.0.0 (Jan 30, 2025) — Made `commitSha` required in `ReleaseSyncInput`
-- v72.0.0 (Jan 28, 2025) — Removed `releaseCreate` mutation
-- v71.0.0 (Jan 22, 2025) — Removed `allowedAiProviders` field
-- v70.0.0 (Jan 20, 2025) — Made `label` required in agent input
+- some provider limitations are known from research
+- not all of them are surfaced to users in a provider-specific way
 
-**5 breaking major versions in 3 weeks.** Auto-updating the SDK would break your CLI regularly.
+Impact:
 
-### Deprecation Risks
+- users can still hit provider limitations and receive generic API failures
 
-- Linear's GraphQL API does **not use traditional versioning** (no v1/v2)
-- Schema evolves continuously with `@deprecated` directives
-- Linear proactively contacts affected developers before breaking changes
-- No specific deprecation timeline commitments documented
+## provider details
 
-### Mitigation Strategy (for implementation)
+## 1. asana
 
-| # | Action |
-|---|--------|
-| 1 | PIN @linear/sdk to an exact version (e.g., "74.0.0", not "^74.0.0") |
-| 2 | Use small page sizes (first: 10-20) instead of default 50 to reduce complexity |
-| 3 | Track complexity points consumed, not just request count |
-| 4 | Implement exponential backoff — watch for RATELIMITED error code (HTTP 400, not 429) |
-| 5 | Warn users about 250 active issue limit on free plan |
-| 6 | Monitor Linear changelog for [API] tagged entries |
-| 7 | Test SDK upgrades in CI before releasing new pm-cli versions |
+status: implemented
+risk level: medium
 
----
+### what is implemented
 
-## 4. ClickUp (Planned — M5)
+- assigned tasks
+- overdue tasks
+- search
+- task detail
+- create/update/complete/delete
+- comments
+- task thread
+- attachment inspection and download
+- workspace switching
+- advanced custom-field resolution
 
-### Rate Limits
+### active risks
 
-| Plan | Requests per minute |
-|------|-------------------|
-| Free Forever | **100** |
-| Unlimited | 100 |
-| Business | 100 |
-| Business Plus | 1,000 |
-| Enterprise | 10,000 |
+#### a. free-plan search restrictions
 
-**No burst allowance** — these are hard limits. No per-endpoint differentiation. Rate limit headers:
-```
-X-RateLimit-Limit: 100
-X-RateLimit-Remaining: <count>
-X-RateLimit-Reset: <unix_timestamp>
-```
+Earlier provider research identified Asana search restrictions on some free
+plans, especially around `/tasks/search` returning HTTP 402.
 
-### Free Plan Restrictions
+Current repo state:
 
-| Feature | Free Plan | Impact |
-|---------|-----------|--------|
-| Custom field uses | **60 total** (lifetime) | **SEVERE** — each field value set = 1 use |
-| Automations | 50 active, 100 actions/month | No direct API impact |
-| API rate limit | 100 req/min | Same as Unlimited/Business |
-| Task CRUD | Full access | No restrictions |
-| Comments | Unlimited | No restrictions |
+- the codebase does not implement a dedicated graceful fallback for this known
+  limitation
+- there is no provider-specific "paid plan required" UX path in the Asana
+  plugin today
 
-**The custom field limit is a dealbreaker on free plan.** Every time you set ANY custom field value (dropdown, label, etc.) it counts as one of 60 total lifetime uses. A CLI that sets priority/status via custom fields would exhaust this in days. There is no API endpoint to check remaining uses.
+Why it matters:
 
-### Custom Field API Design Flaw
+- `pm tasks search` and possibly parts of overdue/search-like flows can still
+  degrade poorly for affected users
 
-**This is ClickUp's biggest risk for pm-cli.**
+#### b. rate-limit and retry handling
 
-The `PUT /task/{id}` endpoint **cannot update custom fields**. Each custom field requires a separate `Set Custom Field Value` API call. Updating a task with 5 custom fields = **6 API calls** (1 PUT + 5 custom field calls).
+Current repo state:
 
-At 100 req/min on free plan, updating 15 tasks with custom fields could exhaust your entire rate limit.
+- there is no `Retry-After` handling or provider-specific backoff logic
 
-### Reliability Concerns
+Why it matters:
 
-| Metric | Value | Source |
-|--------|-------|--------|
-| Documented outages (5 years) | **443+** | StatusGator |
-| Average outage frequency | ~1 every 4-5 days | Calculated |
-| Typical page load time | 8-10+ seconds | Benchmark testing |
-| Community "SLOWNESS" votes | Thousands | ClickUp feedback board |
+- Asana rate limits and concurrency limits can still surface as avoidable
+  failures under heavier usage
 
-**Performance is genuinely poor.** Multiple independent reviews confirm:
-- 8-10 second response times for basic operations
-- 30-second to 2-minute delays for task status changes
-- Search functionality lag
-- Dashboard loading hangs
+#### c. sdk version pinning
 
-**This is not anecdotal — it's a systemic, documented issue** that has persisted for 2+ years since ClickUp v3.0.
+Current repo state:
 
-### API Version Status
+- the Asana package still uses a version range:
+  - `asana: "^3.0.0"`
 
-- **v2:** Current primary API, stable, no deprecation timeline
-- **v3:** Gradual migration, a few endpoints migrated (terminology change: "Team" → "Workspace")
-- **Coexistence:** v2 and v3 work side by side
-- **Recommendation:** Use v2 for now, no urgency to migrate
+Why it matters:
 
-### Pagination
+- automatic minor/patch drift in third-party SDK behavior can change runtime
+  behavior unexpectedly
 
-| Resource | Max per page | Method |
-|----------|-------------|--------|
-| Tasks per list | **100** | Check response length vs limit |
-| Comments | Not documented | Unknown |
-| Workspaces | All (single response) | N/A |
+### mitigations already present
 
-**Pagination is poorly documented.** No explicit `page` or `offset` parameters in docs — you're expected to check if response length equals limit to determine if more pages exist.
+- workspace selection flow exists
+- workspace state is persisted
+- task thread and attachment behavior is isolated to the Asana path
+- metadata caching reduces repeated project/section/custom-field fetches
 
-### Mitigation Strategy (for implementation)
+### recommended next actions
 
-| # | Action |
-|---|--------|
-| 1 | AVOID custom fields on free plan — use native task properties only |
-| 2 | Implement aggressive request batching to stay under 100 req/min |
-| 3 | Add timeout handling (expect 8-10s response times) |
-| 4 | Implement retry logic with X-RateLimit-Reset header |
-| 5 | Cache task data aggressively (5-10 min TTL) to reduce API calls |
-| 6 | Warn users about ClickUp's known performance issues in docs |
-| 7 | For custom field updates, queue and batch to avoid rate limit exhaustion |
-| 8 | Consider recommending Business Plus plan ($12/user/mo) for serious use |
+1. add provider-specific handling for known 402 search restrictions
+2. add retry/backoff support for rate-limited Asana requests
+3. pin the Asana SDK to an exact version
+4. consider surfacing provider health warnings in `pm providers`
 
----
+## 2. notion
 
-## 5. Notion (Implemented)
+status: implemented
+risk level: medium
 
-### Rate Limits
+### what is implemented
 
-| Metric | Value | Scope |
-|--------|-------|-------|
-| Average rate | **3 requests / second** | Per integration |
-| Burst allowance | "Some bursts beyond average" (unspecified) | Per integration |
-| Per-plan differences | **None currently** (may change) | All plans equal |
+- assigned tasks
+- overdue tasks
+- search
+- task detail
+- create/update/complete/delete
+- comments
 
-**3 req/s = 180 req/min.** This is the most restrictive rate limit of all providers, but the "per-integration" scope means each connected workspace gets its own quota.
+### active risks
 
-**Future changes:** Notion hints at "distinct rate limits for workspaces in different pricing plans" but hasn't implemented this yet.
+#### a. schema variability
 
-### Free Plan Restrictions
+Notion databases are user-defined, so field naming and status property design
+are not stable across users.
 
-| Feature | Free Plan | Impact |
-|---------|-----------|--------|
-| API endpoints | **All available** | No restrictions |
-| Rate limits | **Same as paid** | No difference |
-| File upload size | 5MB (vs unlimited on paid) | Minor impact |
-| Guest limit | 10 guests | No API impact |
-| Block limit (with teams) | 1,000 trial blocks | Potential impact for heavy use |
+Current repo state:
 
-**No API-specific restrictions on free plan.** The constraints are workspace-level (file sizes, guests, blocks).
+- the plugin resolves several fields heuristically
+- status and due-date mapping still depend on user schema conventions
+- advanced custom-field updates are not supported
 
-### Property Mapping Risks
+Why it matters:
 
-**This is Notion's unique challenge for pm-cli.** Notion databases have user-defined schemas, so mapping to a unified Task model requires handling custom property names.
+- integrations remain sensitive to user-specific database setup
 
-**Read-only properties (cannot be set via API):**
-| Property | Restriction |
-|----------|-------------|
-| Formula | Computed values only |
-| Rollup | Aggregated from relations |
-| Unique ID | Auto-generated |
-| Created by / Created time | System-managed |
-| Last edited by / Last edited time | System-managed |
+#### b. rate limiting
 
-**Status property gotcha:** Status property **values** can be set via API, but the **schema** (option names, groups) **cannot be modified via API**. Users must configure Status options manually in Notion UI first.
+Current repo state:
 
-**Formula edge case:** If a formula references a relation with >25 linked pages, only 25 are evaluated — your CLI may receive incomplete computed values.
+- no explicit request throttling exists
 
-### Content Size Limits
+Why it matters:
 
-| Limit | Value |
-|-------|-------|
-| Rich text per object | **2,000 characters** |
-| Blocks per request | **100** |
-| Payload size | **500 KB** |
-| Database query page size | **100 results** |
-| Filter nesting depth | **2 levels** |
+- Notion's low average request rate can still become a bottleneck under bursty
+  usage
 
-**Rich text workaround:** Chunk content into multiple 2,000-character rich_text objects within a single block.
+#### c. rich text and payload limits
 
-### API Versioning
+Current repo state:
 
-| Current version | `2025-09-03` |
-|----------------|--------------|
-| Versioning scheme | Date-based (`Notion-Version` header) |
-| Old version support | "No plans to stop supporting older versions" |
-| Breaking change frequency | Rare (major versions every 1-2 years) |
+- the code does not implement generalized chunking for long rich text payloads
 
-**Low deprecation risk.** Notion explicitly commits to indefinite old version support and gives advance notice for breaking changes.
+Why it matters:
 
-### Reliability
+- long descriptions or notes can hit provider-side payload or rich-text limits
 
-- **Generally reliable** (AWS-hosted, enterprise uptime)
-- **Performance drops on large databases** (>5,000 records noticeably slower, >10,000 significantly slower)
-- **Eventual consistency:** Writes may not be immediately available in reads — implement retry logic for write-then-read patterns
-- **No documented timeout values** — occasional `RequestTimeoutError` for large queries
+#### d. sdk version pinning
 
-### Mitigation Strategy
+Current repo state:
 
-| # | Action | Status |
-|---|--------|--------|
-| 1 | Implement client-side rate limiter (token bucket, 3 tokens/sec) | TODO |
-| 2 | Queue all API requests through the rate limiter | TODO |
-| 3 | Document that users must configure Status property options in Notion UI | TODO |
-| 4 | Support configurable property mapping via .pmrc.json (M4) | TODO (M4) |
-| 5 | Chunk rich text into 2,000-char segments automatically | TODO |
-| 6 | Use cursor-based pagination (iterate until has_more=false) | Done — pagination implemented in client |
-| 7 | Pin to Notion-Version header | Done — set via `@notionhq/client` SDK |
-| 8 | For large databases, warn users about potential slowness | TODO |
-| 9 | Implement retry with Retry-After header on 429 responses | TODO |
-| 10 | Pin `@notionhq/client` SDK version (currently `^2.2.0`, should be exact) | TODO |
+- the Notion package still uses a version range:
+  - `@notionhq/client: "^2.2.0"`
 
----
+Why it matters:
 
-## Cross-Provider Risk Analysis
+- version drift can change behavior unexpectedly
 
-### Which provider is riskiest for pm-cli?
+### mitigations already present
 
-**ClickUp is the highest-risk integration** due to:
-1. Poor API reliability (8-10s response times, frequent outages)
-2. Custom field API design flaw (separate calls per field)
-3. Tight rate limit on free plan (100 req/min) combined with the custom field workaround
-4. Poorly documented pagination
+- Notion env auth now requires both token and database id
+- title-property search now resolves the actual title property dynamically
+- unsupported custom-field mutation is rejected explicitly
+- pagination support exists in the client
 
-**Linear has the highest SDK maintenance risk** due to extremely frequent breaking changes (5 major versions in 3 weeks). Pin versions aggressively.
+### recommended next actions
 
-**Asana has the highest free-plan feature gap** — search being paid-only means two of pm-cli's core commands (`pm tasks search`, `pm tasks overdue`) won't work on free plans.
+1. document required schema expectations more clearly for users
+2. add request throttling / queueing for Notion API calls
+3. add rich-text chunking for large create/update payloads
+4. pin the Notion SDK to an exact version
 
-### Rate Limit Impact on Common CLI Operations
+## 3. trello
 
-| Operation | API calls | Asana (150/min) | Trello (600/min) | Linear (83/min) | ClickUp (100/min) | Notion (180/min) |
-|-----------|-----------|-----------------|-------------------|-----------------|--------------------|-------------------|
-| `pm tasks assigned` (25 tasks) | 1-2 | OK | OK | OK | OK | OK |
-| `pm today` (3 queries) | 3-6 | OK | OK | OK | OK | OK |
-| `pm tasks create` | 1 | OK | OK | OK | OK | OK |
-| `pm done` (5 tasks) | 5 | OK | OK | OK | OK | OK |
-| `pm standup` (3 queries + filter) | 3-6 | OK | OK | OK | OK | OK |
-| `pm bulk update` (50 tasks) | 50 | OK | OK | OK | **TIGHT** | OK |
-| `pm bulk update` (50 tasks + 3 custom fields each) | 200 | Over limit | OK | OK | **BLOCKED** | Over limit |
+status: implemented
+risk level: low to medium
 
-*Linear's 83/min is derived from 5,000 req/hr, but complexity points are the real constraint.*
+### what is implemented
 
-### Caching Strategy Per Provider
+- assigned tasks
+- overdue tasks
+- search
+- task detail
+- create/update/complete/delete
+- comments
 
-**Current state:** All providers use a uniform 5-minute TTL via `cacheManager` (`~/.cachepm-cli/cache.json`). No per-provider TTL differentiation.
+### active risks
 
-| Provider | Current TTL | Recommended TTL | Reason |
-|----------|------------|----------------|--------|
-| Asana | 5 min | 5 min (keep) | Good rate limits, moderate data freshness needs |
-| Notion | 5 min | 5 min (keep) | Moderate rate limit, eventual consistency means stale reads anyway |
-| Trello | — | 5 min tasks, 1 hour boards | Board metadata changes rarely |
-| Linear | — | 3-5 min | Good rate limits, fast-changing task status |
-| ClickUp | — | 10 min | Tight rate limits + slow API = cache aggressively |
+#### a. auth migration risk
 
----
+Earlier research flagged Trello's ongoing OAuth 2.0 migration direction.
 
-## Recommendations for pm-cli Architecture
+Current repo state:
 
-> **Status:** These are planned improvements. None are currently implemented in the codebase.
-> Target milestone: M4 (DX & Extensibility).
+- the plugin still uses API key + token auth
 
-### 1. Implement a Universal Rate Limiter
+Why it matters:
 
-Each plugin should include a provider-specific rate limiter that:
-- Tracks remaining quota via response headers (where available)
-- Implements exponential backoff with jitter on 429/rate-limit errors
-- Pre-emptively pauses when approaching limits (don't wait for rejection)
-- Logs rate limit warnings for debugging
+- long-term auth support could change in ways that are awkward for CLI flows
 
-**Suggested implementation in `pm-cli-core`:**
-```typescript
-interface RateLimiterConfig {
-  maxRequests: number;
-  windowMs: number;       // e.g., 10000 for Trello, 60000 for Asana
-  burstAllowance?: number;
-}
-```
+#### b. search and rate-limit discipline
 
-**Current state:** Neither the Asana nor Notion plugin implements rate limiting or retry logic. Requests fire directly without throttling.
+Current repo state:
 
-### 2. Graceful Degradation for Free Plans
+- there is no provider-specific rate-limit handling based on Trello response
+  headers
 
-| Provider | Degraded Feature | Fallback | Implemented? |
-|----------|-----------------|----------|--------------|
-| Asana | `pm tasks search`, `pm tasks overdue` | Client-side filtering of assigned tasks | No — 402 errors propagate unhandled |
-| ClickUp | Custom fields after 60 uses | Warn user, skip custom field updates | N/A (plugin not built) |
-| Linear | Task creation after 250 active issues | Warn user, suggest archiving | N/A (plugin not built) |
+Why it matters:
 
-### 3. Provider Health Monitoring
+- Trello exposes useful rate-limit headers that are currently unused
 
-Add a `pm providers --health` command that shows:
-- Current rate limit status (remaining quota)
-- Response time (last API call latency)
-- Provider-specific warnings (paid-only features, approaching limits)
+### mitigations already present
 
-**Current state:** `pm providers` shows connection status only. No health/rate-limit monitoring.
+- the plugin is relatively simple
+- task/comment support is implemented without provider-specific advanced
+  behavior leaking into shared code
 
-### 4. Error Message Standards
+### recommended next actions
 
-Every provider error should include:
-```
-Error: [What happened] ([Provider] HTTP [code])
+1. monitor Trello auth migration announcements
+2. use Trello rate-limit headers if provider throttling work begins
+3. document any search-specific caveats if observed in real use
 
-[Why it happened — plain English]
-[How to fix it — actionable step]
+## 4. linear
 
-Docs: [link to relevant troubleshooting]
-```
+status: implemented
+risk level: low to medium
 
-Example:
-```
-Error: Search requires a paid Asana plan (HTTP 402)
+### what is implemented
 
-The task search API is only available on Asana Premium, Business, or Enterprise plans.
-To use search on your current plan, try: pm tasks assigned --plain | grep "keyword"
+- assigned tasks
+- overdue tasks
+- search
+- task detail
+- create/update/complete/delete
+- comments
 
-Docs: https://github.com/userpm-cli/docs/troubleshooting#asana-402
-```
+### active risks
 
-**Current state:** Errors use generic `renderError()` utility. No provider-specific enrichment, recovery suggestions, or docs links.
+#### a. rate-limit and complexity handling
 
----
+Linear's GraphQL model has both request and query-complexity concerns.
 
-## Sources
+Current repo state:
 
-### Asana
-- [Asana API Rate Limits](https://developers.asana.com/docs/rate-limits)
-- [Asana API Pagination](https://developers.asana.com/docs/pagination)
-- [Asana Deprecations](https://developers.asana.com/docs/deprecations)
-- [Asana API Changelog](https://developers.asana.com/docs/change-log)
-- [Asana Developer Forum — API tier restrictions](https://forum.asana.com/t/which-api-features-are-available-for-each-pricing-tier/104411)
-- [Asana Developer Forum — Search 402 error](https://forum.asana.com/t/task-search-returns-http-402/99804)
+- there is no explicit complexity tracking or throttling layer
 
-### Trello
-- [Trello API Rate Limits](https://developer.atlassian.com/cloud/trello/guides/rest-api/rate-limits/)
-- [Trello API Limits](https://developer.atlassian.com/cloud/trello/guides/rest-api/limits/)
-- [Trello Authorization](https://developer.atlassian.com/cloud/trello/guides/rest-api/authorization/)
-- [RFC-89: OAuth 2.0 for Trello](https://community.developer.atlassian.com/t/rfc-89-introducing-oauth2-to-trello/90359)
-- [Trello Developer Changelog](https://developer.atlassian.com/cloud/trello/changelog/)
+Why it matters:
 
-### Linear
-- [Linear API Rate Limiting](https://linear.app/developers/rate-limiting)
-- [Linear GraphQL Getting Started](https://linear.app/developers/graphql)
-- [Linear Pagination](https://linear.app/developers/pagination)
-- [Linear OAuth 2.0 Authentication](https://linear.app/developers/oauth-2-0-authentication)
-- [Linear Deprecations](https://linear.app/developers/deprecations)
-- [@linear/sdk on npm](https://www.npmjs.com/package/@linear/sdk)
+- future expansion of query breadth could degrade reliability if complexity
+  rises significantly
 
-### ClickUp
-- [ClickUp API Rate Limits](https://developer.clickup.com/docs/rate-limits)
-- [ClickUp API Authentication](https://developer.clickup.com/docs/authentication)
-- [ClickUp API v2/v3 Terminology](https://developer.clickup.com/docs/general-v2-v3-api)
-- [ClickUp Custom Fields Uses](https://help.clickup.com/hc/en-us/articles/10993484102167-Custom-Fields-uses)
-- [ClickUp Public API Status — StatusGator](https://statusgator.com/services/clickup/public-api)
-- [ClickUp Feedback Board — SLOWNESS](https://feedback.clickup.com/public-api/p/slowness)
+#### b. continuous schema evolution
 
-### Notion
-- [Notion API Request Limits](https://developers.notion.com/reference/request-limits)
-- [Notion API Versioning](https://developers.notion.com/reference/versioning)
-- [Notion Database Query](https://developers.notion.com/reference/post-database-query)
-- [Notion Property Types](https://developers.notion.com/reference/property-object)
-- [Notion Authorization](https://developers.notion.com/docs/authorization)
-- [Notion API Filter Reference](https://developers.notion.com/reference/post-database-query-filter)
+Current repo state:
+
+- the Linear plugin does not depend on `@linear/sdk`, which is good
+- however, the GraphQL schema can still evolve over time
+
+Why it matters:
+
+- API shape changes still require monitoring even without SDK churn
+
+### mitigations already present
+
+- no direct Linear SDK dependency is used in the plugin package today
+- the implementation is relatively small and adapter-focused
+
+### recommended next actions
+
+1. keep Linear queries small and focused
+2. add provider-specific handling if rate-limit or complexity issues appear in
+   practice
+3. monitor upstream API/schema changes
+
+## 5. clickup
+
+status: implemented
+risk level: medium to high
+
+### what is implemented
+
+- assigned tasks
+- overdue tasks
+- search
+- task detail
+- create/update/complete/delete
+- comments
+
+### active risks
+
+#### a. platform reliability and latency
+
+Earlier research identified ClickUp as the highest operational-risk provider.
+
+Current repo state:
+
+- there is no provider-specific timeout/retry/backoff strategy
+
+Why it matters:
+
+- slower or less reliable provider behavior can create a noticeably worse CLI
+  experience than other providers
+
+#### b. free-plan custom-field limits
+
+Earlier research identified serious free-plan limits around custom-field usage.
+
+Current repo state:
+
+- the current plugin does not expose rich custom-field mutation paths like the
+  Asana plugin
+
+Why it matters:
+
+- this reduces immediate risk, but it should remain a design constraint if
+  ClickUp custom-field support is expanded later
+
+#### c. rate-limit handling
+
+Current repo state:
+
+- response headers are not used for active throttling or user feedback
+
+Why it matters:
+
+- a tighter provider can benefit more from proactive rate-limit handling than a
+  looser one
+
+### mitigations already present
+
+- current ClickUp integration stays closer to basic task/comment operations
+- no advanced custom-field support is exposed in the shared CLI path today
+
+### recommended next actions
+
+1. add timeout/backoff handling if ClickUp reliability becomes a common user
+   issue
+2. avoid exposing custom-field-heavy workflows without a clear plan
+3. consider more aggressive caching or provider-specific TTLs if needed
+
+## open cross-provider actions
+
+These are the highest-value open items across providers.
+
+### high value
+
+1. introduce provider-aware rate limiting and retry strategy
+2. improve provider-specific graceful degradation for known plan limitations
+3. expose provider warnings more clearly to users
+
+### medium value
+
+1. pin third-party SDK versions where SDKs are used
+2. add provider-specific health visibility
+3. revisit cache TTL strategy by provider
+
+### lower priority
+
+1. create a dedicated troubleshooting guide per provider
+2. surface more provider plan/performance warnings in docs and CLI output
+
+## recommended near-term priorities
+
+If this repository wants to reduce operational risk without a large rewrite,
+these are the most useful next steps:
+
+1. implement provider-specific retry/backoff support
+2. pin the Asana and Notion SDK versions exactly
+3. add clearer Asana free-plan failure messaging if 402 search limitations are
+   still observed in practice
+4. add basic provider health metadata or warnings to `pm providers`
+
+## maintenance rule for this document
+
+Keep this file current by following these rules:
+
+- update it when a provider moves from unsupported to supported
+- update it when a major provider limitation is mitigated in code
+- remove milestone references and stale "planned" language
+- move historical snapshots into `docs/archives/`
+- prefer "current repo state" over aspirational roadmap wording
