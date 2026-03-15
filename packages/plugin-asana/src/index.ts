@@ -306,20 +306,18 @@ export class AsanaPlugin implements PMPlugin {
     const attachmentEntries = attachments.map((attachment) => this.toAttachmentThreadEntry(attachment));
     const entries = [...storyEntries, ...attachmentEntries]
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+    const finalEntries =
+      options?.limit && options.limit > 0 ? entries.slice(-options.limit) : entries;
 
     if (options?.downloadImages) {
-      await this.downloadThreadImages(entries, {
+      await this.downloadThreadImages(finalEntries, {
         taskId: externalId,
         tempDir: options.tempDir,
         cleanup: options.cleanup,
       });
     }
 
-    if (options?.limit && options.limit > 0) {
-      return entries.slice(-options.limit);
-    }
-
-    return entries;
+    return finalEntries;
   }
 
   async downloadAttachment(attachment: ThreadAttachment, options?: AttachmentDownloadOptions): Promise<string | null> {
@@ -385,7 +383,9 @@ export class AsanaPlugin implements PMPlugin {
   }
 
   private async downloadThreadImages(entries: ThreadEntry[], options: AttachmentDownloadOptions): Promise<void> {
-    const imageAttachments = entries.flatMap((entry) => entry.attachments || []);
+    const imageAttachments = entries
+      .flatMap((entry) => entry.attachments || [])
+      .filter((attachment) => attachment.kind === 'image' && Boolean(attachment.downloadUrl));
     let cleaned = false;
 
     for (const attachment of imageAttachments) {
@@ -394,13 +394,10 @@ export class AsanaPlugin implements PMPlugin {
         cleanup: options.cleanup && !cleaned,
       });
 
-      if (options.cleanup) {
+      if (options.cleanup && localPath) {
         cleaned = true;
       }
-
-      if (localPath) {
-        attachment.localPath = localPath;
-      }
+      attachment.localPath = localPath ?? undefined;
     }
   }
 

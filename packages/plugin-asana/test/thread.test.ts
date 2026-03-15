@@ -179,8 +179,7 @@ describe('AsanaPlugin getTaskThread', () => {
     ]);
 
     const downloadAttachment = vi.spyOn(plugin, 'downloadAttachment')
-      .mockResolvedValueOnce('/tmp/pm-cli/task-123/mockup-att-1.png')
-      .mockResolvedValueOnce(null);
+      .mockResolvedValueOnce('/tmp/pm-cli/task-123/mockup-att-1.png');
 
     const entries = await plugin.getTaskThread('task-123', {
       commentsOnly: true,
@@ -196,6 +195,7 @@ describe('AsanaPlugin getTaskThread', () => {
     ]);
     expect(entries[0].attachments?.[0].localPath).toBe('/tmp/pm-cli/task-123/mockup-att-1.png');
     expect(entries[2].attachments?.[0].viewUrl).toBe('https://view.example/notes.pdf');
+    expect(downloadAttachment).toHaveBeenCalledTimes(1);
     expect(downloadAttachment).toHaveBeenNthCalledWith(1, expect.objectContaining({
       id: 'att-1',
       kind: 'image',
@@ -204,13 +204,89 @@ describe('AsanaPlugin getTaskThread', () => {
       tempDir: '/tmp/pm-cli',
       cleanup: true,
     });
-    expect(downloadAttachment).toHaveBeenNthCalledWith(2, expect.objectContaining({
+  });
+
+  it('limits entries before downloading images', async () => {
+    const plugin = new AsanaPlugin();
+
+    vi.spyOn(asanaClient, 'getTaskStories').mockResolvedValue([]);
+    vi.spyOn(asanaClient, 'getTaskAttachments').mockResolvedValue([
+      buildAttachment({
+        gid: 'att-1',
+        name: 'older.png',
+        created_at: '2026-01-01T00:00:00.000Z',
+        download_url: 'https://download.example/older.png',
+      }),
+      buildAttachment({
+        gid: 'att-2',
+        name: 'newest.png',
+        created_at: '2026-01-02T00:00:00.000Z',
+        download_url: 'https://download.example/newest.png',
+      }),
+    ]);
+
+    const downloadAttachment = vi.spyOn(plugin, 'downloadAttachment')
+      .mockResolvedValue('/tmp/pm-cli/task-123/newest-att-2.png');
+
+    const entries = await plugin.getTaskThread('task-123', {
+      limit: 1,
+      downloadImages: true,
+      tempDir: '/tmp/pm-cli',
+      cleanup: true,
+    });
+
+    expect(entries.map((entry) => entry.id)).toEqual(['attachment-att-2']);
+    expect(entries[0].attachments?.[0].localPath).toBe('/tmp/pm-cli/task-123/newest-att-2.png');
+    expect(downloadAttachment).toHaveBeenCalledTimes(1);
+    expect(downloadAttachment).toHaveBeenCalledWith(expect.objectContaining({
       id: 'att-2',
-      kind: 'document',
+      name: 'newest.png',
     }), {
       taskId: 'task-123',
       tempDir: '/tmp/pm-cli',
-      cleanup: false,
+      cleanup: true,
+    });
+  });
+
+  it('keeps cleanup on the first real image download after skipping non-downloadable attachments', async () => {
+    const plugin = new AsanaPlugin();
+
+    vi.spyOn(asanaClient, 'getTaskStories').mockResolvedValue([]);
+    vi.spyOn(asanaClient, 'getTaskAttachments').mockResolvedValue([
+      buildAttachment({
+        gid: 'att-1',
+        name: 'notes.pdf',
+        created_at: '2026-01-01T00:00:00.000Z',
+        view_url: 'https://view.example/notes.pdf',
+      }),
+      buildAttachment({
+        gid: 'att-2',
+        name: 'mockup.png',
+        created_at: '2026-01-02T00:00:00.000Z',
+        download_url: 'https://download.example/mockup.png',
+      }),
+    ]);
+
+    const downloadAttachment = vi.spyOn(plugin, 'downloadAttachment')
+      .mockResolvedValue('/tmp/pm-cli/task-123/mockup-att-2.png');
+
+    const entries = await plugin.getTaskThread('task-123', {
+      downloadImages: true,
+      tempDir: '/tmp/pm-cli',
+      cleanup: true,
+    });
+
+    expect(entries.map((entry) => entry.id)).toEqual(['attachment-att-1', 'attachment-att-2']);
+    expect(entries[0].attachments?.[0].localPath).toBeUndefined();
+    expect(entries[1].attachments?.[0].localPath).toBe('/tmp/pm-cli/task-123/mockup-att-2.png');
+    expect(downloadAttachment).toHaveBeenCalledTimes(1);
+    expect(downloadAttachment).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'att-2',
+      kind: 'image',
+    }), {
+      taskId: 'task-123',
+      tempDir: '/tmp/pm-cli',
+      cleanup: true,
     });
   });
 });

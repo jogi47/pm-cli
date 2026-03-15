@@ -59,6 +59,25 @@ describe('renderTaskAttachments', () => {
 
     expect(logs.some((line) => line.includes('notes.pdf'))).toBe(true);
     expect(logs.some((line) => line.includes('[document]'))).toBe(true);
+    expect(logs.some((line) => line.includes('https://view.example/notes.pdf'))).toBe(true);
     expect(logs.some((line) => line.includes('1 attachment'))).toBe(true);
+  });
+
+  it('falls back to permalink URLs when no download or view URL is present', () => {
+    const logs: string[] = [];
+    vi.spyOn(console, 'log').mockImplementation((value?: unknown) => {
+      logs.push(String(value ?? ''));
+    });
+
+    renderTaskAttachments([{
+      id: 'att-2',
+      name: 'brief.pdf',
+      kind: 'document',
+      source: 'asana',
+      permalinkUrl: 'https://app.asana.com/0/123/456/f',
+    }], 'table');
+
+    expect(logs.some((line) => line.includes('brief.pdf'))).toBe(true);
+    expect(logs.some((line) => line.includes('https://app.asana.com/0/123/456/f'))).toBe(true);
   });
 });

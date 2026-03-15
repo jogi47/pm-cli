@@ -430,6 +430,8 @@ function formatThreadAttachment(attachment: ThreadAttachment): string {
     parts.push(chalk.underline.blue(attachment.downloadUrl));
   } else if (attachment.viewUrl) {
     parts.push(chalk.underline.blue(attachment.viewUrl));
+  } else if (attachment.permalinkUrl) {
+    parts.push(chalk.underline.blue(attachment.permalinkUrl));
   }
 
   return parts.join(' ');
