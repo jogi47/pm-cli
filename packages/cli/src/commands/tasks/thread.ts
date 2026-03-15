@@ -18,7 +18,7 @@ export default class TasksThread extends Command {
   static override examples = [
     '<%= config.bin %> tasks thread ASANA-1234567890',
     '<%= config.bin %> tasks thread ASANA-1234567890 --comments-only --with-task',
-    '<%= config.bin %> tasks thread ASANA-1234567890 --download-images --temp-dir /tmppm-cli',
+    '<%= config.bin %> tasks thread ASANA-1234567890 --download-images --temp-dir /tmp/pm-cli',
     '<%= config.bin %> tasks thread ASANA-1234567890 --json',
   ];
 

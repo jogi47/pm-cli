@@ -107,6 +107,33 @@ describe('pluginManager aggregation', () => {
   });
 });
 
+describe('pluginManager search', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    const manager = pluginManager as unknown as { plugins: Map<string, PMPlugin>; initialized: boolean };
+    manager.plugins = new Map();
+    manager.initialized = false;
+  });
+
+  it('rejects search when no providers are connected', async () => {
+    pluginManager.registerPlugin(buildPlugin('asana', [], { authenticated: false }));
+
+    await expect(pluginManager.searchTasks('bug')).rejects.toMatchObject({
+      name: 'PMCliError',
+      message: 'No providers connected',
+    });
+  });
+
+  it('rejects source-scoped search when the provider is not connected', async () => {
+    pluginManager.registerPlugin(buildPlugin('asana', [], { authenticated: false }));
+
+    await expect(pluginManager.searchTasks('bug', { source: 'asana' })).rejects.toMatchObject({
+      name: 'NotConnectedError',
+      message: 'Not connected to asana',
+    });
+  });
+});
+
 
 describe('pluginManager thread operations', () => {
   beforeEach(() => {

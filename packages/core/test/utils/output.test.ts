@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { renderTaskAttachments, renderThreadEntries } from '../../src/utils/output.js';
+import { renderError, renderTaskAttachments, renderThreadEntries, renderWarning } from '../../src/utils/output.js';
 import type { ThreadEntry } from '../../src/models/task.js';
 
 describe('renderThreadEntries', () => {
@@ -79,5 +79,35 @@ describe('renderTaskAttachments', () => {
 
     expect(logs.some((line) => line.includes('brief.pdf'))).toBe(true);
     expect(logs.some((line) => line.includes('https://app.asana.com/0/123/456/f'))).toBe(true);
+  });
+});
+
+describe('renderError/renderWarning', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('writes human-readable errors to stderr', () => {
+    const errors: string[] = [];
+    vi.spyOn(console, 'error').mockImplementation((value?: unknown) => {
+      errors.push(String(value ?? ''));
+    });
+
+    renderError('boom');
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain('boom');
+  });
+
+  it('writes warnings to stderr', () => {
+    const errors: string[] = [];
+    vi.spyOn(console, 'error').mockImplementation((value?: unknown) => {
+      errors.push(String(value ?? ''));
+    });
+
+    renderWarning('careful');
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain('careful');
   });
 });

@@ -1,6 +1,7 @@
 // src/commands/delete.ts
 
 import { Command, Args, Flags } from '@oclif/core';
+import { confirm } from '@inquirer/prompts';
 import { pluginManager, renderError, renderSuccess, BulkOperationError } from 'pm-cli-core';
 import '../init.js';
 
@@ -8,9 +9,9 @@ export default class Delete extends Command {
   static override description = 'Delete one or more tasks';
 
   static override examples = [
-    '<%= config.bin %> delete ASANA-123456',
-    '<%= config.bin %> delete ASANA-123456 ASANA-789012',
-    '<%= config.bin %> delete ASANA-123456 --json',
+    '<%= config.bin %> delete ASANA-123456 --force',
+    '<%= config.bin %> delete ASANA-123456 ASANA-789012 --force',
+    '<%= config.bin %> delete ASANA-123456 --json --force',
   ];
 
   static override strict = false;
@@ -27,6 +28,11 @@ export default class Delete extends Command {
       description: 'Output in JSON format',
       default: false,
     }),
+    force: Flags.boolean({
+      char: 'f',
+      description: 'Skip the delete confirmation prompt',
+      default: false,
+    }),
   };
 
   async run(): Promise<void> {
@@ -35,6 +41,15 @@ export default class Delete extends Command {
 
     if (taskIds.length === 0) {
       renderError('Please provide at least one task ID.');
+      this.exit(1);
+      return;
+    }
+
+    const confirmed = flags.force || await confirmDelete(taskIds);
+    if (!confirmed) {
+      renderError(process.stdin.isTTY
+        ? 'Delete cancelled.'
+        : 'Delete requires confirmation. Re-run with --force to confirm.');
       this.exit(1);
       return;
     }
@@ -70,4 +85,15 @@ export default class Delete extends Command {
 
     if (hasErrors) this.exit(1);
   }
+}
+
+async function confirmDelete(taskIds: string[]): Promise<boolean> {
+  if (!process.stdin.isTTY) {
+    return false;
+  }
+
+  return confirm({
+    message: `Delete ${taskIds.length} task${taskIds.length === 1 ? '' : 's'}? This cannot be undone.`,
+    default: false,
+  });
 }

@@ -15,7 +15,7 @@ export default class TasksAttachments extends Command {
 
   static override examples = [
     '<%= config.bin %> tasks attachments ASANA-1234567890',
-    '<%= config.bin %> tasks attachments ASANA-1234567890 --download-images --temp-dir /tmppm-cli',
+    '<%= config.bin %> tasks attachments ASANA-1234567890 --download-images --temp-dir /tmp/pm-cli',
     '<%= config.bin %> tasks attachments ASANA-1234567890 --json',
   ];
 

@@ -123,14 +123,22 @@ class AuthManager {
       return null;
     }
 
-    const envVars: Record<Exclude<ProviderType, 'trello'>, string> = {
+    if (provider === 'notion') {
+      const token = process.env.NOTION_TOKEN;
+      const databaseId = process.env.NOTION_DATABASE_ID;
+      if (token && databaseId) {
+        return { token, databaseId };
+      }
+      return null;
+    }
+
+    const envVars: Record<Exclude<ProviderType, 'trello' | 'notion'>, string> = {
       asana: 'ASANA_TOKEN',
-      notion: 'NOTION_TOKEN',
       linear: 'LINEAR_API_KEY',
       clickup: 'CLICKUP_TOKEN',
     };
 
-    const token = process.env[envVars[provider as Exclude<ProviderType, 'trello'>]];
+    const token = process.env[envVars[provider as Exclude<ProviderType, 'trello' | 'notion'>]];
     return token ? { token } : null;
   }
 

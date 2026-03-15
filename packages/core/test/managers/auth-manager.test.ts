@@ -43,4 +43,27 @@ describe('authManager getConnectedProviders', () => {
 
     expect(authManager.getConnectedProviders()).toEqual(['asana']);
   });
+
+  it('requires both Notion env vars to build env credentials', () => {
+    const originalToken = process.env.NOTION_TOKEN;
+    const originalDatabaseId = process.env.NOTION_DATABASE_ID;
+
+    try {
+      process.env.NOTION_TOKEN = 'notion-token';
+      delete process.env.NOTION_DATABASE_ID;
+      expect(authManager.getCredentials('notion')).toBeNull();
+
+      process.env.NOTION_DATABASE_ID = 'database-123';
+      expect(authManager.getCredentials('notion')).toEqual({
+        token: 'notion-token',
+        databaseId: 'database-123',
+      });
+    } finally {
+      if (originalToken === undefined) delete process.env.NOTION_TOKEN;
+      else process.env.NOTION_TOKEN = originalToken;
+
+      if (originalDatabaseId === undefined) delete process.env.NOTION_DATABASE_ID;
+      else process.env.NOTION_DATABASE_ID = originalDatabaseId;
+    }
+  });
 });

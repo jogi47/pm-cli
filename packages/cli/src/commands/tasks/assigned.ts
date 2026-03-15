@@ -1,7 +1,7 @@
 // src/commands/tasks/assigned.ts
 
 import { Command, Flags } from '@oclif/core';
-import { pluginManager, renderTasks, renderTasksPlain, renderTaskIds, renderError, filterAndSortTasks, formatError } from 'pm-cli-core';
+import { pluginManager, renderTasks, renderTasksPlain, renderTaskIds, renderWarning, filterAndSortTasks, formatError } from 'pm-cli-core';
 import type { OutputFormat, ProviderType, TaskStatus, FilterSortOptions } from 'pm-cli-core';
 import '../../init.js';
 import { handleCommandError } from '../../lib/command-error.js';
@@ -78,7 +78,7 @@ export default class TasksAssigned extends Command {
 
       if (result.errors && result.errors.length > 0) {
         for (const err of result.errors) {
-          console.warn(`\nWarning:\n${formatError(err)}`);
+          renderWarning(formatError(err));
         }
       }
 

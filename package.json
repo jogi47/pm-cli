@@ -7,7 +7,7 @@
     "build": "pnpm -r build",
     "dev": "pnpm -r --parallel dev",
     "lint": "pnpm -r lint",
-    "test": "vitest",
+    "test": "vitest run",
     "clean": "pnpm -r clean",
     "pm": "pnpm --filter pm-cli pm",
     "prepublish:check": "pnpm build && pnpm test && pnpm lint",

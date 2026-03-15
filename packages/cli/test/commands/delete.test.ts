@@ -20,6 +20,10 @@ const mocks = vi.hoisted(() => {
   };
 });
 
+vi.mock('@inquirer/prompts', () => ({
+  confirm: vi.fn(),
+}));
+
 vi.mock('pm-cli-core', () => ({
   pluginManager: {
     initialize: mocks.initialize,
@@ -52,7 +56,7 @@ describe('delete command', () => {
     };
     command.parse = vi.fn().mockResolvedValue({
       argv: ['ASANA-1', 'LINEAR-2'],
-      flags: { json: false },
+      flags: { json: false, force: true },
     });
     command.exit = vi.fn();
 
@@ -60,6 +64,38 @@ describe('delete command', () => {
 
     expect(mocks.renderSuccess).toHaveBeenCalledWith('Deleted: ASANA-1');
     expect(mocks.renderError).toHaveBeenCalledWith('LINEAR-2: delete denied');
+    expect(command.exit).toHaveBeenCalledWith(1);
+  });
+
+  it('requires confirmation when --force is not provided in non-interactive mode', async () => {
+    const originalIsTTY = process.stdin.isTTY;
+    Object.defineProperty(process.stdin, 'isTTY', {
+      value: false,
+      configurable: true,
+    });
+
+    const command = Object.create(Delete.prototype) as InstanceType<typeof Delete> & {
+      parse: ReturnType<typeof vi.fn>;
+      exit: ReturnType<typeof vi.fn>;
+    };
+    command.parse = vi.fn().mockResolvedValue({
+      argv: ['ASANA-1'],
+      flags: { json: false, force: false },
+    });
+    command.exit = vi.fn();
+
+    try {
+      await command.run();
+    } finally {
+      Object.defineProperty(process.stdin, 'isTTY', {
+        value: originalIsTTY,
+        configurable: true,
+      });
+    }
+
+    expect(mocks.initialize).not.toHaveBeenCalled();
+    expect(mocks.deleteTasks).not.toHaveBeenCalled();
+    expect(mocks.renderError).toHaveBeenCalledWith('Delete requires confirmation. Re-run with --force to confirm.');
     expect(command.exit).toHaveBeenCalledWith(1);
   });
 });

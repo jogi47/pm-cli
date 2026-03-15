@@ -226,9 +226,15 @@ class PluginManager {
     if (options?.source) {
       const plugin = this.getPlugin(options.source);
       if (!plugin) throw new PMCliError({ message: `Unknown provider: ${options.source}`, reason: 'The provider is not registered.', suggestion: 'Use `pm providers` to list available providers.' });
+      if (!(await plugin.isAuthenticated())) {
+        throw new NotConnectedError(options.source);
+      }
       plugins = [plugin];
     } else {
       plugins = await this.getConnectedPlugins();
+      if (plugins.length === 0) {
+        throw new PMCliError({ message: 'No providers connected', reason: 'No active provider sessions were found.', suggestion: 'Run: pm connect <provider>' });
+      }
     }
 
     const errors: ProviderError[] = [];

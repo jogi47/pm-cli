@@ -218,14 +218,14 @@ export function renderSuccess(message: string): void {
  */
 export function renderError(message: string | unknown): void {
   const formatted = typeof message === 'string' ? message : formatError(message);
-  console.log(chalk.red('✗') + ' ' + formatted);
+  console.error(chalk.red('✗') + ' ' + formatted);
 }
 
 /**
  * Render warning message
  */
 export function renderWarning(message: string): void {
-  console.log(chalk.yellow('⚠') + ' ' + message);
+  console.error(chalk.yellow('⚠') + ' ' + message);
 }
 
 /**

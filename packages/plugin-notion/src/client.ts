@@ -217,11 +217,13 @@ export class NotionClient {
   async searchPages(query: string, options?: { pageSize?: number }): Promise<NotionPage[]> {
     if (!this.client || !this.databaseId) throw new Error('Not connected');
 
+    const titleProperty = await this.getTitlePropertyName();
+
     // Use database query with title filter for search
     const response = await this.client.databases.query({
       database_id: this.databaseId,
       filter: {
-        property: 'title',
+        property: titleProperty,
         title: {
           contains: query,
         },
@@ -236,6 +238,19 @@ export class NotionClient {
       }
     }
     return pages;
+  }
+
+  private async getTitlePropertyName(): Promise<string> {
+    if (!this.client || !this.databaseId) throw new Error('Not connected');
+
+    const db = await this.client.databases.retrieve({ database_id: this.databaseId });
+    for (const [name, prop] of Object.entries(db.properties)) {
+      if (prop.type === 'title') {
+        return name;
+      }
+    }
+
+    throw new Error('No title property found in Notion database schema');
   }
 
   /**
