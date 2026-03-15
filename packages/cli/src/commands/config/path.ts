@@ -1,5 +1,5 @@
 import { Command } from '@oclif/core';
-import { configManager } from '@jogi47/pm-cli-core';
+import { configManager } from 'pm-cli-core';
 
 export default class ConfigPath extends Command {
   static override description = 'Show configuration file locations';

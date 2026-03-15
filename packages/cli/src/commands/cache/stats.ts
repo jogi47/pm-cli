@@ -1,5 +1,5 @@
 import { Command } from '@oclif/core';
-import { cacheManager } from '@jogi47/pm-cli-core';
+import { cacheManager } from 'pm-cli-core';
 import { statSync } from 'node:fs';
 import { handleCommandError } from '../../lib/command-error.js';
 

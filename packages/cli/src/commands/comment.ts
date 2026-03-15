@@ -1,7 +1,7 @@
 // src/commands/comment.ts
 
 import { Command, Args } from '@oclif/core';
-import { pluginManager, renderError, renderSuccess } from '@jogi47/pm-cli-core';
+import { pluginManager, renderError, renderSuccess } from 'pm-cli-core';
 import '../init.js';
 import { handleCommandError } from '../lib/command-error.js';
 

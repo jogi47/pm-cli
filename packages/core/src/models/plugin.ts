@@ -1,6 +1,6 @@
 // src/models/plugin.ts
 
-import type { Task, ProviderType, ThreadEntry } from './task.js';
+import type { Task, ProviderType, ThreadAttachment, ThreadEntry } from './task.js';
 
 export interface CustomFieldInput {
   /** Custom field identifier (provider field ID or case-insensitive field name) */
@@ -102,6 +102,21 @@ export interface ThreadQueryOptions {
   commentsOnly?: boolean;
   /** Limit the number of entries */
   limit?: number;
+  /** Download image attachments into a local temp directory */
+  downloadImages?: boolean;
+  /** Base temp directory used for downloaded images */
+  tempDir?: string;
+  /** Remove this task's previous download directory before fetching again */
+  cleanup?: boolean;
+}
+
+export interface AttachmentDownloadOptions {
+  /** Base temp directory used for downloaded files */
+  tempDir?: string;
+  /** Remove this task's previous download directory before downloading */
+  cleanup?: boolean;
+  /** Provider task ID used to namespace downloads */
+  taskId?: string;
 }
 
 export interface ProviderCredentials {
@@ -248,6 +263,11 @@ export interface PMPlugin {
    * Fetch task conversation/thread entries
    */
   getTaskThread?(externalId: string, options?: ThreadQueryOptions): Promise<ThreadEntry[]>;
+
+  /**
+   * Download an attachment and return its local file path
+   */
+  downloadAttachment?(attachment: ThreadAttachment, options?: AttachmentDownloadOptions): Promise<string | null>;
 
   // ═══════════════════════════════════════════════
   // WORKSPACE OPERATIONS (optional)

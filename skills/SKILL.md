@@ -1,654 +1,583 @@
 ---
 name: pm-cli-usage
-description: Complete guide for using the pm CLI (`@jogi47/pm-cli`) to manage tasks across Asana, Notion, and other project management providers. Use when Claude needs to run pm commands to list, search, create, update, complete, or open tasks from the command line.
+description: Complete guide for using the pm CLI to manage tasks across Asana, Notion, Trello, Linear, and ClickUp. Use when an agent needs to run pm commands to connect providers, list/search/show tasks, create or update work, inspect Asana threads/attachments, manage config/cache, or create task-based git branches.
 ---
 
 # pm-cli Usage Guide
 
-You are operating `pm`, a unified CLI for managing tasks across multiple project management tools (Asana, Notion, etc.). Use this guide to run any pm-cli command correctly.
+You are operating `pm`, a unified CLI for task management across multiple project management providers.
 
 ## Tool Overview
 
-`pm` aggregates tasks from multiple PM providers into a single command-line interface. It supports listing, searching, creating, updating, completing, deleting, and viewing tasks with cached responses, JSON output for scripting, plus cache/config management commands.
+`pm` supports:
 
-**npm package:** `@jogi47/pm-cli` (install: `npm install -g @jogi47/pm-cli`)
-**Supported providers:** `asana` (fully implemented), `notion` (fully implemented)
+- provider connection and auth
+- assigned / overdue / search task views
+- single-task show / open / update
+- task creation, including Asana project/section placement
+- comments
+- complete / delete batch actions
+- summary and today dashboard views
+- Asana task thread and attachment inspection
+- config and cache management
+- task-based git branch creation
+
+Supported providers:
+
+- `asana`
+- `notion`
+- `trello`
+- `linear`
+- `clickup`
+
+Current capability notes:
+
+- task thread and task attachment commands are implemented on the Asana path
+- image download support for thread/attachment commands is implemented on the Asana path
+- workspace switching is currently useful for Asana
+- planned but not implemented yet: `pm ui`, `pm bulk update`, `pm bulk move`, `pm bulk create --file`
 
 ## Setup
 
-### 1. Connect a provider
+### Connect interactively
 
 ```bash
-pm connect asana    # Prompts for Personal Access Token
-pm connect notion   # Prompts for Notion integration token
+pm connect asana
+pm connect notion
+pm connect trello
+pm connect linear
+pm connect clickup
 ```
 
-The command interactively prompts for credentials. You cannot pass tokens as arguments.
-
-### 2. Set credentials via environment variables (alternative)
+### Environment variable auth
 
 ```bash
 export ASANA_TOKEN=<token>
-# Optional token override for Notion:
 export NOTION_TOKEN=<token>
+export TRELLO_API_KEY=<api-key>
+export TRELLO_TOKEN=<token>
+export LINEAR_API_KEY=<token>
+export CLICKUP_TOKEN=<token>
 ```
 
-Environment variables can supply provider tokens. For Notion, a `databaseId` is also required and is typically captured via `pm connect notion`.
+Notes:
 
-### 3. Select a workspace (if the provider has multiple)
+- Notion also needs a database ID during `pm connect notion`
+- credentials are prompted interactively when using `pm connect`
+- `pm providers` shows connection state and current workspace/user details
+
+### Workspace switching
 
 ```bash
+pm workspace
 pm workspace list -s asana
-pm workspace switch -s asana    # Interactive workspace picker
+pm workspace switch -s asana
 ```
 
 ## Task ID Format
 
-All tasks use the format `PROVIDER-externalId`:
+All tasks use `PROVIDER-externalId`, for example:
 
-- `ASANA-1234567890` — Asana task with external ID `1234567890`
-- `NOTION-abc123def456` — Notion page with external ID `abc123def456`
+- `ASANA-1234567890`
+- `NOTION-abc123def456`
+- `LINEAR-ENG-42`
 
-The provider prefix is **case-insensitive** when parsing (both `ASANA-123` and `asana-123` work).
+The provider prefix is case-insensitive.
+
+## Current Command Surface
+
+Implemented commands:
+
+```text
+pm connect
+pm disconnect
+pm providers
+pm workspace
+pm today
+pm summary
+pm open
+pm branch
+pm comment
+pm done
+pm delete
+pm cache stats
+pm cache clear
+pm config init
+pm config path
+pm config list
+pm config get
+pm config set
+pm tasks assigned
+pm tasks overdue
+pm tasks search
+pm tasks show
+pm tasks thread
+pm tasks attachments
+pm tasks create
+pm tasks update
+```
+
+Not implemented yet:
+
+```text
+pm ui
+pm bulk update
+pm bulk move
+pm bulk create --file
+```
 
 ## Commands Reference
 
 ### `pm connect <provider>`
 
-Connect to a project management provider. Prompts for credentials interactively.
+Connect to a provider.
 
-| Argument | Required | Values |
-|----------|----------|--------|
-| `provider` | Yes | `asana`, `notion` |
+Values:
+
+- `asana`
+- `notion`
+- `trello`
+- `linear`
+- `clickup`
+
+Example:
 
 ```bash
 pm connect asana
 ```
 
-If already connected, prints current connection info and suggests `pm disconnect` first.
-
----
-
 ### `pm disconnect <provider>`
 
-Remove stored credentials for a provider.
+Disconnect from a provider and clear stored credentials.
 
-| Argument | Required | Values |
-|----------|----------|--------|
-| `provider` | Yes | `asana`, `notion` |
+Example:
 
 ```bash
 pm disconnect asana
 ```
 
----
-
 ### `pm providers`
 
-List all providers and their connection status.
+Show provider connection status.
 
-| Flag | Short | Description |
-|------|-------|-------------|
-| `--json` | | Output as JSON |
+Flags:
 
-```bash
-pm providers
-pm providers --json
-```
-
----
+- `--json`
 
 ### `pm workspace [action]`
 
-List or switch the active workspace for a provider.
+List or switch workspaces.
 
-| Argument | Required | Default | Values |
-|----------|----------|---------|--------|
-| `action` | No | `list` | `list`, `switch` |
+Arguments:
 
-| Flag | Short | Default | Description |
-|------|-------|---------|-------------|
-| `--source` | `-s` | `asana` | Provider to manage (`asana`, `notion`) |
+- `action`: `list` or `switch` (default: `list`)
+
+Flags:
+
+- `--source`, `-s`: `asana`, `notion`, `trello`, `linear`, `clickup`
+
+Example:
 
 ```bash
-pm workspace                    # List workspaces (default: asana)
-pm workspace list -s asana      # Explicit list
-pm workspace switch -s asana    # Interactive workspace picker
+pm workspace switch -s asana
 ```
 
----
+## Task List Commands
 
 ### `pm tasks assigned`
 
 List tasks assigned to the current user.
 
-| Flag | Short | Default | Description |
-|------|-------|---------|-------------|
-| `--source` | `-s` | all | Filter by provider (`asana`, `notion`) |
-| `--limit` | `-l` | `25` | Maximum number of tasks |
-| `--json` | | `false` | Output as JSON |
-| `--refresh` | `-r` | `false` | Bypass cache, fetch fresh data |
-| `--status` | | | Filter by status (`todo`, `in_progress`, `done`) |
-| `--priority` | | | Filter by priority (comma-separated: `low,medium,high,urgent`) |
-| `--sort` | | | Sort by field (`due`, `priority`, `status`, `source`, `title`) |
-| `--plain` | | `false` | Tab-separated output, no colors or borders |
-| `--ids-only` | | `false` | Output just task IDs, one per line |
+Flags:
+
+- `--source`, `-s`
+- `--limit`, `-l`
+- `--json`
+- `--refresh`, `-r`
+- `--status`
+- `--priority`
+- `--sort`
+- `--plain`
+- `--ids-only`
+
+Example:
 
 ```bash
-pm tasks assigned
-pm tasks assigned -s asana -l 10
-pm tasks assigned --json
-pm tasks assigned -r
 pm tasks assigned --status=todo --sort=priority
 pm tasks assigned --plain
 pm tasks assigned --ids-only
 ```
 
----
-
 ### `pm tasks overdue`
 
-List tasks that are past their due date.
+List overdue tasks.
 
-| Flag | Short | Default | Description |
-|------|-------|---------|-------------|
-| `--source` | `-s` | all | Filter by provider (`asana`, `notion`) |
-| `--limit` | `-l` | `25` | Maximum number of tasks |
-| `--json` | | `false` | Output as JSON |
-| `--refresh` | `-r` | `false` | Bypass cache, fetch fresh data |
-| `--status` | | | Filter by status (`todo`, `in_progress`, `done`) |
-| `--priority` | | | Filter by priority (comma-separated: `low,medium,high,urgent`) |
-| `--sort` | | | Sort by field (`due`, `priority`, `status`, `source`, `title`) |
-| `--plain` | | `false` | Tab-separated output, no colors or borders |
-| `--ids-only` | | `false` | Output just task IDs, one per line |
+Flags:
+
+- `--source`, `-s`
+- `--limit`, `-l`
+- `--json`
+- `--refresh`, `-r`
+- `--status`
+- `--priority`
+- `--sort`
+- `--plain`
+- `--ids-only`
+
+Example:
 
 ```bash
-pm tasks overdue
-pm tasks overdue -s asana --json
-pm tasks overdue -r
 pm tasks overdue --sort=due --plain
 ```
 
----
-
 ### `pm tasks search "<query>"`
 
-Search for tasks matching a text query.
+Search for tasks.
 
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `query` | Yes | Search string (quote if it contains spaces) |
+Flags:
 
-| Flag | Short | Default | Description |
-|------|-------|---------|-------------|
-| `--source` | `-s` | all | Filter by provider (`asana`, `notion`) |
-| `--limit` | `-l` | `25` | Maximum number of tasks |
-| `--json` | | `false` | Output as JSON |
-| `--status` | | | Filter by status (`todo`, `in_progress`, `done`) |
-| `--priority` | | | Filter by priority (comma-separated: `low,medium,high,urgent`) |
-| `--sort` | | | Sort by field (`due`, `priority`, `status`, `source`, `title`) |
-| `--plain` | | `false` | Tab-separated output, no colors or borders |
-| `--ids-only` | | `false` | Output just task IDs, one per line |
+- `--source`, `-s`
+- `--limit`, `-l`
+- `--json`
+- `--status`
+- `--priority`
+- `--sort`
+- `--plain`
+- `--ids-only`
+
+Notes:
+
+- `search` does not have a `--refresh` flag
+
+Example:
 
 ```bash
-pm tasks search "login bug"
-pm tasks search "api" -s asana -l 5
-pm tasks search "urgent" --json
 pm tasks search "deploy" --sort=due --ids-only
 ```
 
-Note: `search` does **not** have a `--refresh` flag. Results may be served from cache.
-
----
+## Task Detail Commands
 
 ### `pm tasks show <id>`
 
-Show detailed information for a single task.
+Show one task in detail.
 
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `id` | Yes | Task ID in `PROVIDER-externalId` format |
+Flags:
 
-| Flag | Short | Default | Description |
-|------|-------|---------|-------------|
-| `--json` | | `false` | Output as JSON |
-| `--open` | `-o` | `false` | Open the task in the default browser |
-
-```bash
-pm tasks show ASANA-1234567890
-pm tasks show ASANA-1234567890 --json
-pm tasks show ASANA-1234567890 -o
-```
-
----
-
-### `pm tasks create "<title>"`
-
-Create a new task in a provider.
-
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `title` | Yes | Task title (quote if it contains spaces) |
-
-| Flag | Short | Default | Description |
-|------|-------|---------|-------------|
-| `--description` | `-d` | | Task description |
-| `--source` | `-s` | auto | Target provider (`asana`, `notion`). Required if multiple providers are connected |
-| `--project` | `-p` | | Project ID or name to add the task to |
-| `--section` | | | Section/column ID or name within the project (Asana) |
-| `--workspace` | | | Workspace ID or name for project disambiguation (Asana) |
-| `--difficulty` | | | Difficulty option name from the project's Difficulty custom field (Asana) |
-| `--field` | | | Custom field assignment `<Field>=<Value[,Value]>` (repeatable, Asana v1) |
-| `--refresh` | | `false` | Bypass metadata cache when resolving project/section/custom-field values |
-| `--due` | | | Due date (`YYYY-MM-DD`) |
-| `--assignee` | `-a` | | Assignee email |
-| `--json` | | `false` | Output as JSON |
-
-```bash
-pm tasks create "Fix login bug"
-pm tasks create "Update docs" --source=asana --due=2026-03-01
-pm tasks create "Review PR" -d "Check the auth changes" --json
-pm tasks create "Design review" -p PROJECT_ID -a user@example.com
-pm tasks create "Automated ticket" --source=asana --project "Teacher Feature Development" --section "Prioritised"
-pm tasks create "Tune lesson plan UX" --source=asana --project "Teacher Feature Development" --section "Prioritised" --difficulty "S"
-pm tasks create "Cover flow API integration" --source=asana --project "Teacher Feature Development" --section "Prioritised" --field "Difficulty=XS" --field "Department=Frontend" --field "Other=Bugs,Analytics"
-```
-
-If only one provider is connected, `--source` is inferred automatically.
-
-Create command rules:
-- `--section` requires `--project`.
-- `--difficulty` requires `--project`.
-- `--field` requires `--project`.
-- Name resolution for Asana project/section/workspace is exact and case-insensitive.
-- Use `--refresh` if cached project/section/custom-field metadata is stale.
-
----
-
-### `pm tasks update <id>`
-
-Update an existing task. At least one update flag is required.
-
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `id` | Yes | Task ID in `PROVIDER-externalId` format |
-
-| Flag | Short | Default | Description |
-|------|-------|---------|-------------|
-| `--title` | `-t` | | New task title |
-| `--description` | `-d` | | New task description |
-| `--due` | | | New due date (`YYYY-MM-DD`, or `"none"` to clear) |
-| `--status` | | | New status: `todo`, `in_progress`, `done` |
-| `--project` | `-p` | | Project ID or name to scope `--field` resolution |
-| `--workspace` | | | Workspace ID or name for project resolution with `--field` |
-| `--field` | | | Custom field assignment `<Field>=<Value[,Value]>` (repeatable, Asana v1) |
-| `--refresh` | | `false` | Bypass metadata cache for project/custom-field resolution |
-| `--json` | | `false` | Output as JSON |
-
-```bash
-pm tasks update ASANA-123456 --title "New title"
-pm tasks update ASANA-123456 --due 2026-03-15 --status in_progress
-pm tasks update ASANA-123456 --due none           # Clear due date
-pm tasks update ASANA-123456 --field "Importance=High" --field "Teacher Feature Release=PR4"
-pm tasks update ASANA-123456 --project "Teacher Feature Development" --field "Other="
-pm tasks update ASANA-123456 -d "Updated notes" --json
-```
-
----
-
-### `pm delete <id> [id...]`
-
-Delete one or more tasks. Accepts multiple task IDs.
-
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `ids` | Yes | One or more task IDs (`PROVIDER-externalId`) |
-
-| Flag | Short | Default | Description |
-|------|-------|---------|-------------|
-| `--json` | | `false` | Output as JSON |
-
-```bash
-pm delete ASANA-123456
-pm delete ASANA-123456 ASANA-789012   # Delete multiple tasks
-pm delete ASANA-123456 --json
-```
-
----
-
-### `pm done <id> [id...]`
-
-Mark one or more tasks as done. Accepts multiple task IDs.
-
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `ids` | Yes | One or more task IDs (`PROVIDER-externalId`) |
-
-| Flag | Short | Default | Description |
-|------|-------|---------|-------------|
-| `--json` | | `false` | Output as JSON |
-
-```bash
-pm done ASANA-123456
-pm done ASANA-123456 ASANA-789012    # Complete multiple tasks
-pm done ASANA-123456 --json
-```
-
----
+- `--json`
+- `--open`, `-o`
 
 ### `pm open <id>`
 
 Open a task in the default browser.
 
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `id` | Yes | Task ID in `PROVIDER-externalId` format |
+### `pm comment <id> "<message>"`
+
+Add a comment to a task.
+
+Example:
 
 ```bash
-pm open ASANA-123456
-pm open NOTION-abc123
+pm comment ASANA-123456 "Deployed to staging"
 ```
+
+## Thread and Attachment Commands
+
+### `pm tasks thread <id>`
+
+Show task conversation history. On Asana, this can include comments, activity entries, and attachment entries.
+
+Flags:
+
+- `--json`
+- `--comments-only`, `-c`
+- `--with-task`
+- `--limit`, `-l`
+- `--download-images`
+- `--temp-dir`
+- `--cleanup`
+
+Notes:
+
+- `--comments-only` removes system activity entries but keeps attachment-related comment output
+- downloaded images are saved under a task-scoped directory in the chosen temp dir
+
+Examples:
+
+```bash
+pm tasks thread ASANA-1234567890 --comments-only --with-task
+pm tasks thread ASANA-1234567890 --download-images --temp-dir /tmp/pm-cli --cleanup
+pm tasks thread ASANA-1234567890 --json
+```
+
+### `pm tasks attachments <id>`
+
+Show task attachments without the full thread body.
+
+Flags:
+
+- `--json`
+- `--download-images`
+- `--temp-dir`
+- `--cleanup`
+
+Examples:
+
+```bash
+pm tasks attachments ASANA-1234567890
+pm tasks attachments ASANA-1234567890 --download-images --temp-dir /tmp/pm-cli
+pm tasks attachments ASANA-1234567890 --json
+```
+
+## Create and Update Commands
+
+### `pm tasks create <title>`
+
+Create a new task.
+
+Flags:
+
+- `--description`, `-d`
+- `--title`, `-t` (repeatable; supports multi-create)
+- `--source`, `-s`
+- `--project`, `-p`
+- `--section`
+- `--workspace`
+- `--difficulty`
+- `--field` (repeatable)
+- `--refresh`
+- `--due`
+- `--assignee`, `-a`
+- `--json`
+
+Important rules:
+
+- if only one provider is connected, `--source` is inferred
+- `--section` requires `--project`
+- `--difficulty` requires `--project`
+- `--field` requires `--project`
+- project/section/workspace can be passed by ID or exact case-insensitive name
+- Asana project/section/workspace resolution can use `--refresh` to bypass metadata cache
+
+Examples:
+
+```bash
+pm tasks create "Fix login bug"
+pm tasks create "Automated ticket" --source asana --project "Platform Roadmap" --section "Ready"
+pm tasks create "Tune dashboard UX" --source asana --project "Platform Roadmap" --section "Ready" --difficulty "S"
+pm tasks create "Ship API integration" --source asana --project "Platform Roadmap" --section "Ready" --field "Difficulty=XS" --field "Area=Backend,Analytics"
+pm tasks create --source asana --project "Platform Roadmap" --title "Task A" --title "Task B"
+```
+
+### `pm tasks update <id>`
+
+Update an existing task. At least one update flag is required.
+
+Flags:
+
+- `--title`, `-t`
+- `--description`, `-d`
+- `--due`
+- `--status`
+- `--project`, `-p`
+- `--workspace`
+- `--field` (repeatable)
+- `--refresh`
+- `--json`
+
+Examples:
+
+```bash
+pm tasks update ASANA-123456 --title "New title"
+pm tasks update ASANA-123456 --due 2026-03-15 --status in_progress
+pm tasks update ASANA-123456 --due none
+pm tasks update ASANA-123456 --project "Platform Roadmap" --field "Difficulty=S"
+```
+
+## Batch-Style Top-Level Actions
+
+### `pm done <id> [id...]`
+
+Mark one or more tasks done.
+
+### `pm delete <id> [id...]`
+
+Delete one or more tasks.
 
 ### `pm today`
 
-Morning dashboard — shows overdue, due today, and in-progress tasks in a grouped view.
+Show overdue, due today, and in-progress tasks in a grouped view.
 
-| Flag | Short | Default | Description |
-|------|-------|---------|-------------|
-| `--source` | `-s` | all | Filter by provider (`asana`, `notion`) |
-| `--json` | | `false` | Output as JSON |
+Flags:
 
-```bash
-pm today
-pm today --source=asana
-pm today --json
-```
-
----
+- `--source`, `-s`
+- `--json`
 
 ### `pm summary`
 
-Show provider connection status and task count statistics (overdue, due today, in progress, total).
+Show provider connection status and task count summary.
 
-| Flag | Short | Default | Description |
-|------|-------|---------|-------------|
-| `--json` | | `false` | Output as JSON |
+Flags:
+
+- `--json`
+
+## Git Helper
+
+### `pm branch <id>`
+
+Create a git branch from a task title.
+
+Flags:
+
+- `--prefix`, `-p`: `feat`, `fix`, `chore`
+- `--checkout`, `-c`
+- `--no-id`
+
+Example:
 
 ```bash
-pm summary
-pm summary --json
+pm branch ASANA-123456 --prefix feat --checkout
 ```
 
----
+## Config and Cache
 
 ### `pm cache stats`
 
-Show cache file location and entry counts.
-
-```bash
-pm cache stats
-```
-
----
+Show cache file path and entry counts.
 
 ### `pm cache clear`
 
-Clear cache entries globally or for a single provider.
+Clear cache globally or for one provider.
 
-| Flag | Short | Default | Description |
-|------|-------|---------|-------------|
-| `--source` | | | Clear cache for one provider only (`asana`, `notion`) |
+Flags:
 
-```bash
-pm cache clear
-pm cache clear --source=asana
-```
-
----
+- `--source`
 
 ### `pm config init`
 
 Create a default `.pmrc.json` in the current project.
 
-| Flag | Short | Default | Description |
-|------|-------|---------|-------------|
-| `--force` | `-f` | `false` | Overwrite existing `.pmrc.json` |
+Flags:
 
-```bash
-pm config init
-pm config init --force
-```
-
----
+- `--force`, `-f`
 
 ### `pm config list`
 
-List merged configuration values from user and project config.
-
-```bash
-pm config list
-```
-
----
+List merged config values as JSON.
 
 ### `pm config get <key>`
 
-Read a merged config value by dot-notation key.
-
-```bash
-pm config get defaultSource
-pm config get notion.propertyMap.status
-```
-
----
+Read a config value by dot path.
 
 ### `pm config set <key> <value>`
 
-Set a project-level config value in `.pmrc.json`.
-
-```bash
-pm config set defaultLimit 10
-pm config set aliases.today "tasks assigned --status=in_progress"
-pm config set notion.propertyMap.status "Status"
-```
-
----
+Write a project-level config value into `.pmrc.json`.
 
 ### `pm config path`
 
-Show project and user configuration file locations.
+Show user and project config file paths.
+
+Config behavior:
+
+- user config lives under `~/.config/pm-cli/config.json`
+- project config lives in `.pmrc.json`
+- project config overrides user config on merge
+
+## Output Modes
+
+The CLI supports:
+
+- default human/table output
+- `--json`
+- `--plain`
+- `--ids-only`
+
+Examples:
 
 ```bash
-pm config path
+pm tasks assigned --json
+pm tasks overdue --plain
+pm tasks search "deploy" --ids-only
 ```
 
----
+## Caching Behavior
 
-### `pm branch <id>`
+- cache TTL is about 5 minutes
+- use `--refresh` on `tasks assigned` and `tasks overdue` to bypass cache
+- `tasks search` can return cached results and does not expose `--refresh`
+- `tasks show` fetches directly from the provider path
 
-Create a git branch named after a task. Fetches the task title and slugifies it into a branch name.
+## Normalized Task Model
 
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `id` | Yes | Task ID in `PROVIDER-externalId` format |
+Every task returned by `pm` is normalized roughly like this:
 
-| Flag | Short | Default | Description |
-|------|-------|---------|-------------|
-| `--prefix` | `-p` | | Branch prefix: `feat`, `fix`, `chore` |
-| `--checkout` | `-c` | `false` | Also switch to the new branch |
-| `--no-id` | | `false` | Omit task ID from branch name |
+```text
+id            PROVIDER-externalId
+externalId    Original provider ID
+title         Task title
+description   Task description
+status        todo | in_progress | done
+dueDate       Due date when present
+assignee      Assignee display name
+project       Project or parent container name
+placement     Structured project/section placement when available
+tags          Tag/label array
+source        asana | notion | trello | linear | clickup
+url           Direct provider URL
+priority      low | medium | high | urgent
+createdAt     Creation timestamp
+updatedAt     Update timestamp
+```
+
+Thread and attachment-related data can also include:
+
+```text
+kind          comment | attachment | activity
+attachments   Attachment metadata on thread entries
+localPath     Downloaded image path when image download is enabled
+```
+
+## Common Workflows
+
+Morning dashboard:
 
 ```bash
-pm branch ASANA-123456 --prefix feat
-pm branch ASANA-123456 --prefix fix --checkout
-pm branch NOTION-abc123 --no-id
+pm today
+pm summary
 ```
 
-Branch name format: `prefix/PROVIDER-externalId-slugified-title` (or `prefix/slugified-title` with `--no-id`).
-
----
-
-### `pm comment <id> "<message>"`
-
-Add a comment to a task.
-
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `id` | Yes | Task ID in `PROVIDER-externalId` format |
-| `message` | Yes | Comment text |
+Review task thread with attachments:
 
 ```bash
-pm comment ASANA-123456 "Fixed in commit abc"
-pm comment NOTION-abc123 "Needs review"
+pm tasks thread ASANA-123456 --comments-only --with-task
+pm tasks attachments ASANA-123456 --download-images --temp-dir /tmp/pm-cli
 ```
 
----
+Create directly in an Asana board column:
+
+```bash
+pm tasks create "Tune lesson plan UX" \
+  --source asana \
+  --project "Platform Roadmap" \
+  --section "Ready" \
+  --difficulty "S"
+```
+
+Filter and pipe IDs:
+
+```bash
+pm tasks assigned --priority=high,urgent --sort=due
+pm tasks overdue --ids-only | xargs -I{} pm done {}
+```
 
 ## Help Commands
 
-Use built-in help for command syntax and the latest flags:
+Use built-in help when in doubt:
 
 ```bash
 pm --help
 pm tasks --help
 pm tasks create --help
 pm tasks update --help
-```
-
----
-
-## Output Modes
-
-- **Table** (default) — Human-readable table rendered in the terminal.
-- **JSON** (`--json`) — Machine-readable output. Use this when piping to `jq`, scripting, or parsing results programmatically.
-- **Plain** (`--plain`) — Tab-separated output, no colors or borders. Useful for piping to `awk`, `cut`, etc.
-- **IDs only** (`--ids-only`) — One task ID per line. Useful for scripting loops (e.g., `pm tasks overdue --ids-only | xargs -I{} pm done {}`).
-
-## Caching Behavior
-
-- Responses are cached with a **5-minute TTL**.
-- Use `--refresh` / `-r` on `tasks assigned` and `tasks overdue` to bypass the cache and fetch fresh data.
-- `tasks search` responses are cached; there is currently no `--refresh` flag on the command.
-- `tasks show` fetches directly from the provider.
-
-## Unified Task Model
-
-Every task returned by pm-cli is normalized to this shape:
-
-```
-id            PROVIDER-externalId (e.g. ASANA-1234567890)
-externalId    Original provider ID
-title         Task title
-description   Task description (may contain HTML/markdown)
-status        todo | in_progress | done
-dueDate       Due date (if set)
-assignee      Assignee display name
-project       Project or parent container name
-tags          Tags/labels array
-source        asana | notion
-url           Direct link to the task in the provider's UI
-priority      low | medium | high | urgent (if available)
-createdAt     Creation timestamp
-updatedAt     Last modification timestamp
-```
-
-## Common Workflows
-
-### Morning standup check
-
-```bash
-pm today
-pm summary
-```
-
-### Check what's overdue
-
-```bash
-pm tasks overdue
-```
-
-### Find a specific task by keyword
-
-```bash
-pm tasks search "deploy pipeline"
-```
-
-### Create a task with a due date
-
-```bash
-pm tasks create "Fix auth timeout" --due 2026-03-01
-```
-
-### Create directly in a board column with difficulty (Asana)
-
-```bash
-pm tasks create "Tune lesson plan UX" \
-  --source asana \
-  --project "Teacher Feature Development" \
-  --section "Prioritised" \
-  --difficulty "S"
-```
-
-### Update a task's status
-
-```bash
-pm tasks update ASANA-123456 --status in_progress
-```
-
-### Mark tasks as done
-
-```bash
-pm done ASANA-123456
-pm done ASANA-123456 ASANA-789012    # Batch complete
-```
-
-### Get task details and open in browser
-
-```bash
-pm tasks show ASANA-1234567890 -o
-pm open ASANA-1234567890             # Shorthand
-```
-
-### Get JSON output for scripting
-
-```bash
-pm tasks assigned --json
-pm tasks overdue -s asana --json
-```
-
-### Force-refresh stale data
-
-```bash
-pm tasks assigned -r
-pm tasks overdue --refresh
-```
-
-### Create a branch from a task and start working
-
-```bash
-pm branch ASANA-123456 --prefix feat --checkout
-```
-
-### Add a comment to a task
-
-```bash
-pm comment ASANA-123456 "Deployed to staging"
-```
-
-### Filter high-priority tasks and sort by due date
-
-```bash
-pm tasks assigned --priority=high,urgent --sort=due
-```
-
-### Pipe task IDs for batch operations
-
-```bash
-pm tasks overdue --ids-only | xargs -I{} pm done {}
-```
-
-### Switch workspace when working across teams
-
-```bash
-pm workspace switch -s asana
+pm tasks thread --help
+pm tasks attachments --help
 ```

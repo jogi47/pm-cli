@@ -2,7 +2,7 @@
 
 import Table from 'cli-table3';
 import chalk from 'chalk';
-import type { Task, TaskStatus, ProviderType, ThreadEntry } from '../models/task.js';
+import type { Task, TaskStatus, ProviderType, ThreadAttachment, ThreadEntry } from '../models/task.js';
 import type { ProviderInfo } from '../models/plugin.js';
 import { formatError } from './errors.js';
 
@@ -374,9 +374,63 @@ export function renderThreadEntries(entries: ThreadEntry[], format: OutputFormat
 
     const author = entry.author || 'Unknown';
     console.log(`${chalk.bold(author)} ${chalk.gray(`(${timestamp})`)}`);
-    console.log(entry.body);
+
+    if (entry.body) {
+      console.log(entry.body);
+    }
+
+    if (entry.attachments && entry.attachments.length > 0) {
+      if (entry.body) {
+        console.log();
+      }
+
+      console.log(chalk.gray(`Attachments (${entry.attachments.length}):`));
+      for (const attachment of entry.attachments) {
+        console.log(`- ${formatThreadAttachment(attachment)}`);
+      }
+    }
+
     console.log();
   }
 
   console.log(chalk.gray(`${entries.length} thread entr${entries.length === 1 ? 'y' : 'ies'}`));
+}
+
+/**
+ * Render task attachments without the rest of the thread body.
+ */
+export function renderTaskAttachments(attachments: ThreadAttachment[], format: OutputFormat): void {
+  if (format === 'json') {
+    console.log(JSON.stringify(attachments, null, 2));
+    return;
+  }
+
+  if (attachments.length === 0) {
+    console.log(chalk.gray('No attachments found.'));
+    return;
+  }
+
+  for (const attachment of attachments) {
+    console.log(formatThreadAttachment(attachment));
+  }
+
+  console.log();
+  console.log(chalk.gray(`${attachments.length} attachment${attachments.length === 1 ? '' : 's'}`));
+}
+
+function formatThreadAttachment(attachment: ThreadAttachment): string {
+  const parts = [
+    attachment.name,
+    chalk.gray(`[${attachment.kind}]`),
+  ];
+
+  if (attachment.localPath) {
+    parts.push(chalk.green(`saved: ${attachment.localPath}`));
+  } else if (attachment.downloadUrl) {
+    parts.push(chalk.underline.blue(attachment.downloadUrl));
+  } else if (attachment.viewUrl) {
+    parts.push(chalk.underline.blue(attachment.viewUrl));
+  }
+
+  return parts.join(' ');
 }

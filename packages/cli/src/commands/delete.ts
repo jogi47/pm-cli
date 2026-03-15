@@ -1,7 +1,7 @@
 // src/commands/delete.ts
 
 import { Command, Args, Flags } from '@oclif/core';
-import { pluginManager, renderError, renderSuccess } from '@jogi47/pm-cli-core';
+import { pluginManager, renderError, renderSuccess } from 'pm-cli-core';
 import '../init.js';
 
 export default class Delete extends Command {

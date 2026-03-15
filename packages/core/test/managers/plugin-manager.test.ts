@@ -119,9 +119,21 @@ describe('pluginManager thread operations', () => {
       threadSpy,
     }));
 
-    await pluginManager.getTaskThread('ASANA-123', { commentsOnly: true, limit: 5 });
+    await pluginManager.getTaskThread('ASANA-123', {
+      commentsOnly: true,
+      limit: 5,
+      downloadImages: true,
+      tempDir: '/tmp/pm-cli',
+      cleanup: true,
+    });
 
-    expect(threadSpy).toHaveBeenCalledWith({ commentsOnly: true, limit: 5 });
+    expect(threadSpy).toHaveBeenCalledWith({
+      commentsOnly: true,
+      limit: 5,
+      downloadImages: true,
+      tempDir: '/tmp/pm-cli',
+      cleanup: true,
+    });
   });
 
   it('rejects invalid task IDs for thread fetch', async () => {

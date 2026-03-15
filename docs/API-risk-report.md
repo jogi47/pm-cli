@@ -12,11 +12,11 @@
 
 | Provider | Plugin Package | Status | Milestone |
 |----------|---------------|--------|-----------|
-| **Asana** | `@jogi47/pm-cli-plugin-asana` | **Implemented** | — |
-| **Notion** | `@jogi47/pm-cli-plugin-notion` | **Implemented** | — |
-| **Trello** | `@jogi47/pm-cli-plugin-trello` | Planned | M2 |
-| **Linear** | `@jogi47/pm-cli-plugin-linear` | Planned | M2 |
-| **ClickUp** | `@jogi47/pm-cli-plugin-clickup` | Planned | M5 |
+| **Asana** | `pm-cli-plugin-asana` | **Implemented** | — |
+| **Notion** | `pm-cli-plugin-notion` | **Implemented** | — |
+| **Trello** | `pm-cli-plugin-trello` | Planned | M2 |
+| **Linear** | `pm-cli-plugin-linear` | Planned | M2 |
+| **ClickUp** | `pm-cli-plugin-clickup` | Planned | M5 |
 
 > Sections 1 (Asana) and 5 (Notion) describe **currently active** integrations.
 > Sections 2 (Trello), 3 (Linear), and 4 (ClickUp) are **pre-implementation research** for planned plugins.
@@ -456,7 +456,7 @@ At 100 req/min on free plan, updating 15 tasks with custom fields could exhaust 
 
 ### Caching Strategy Per Provider
 
-**Current state:** All providers use a uniform 5-minute TTL via `cacheManager` (`~/.cache/pm-cli/cache.json`). No per-provider TTL differentiation.
+**Current state:** All providers use a uniform 5-minute TTL via `cacheManager` (`~/.cachepm-cli/cache.json`). No per-provider TTL differentiation.
 
 | Provider | Current TTL | Recommended TTL | Reason |
 |----------|------------|----------------|--------|
@@ -481,7 +481,7 @@ Each plugin should include a provider-specific rate limiter that:
 - Pre-emptively pauses when approaching limits (don't wait for rejection)
 - Logs rate limit warnings for debugging
 
-**Suggested implementation in `@jogi47/pm-cli-core`:**
+**Suggested implementation in `pm-cli-core`:**
 ```typescript
 interface RateLimiterConfig {
   maxRequests: number;
@@ -528,7 +528,7 @@ Error: Search requires a paid Asana plan (HTTP 402)
 The task search API is only available on Asana Premium, Business, or Enterprise plans.
 To use search on your current plan, try: pm tasks assigned --plain | grep "keyword"
 
-Docs: https://github.com/user/pm-cli/docs/troubleshooting#asana-402
+Docs: https://github.com/userpm-cli/docs/troubleshooting#asana-402
 ```
 
 **Current state:** Errors use generic `renderError()` utility. No provider-specific enrichment, recovery suggestions, or docs links.

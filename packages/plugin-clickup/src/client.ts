@@ -1,4 +1,4 @@
-import { authManager, ProviderError } from '@jogi47/pm-cli-core';
+import { authManager, ProviderError } from 'pm-cli-core';
 
 export interface ClickUpUser {
   id: number;

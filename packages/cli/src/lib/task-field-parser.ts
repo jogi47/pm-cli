@@ -1,4 +1,4 @@
-import type { CustomFieldInput } from '@jogi47/pm-cli-core';
+import type { CustomFieldInput } from 'pm-cli-core';
 
 export function parseCustomFieldFlags(rawFlags: string[] | undefined): { fields: CustomFieldInput[]; error: string | null } {
   if (!rawFlags || rawFlags.length === 0) {

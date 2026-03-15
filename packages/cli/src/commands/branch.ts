@@ -1,7 +1,7 @@
 // src/commands/branch.ts
 
 import { Command, Args, Flags } from '@oclif/core';
-import { pluginManager, parseTaskId, slugify, renderError, renderSuccess } from '@jogi47/pm-cli-core';
+import { pluginManager, parseTaskId, slugify, renderError, renderSuccess } from 'pm-cli-core';
 import { execFileSync } from 'node:child_process';
 import '../init.js';
 import { handleCommandError } from '../lib/command-error.js';

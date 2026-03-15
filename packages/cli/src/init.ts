@@ -1,12 +1,12 @@
 // src/init.ts
 // Plugin initialization - must be imported before using pluginManager
 
-import { pluginManager } from '@jogi47/pm-cli-core';
-import { AsanaPlugin } from '@jogi47/pm-cli-plugin-asana';
-import { NotionPlugin } from '@jogi47/pm-cli-plugin-notion';
-import { TrelloPlugin } from '@jogi47/pm-cli-plugin-trello';
-import { LinearPlugin } from '@jogi47/pm-cli-plugin-linear';
-import { ClickUpPlugin } from '@jogi47/pm-cli-plugin-clickup';
+import { pluginManager } from 'pm-cli-core';
+import { AsanaPlugin } from 'pm-cli-plugin-asana';
+import { NotionPlugin } from 'pm-cli-plugin-notion';
+import { TrelloPlugin } from 'pm-cli-plugin-trello';
+import { LinearPlugin } from 'pm-cli-plugin-linear';
+import { ClickUpPlugin } from 'pm-cli-plugin-clickup';
 
 let initialized = false;
 

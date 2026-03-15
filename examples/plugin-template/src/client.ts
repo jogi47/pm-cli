@@ -1,4 +1,4 @@
-import { ProviderError } from '@jogi47/pm-cli-core';
+import { ProviderError } from 'pm-cli-core';
 
 export class TemplateClient {
   async ping(): Promise<void> {

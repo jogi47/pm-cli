@@ -1,4 +1,4 @@
-import type { PMPlugin, ProviderCredentials, ProviderInfo, Task, CreateTaskInput, UpdateTaskInput } from '@jogi47/pm-cli-core';
+import type { PMPlugin, ProviderCredentials, ProviderInfo, Task, CreateTaskInput, UpdateTaskInput } from 'pm-cli-core';
 
 export class TemplatePlugin implements PMPlugin {
   name = 'asana';

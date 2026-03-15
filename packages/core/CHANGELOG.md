@@ -1,4 +1,4 @@
-# @jogi47/pm-cli-core
+# pm-cli-core
 
 ## 0.2.6
 

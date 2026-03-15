@@ -1,5 +1,5 @@
-import { createTaskId } from '@jogi47/pm-cli-core';
-import type { Task, TaskStatus } from '@jogi47/pm-cli-core';
+import { createTaskId } from 'pm-cli-core';
+import type { Task, TaskStatus } from 'pm-cli-core';
 import type { ClickUpTask } from './client.js';
 
 function mapClickUpStatus(statusType: string): TaskStatus {

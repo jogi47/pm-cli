@@ -1,5 +1,5 @@
-import { createTaskId } from '@jogi47/pm-cli-core';
-import type { Task } from '@jogi47/pm-cli-core';
+import { createTaskId } from 'pm-cli-core';
+import type { Task } from 'pm-cli-core';
 
 export function mapTemplateTask(input: { id: string; title: string; url: string }): Task {
   return {

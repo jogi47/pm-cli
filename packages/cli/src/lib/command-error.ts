@@ -1,4 +1,4 @@
-import { formatError, PMCliError, renderError } from '@jogi47/pm-cli-core';
+import { formatError, PMCliError, renderError } from 'pm-cli-core';
 
 export function handleCommandError(error: unknown, fallback = 'Command failed'): never {
   if (error instanceof PMCliError) {

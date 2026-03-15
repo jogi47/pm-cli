@@ -1,4 +1,4 @@
-# @jogi47/pm-cli-plugin-notion
+# pm-cli-plugin-notion
 
 ## 0.2.6
 
@@ -6,4 +6,4 @@
 
 - Publish updates after task thread support and workspace dependency fixes.
 - Updated dependencies
-  - @jogi47/pm-cli-core@0.2.6
+  - pm-cli-core@0.2.6

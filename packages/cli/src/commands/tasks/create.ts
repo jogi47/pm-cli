@@ -1,8 +1,8 @@
 // src/commands/tasks/create.ts
 
 import { Command, Args, Flags } from '@oclif/core';
-import { pluginManager, renderTask, renderSuccess, renderError, renderTasks } from '@jogi47/pm-cli-core';
-import type { CreateTaskInput, CustomFieldInput, OutputFormat, ProviderType } from '@jogi47/pm-cli-core';
+import { pluginManager, renderTask, renderSuccess, renderError, renderTasks } from 'pm-cli-core';
+import type { CreateTaskInput, CustomFieldInput, OutputFormat, ProviderType } from 'pm-cli-core';
 import { mergeLegacyDifficultyField, parseCustomFieldFlags } from '../../lib/task-field-parser.js';
 import { splitIdOrName } from '../../lib/task-id-resolver.js';
 import '../../init.js';
@@ -13,11 +13,11 @@ export default class TasksCreate extends Command {
 
   static override examples = [
     '<%= config.bin %> tasks create "Fix login bug"',
-    '<%= config.bin %> tasks create "This is automated ticket" --source=asana --project "Teacher Feature Development" --section "Prioritised"',
-    '<%= config.bin %> tasks create "Tune lesson plan UX" --source=asana --project "Teacher Feature Development" --section "Prioritised" --difficulty "S"',
-    '<%= config.bin %> tasks create "Cover flow API integration" --source=asana --project "Teacher Feature Development" --section "Prioritised" --field "Difficulty=XS" --field "Other=Bugs,Analytics"',
-    '<%= config.bin %> tasks create --source=asana --project "Teacher Feature Development" --section "Prioritised" --title "Fix login bug" --title "Ship onboarding follow-up"',
-    '<%= config.bin %> tasks create --source=asana --project "Teacher Feature Development" --title "Task A" --title "Task B" --field "Difficulty=S" --assignee dev@company.com',
+    '<%= config.bin %> tasks create "Automated ticket" --source=asana --project "Platform Roadmap" --section "Ready"',
+    '<%= config.bin %> tasks create "Tune dashboard UX" --source=asana --project "Platform Roadmap" --section "Ready" --difficulty "S"',
+    '<%= config.bin %> tasks create "Ship API integration" --source=asana --project "Platform Roadmap" --section "Ready" --field "Difficulty=XS" --field "Area=Backend,Analytics"',
+    '<%= config.bin %> tasks create --source=asana --project "Platform Roadmap" --section "Ready" --title "Fix login bug" --title "Ship onboarding follow-up"',
+    '<%= config.bin %> tasks create --source=asana --project "Platform Roadmap" --title "Task A" --title "Task B" --field "Difficulty=S" --assignee engineer@example.com',
     '<%= config.bin %> tasks create "Fix login redirect bug" --source=asana --project 1210726476060870 --section 1210726344951110 --json',
   ];
 

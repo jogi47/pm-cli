@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { cacheManager } from '@jogi47/pm-cli-core';
+import { cacheManager } from 'pm-cli-core';
 import { AsanaPlugin, asanaClient } from '../src/index.js';
 import type { AsanaTask } from '../src/client.js';
 

@@ -1,92 +1,200 @@
-# CLAUDE.md
+# Repository Agent Guide
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file is the canonical agent guide for this repository. `AGENTS.md` should
+symlink to this file so there is only one source of truth.
 
-## Build & Development Commands
+## Purpose
+
+This repo is a pnpm monorepo for `pm`, a unified CLI for project-management
+workflows across multiple providers.
+
+Agent goals:
+- preserve the shared normalized task model
+- keep provider capability boundaries explicit
+- prefer small, verifiable changes
+- update tests and user-facing help when command behavior changes
+
+## Build And Development
 
 ```bash
-pnpm install              # install all workspace dependencies
-pnpm build                # build all packages (core → plugins → cli)
-pnpm test                 # run all tests with vitest
-pnpm lint                 # lint all packages
-pnpm pm <command>         # run the CLI from source (e.g. pnpm pm tasks assigned)
-pnpm dev                  # watch mode for all packages
+pnpm install              # install workspace dependencies
+pnpm build                # build all packages
+pnpm test                 # run the test suite
+pnpm lint                 # typecheck/lint all packages
+pnpm pm <command>         # run the CLI from source
+pnpm dev                  # watch mode for the workspace
 ```
 
-Run a single test file:
+Useful focused commands:
+
 ```bash
-pnpm test packages/core/test/models/task.test.ts
+pnpm exec vitest run packages/core/test/models/task.test.ts
+pnpm exec vitest run packages/core/test/**/*.test.ts
+pnpm --filter pm-cli build
+pnpm pm --help
 ```
 
-Run tests for a specific package:
-```bash
-pnpm --filter @jogi47/pm-cli-core test
+## Workspace Layout
+
+This is a pnpm monorepo with 7 packages under `packages/`:
+
+```text
+packages/core            -> core models, managers, utilities
+packages/plugin-asana    -> Asana provider
+packages/plugin-notion   -> Notion provider
+packages/plugin-trello   -> Trello provider
+packages/plugin-linear   -> Linear provider
+packages/plugin-clickup  -> ClickUp provider
+packages/cli             -> oclif CLI entry point
 ```
+
+Package names are neutral and unscoped:
+- `pm-cli`
+- `pm-cli-core`
+- `pm-cli-plugin-asana`
+- `pm-cli-plugin-notion`
+- `pm-cli-plugin-trello`
+- `pm-cli-plugin-linear`
+- `pm-cli-plugin-clickup`
+
+## Current Product Surface
+
+Implemented commands:
+- provider auth and status: `connect`, `disconnect`, `providers`, `workspace`
+- task lists and search: `tasks assigned`, `tasks overdue`, `tasks search`
+- task detail and actions: `tasks show`, `open`, `comment`, `done`, `delete`
+- task write flows: `tasks create`, `tasks update`
+- dashboards: `today`, `summary`
+- git helper: `branch`
+- cache/config commands
+- Asana thread and attachment inspection:
+  - `tasks thread`
+  - `tasks attachments`
+
+Not implemented yet:
+- `pm ui`
+- `pm bulk update`
+- `pm bulk move`
+- `pm bulk create --file`
+
+Current capability notes:
+- thread and attachment flows are implemented on the Asana path
+- image download support for thread/attachment flows is implemented on the Asana path
+- workspace switching is primarily meaningful for Asana today
 
 ## Architecture
 
-This is a **pnpm monorepo** with 4 packages under `packages/`:
+### Plugin Model
 
-```
-@jogi47/pm-cli-core          → Core models, managers, utilities (no CLI dependency)
-@jogi47/pm-cli-plugin-asana  → Asana provider (depends on core)
-@jogi47/pm-cli-plugin-notion → Notion provider (depends on core)
-@jogi47/pm-cli               → CLI entry point using oclif (depends on core + both plugins)
-```
+Every provider implements the `PMPlugin` interface in
+`packages/core/src/models/plugin.ts`.
 
-### Plugin System
+A provider package usually contains:
+- `client.ts` for auth and raw API calls
+- `mapper.ts` for normalization into the shared task model
+- `index.ts` for the `PMPlugin` implementation and wiring
 
-Every provider implements the `PMPlugin` interface from core (`packages/core/src/models/plugin.ts`). A plugin consists of three files:
-
-- **client.ts** — API wrapper (singleton), handles auth and raw API calls
-- **mapper.ts** — Transforms provider-specific data into the unified `Task` model
-- **index.ts** — Implements `PMPlugin`, wires client + mapper + cache
-
-Plugins are registered in `packages/cli/src/init.ts` and auto-initialized on import. The `PluginManager` in core routes operations to the correct plugin based on provider type.
+Plugins are registered in `packages/cli/src/init.ts` and initialized on import.
 
 ### Data Flow
 
+```text
+CLI Command -> PluginManager -> Plugin -> CacheManager
+                                   -> Client
+                                   -> Mapper
+                                   -> output utils
 ```
-CLI Command → PluginManager → Plugin → CacheManager (check)
-                                     → Client (API call)
-                                     → Mapper (normalize to Task)
-                                     → CacheManager (store, 5-min TTL)
-                                     → output utils → Console
-```
 
-### Core Singletons
+### Core Managers
 
-Three singleton managers exported from `@jogi47/pm-cli-core`:
+Core singletons are exported from `packages/core`:
+- `pluginManager` routes operations and aggregates provider results
+- `authManager` stores credentials and supports env overrides
+- `cacheManager` manages the JSON cache at `~/.cache/pm-cli/cache.json`
+- `configManager` manages merged user/project config from `.pmrc.json`
 
-- **pluginManager** — Routes operations to plugins, aggregates cross-provider results, provides `filterAndSortTasks()` for client-side filtering
-- **authManager** — Credential storage via `conf` (checks env vars `ASANA_TOKEN`/`NOTION_TOKEN` first)
-- **cacheManager** — JSON file cache at `~/.cache/pm-cli/cache.json`
+## Important Modeling Rules
 
-### Task ID Convention
+### Task IDs
 
-All task IDs follow the format `PROVIDER-externalId` (e.g., `ASANA-1234567890`, `NOTION-abc-def`). Use `createTaskId()` and `parseTaskId()` from core — never construct IDs manually.
+All task IDs use `PROVIDER-externalId`, for example:
+- `ASANA-1234567890`
+- `NOTION-abc-def`
+- `LINEAR-ENG-42`
 
-### CLI Commands (oclif)
+Never construct IDs manually. Use `createTaskId()` and `parseTaskId()`.
 
-Commands live in `packages/cli/src/commands/`. Each command extends oclif's `Command` class and must import `'../../init.js'` (or `'../init.js'` for top-level commands) to trigger plugin registration.
+### Shared Output Contracts
 
-Command pattern: static `args`/`flags` definitions → `run()` method → call pluginManager → render output.
+When changing command behavior, check the shared renderers in
+`packages/core/src/utils/output.ts`.
 
-Output helpers (`renderTasks`, `renderTasksPlain`, `renderTaskIds`, `renderDashboard`, `renderSummary`, `renderSuccess`, `renderError`) are in `packages/core/src/utils/output.ts`. String utilities (`slugify`) are in `packages/core/src/utils/string.ts`.
+Important helpers:
+- `renderTasks`
+- `renderTasksPlain`
+- `renderTaskIds`
+- `renderTask`
+- `renderThreadEntries`
+- `renderTaskAttachments`
+- `renderDashboard`
+- `renderSummary`
+- `renderSuccess`
+- `renderError`
 
-### Adding a New Provider
+If a command gains new fields or flags, keep these aligned:
+- CLI help text
+- README examples
+- `skills/SKILL.md`
+- tests covering output or behavior changes
 
-1. Create `packages/plugin-xxx/` with `client.ts`, `mapper.ts`, `index.ts`
-2. Implement the `PMPlugin` interface (including optional `addComment` if supported)
-3. Add the provider to `ProviderType` union in `packages/core/src/models/task.ts`
-4. Add credential fields to `PROVIDER_CREDENTIALS` in `packages/core/src/models/plugin.ts`
-5. Register the plugin in `packages/cli/src/init.ts`
-6. Add the plugin as a dependency in `packages/cli/package.json`
+## CLI Command Conventions
 
-## Key Conventions
+Commands live under `packages/cli/src/commands/`.
 
-- **ESM only** — All packages use `"type": "module"` with NodeNext module resolution
-- **TypeScript strict mode** — Target ES2022, config in `tsconfig.base.json`
-- **Tests** — Vitest, files at `packages/*/test/**/*.test.ts`
-- **Commit messages** — Conventional Commits format, all lowercase, subject max 72 chars
-- **npm packages** — All published under `@jogi47/` scope with public access
+Import rules:
+- top-level commands should import `../init.js`
+- nested task commands should import `../../init.js`
+
+Typical command structure:
+1. define `args` and `flags`
+2. parse input
+3. validate provider/task identity
+4. call `pluginManager` or another shared manager
+5. render via shared output helpers
+
+Prefer explicit provider capability errors when a provider does not support a
+feature such as comments, threads, attachments, or workspaces.
+
+## Adding Or Extending Providers
+
+1. Create `packages/plugin-xxx/` with `client.ts`, `mapper.ts`, and `index.ts`.
+2. Implement `PMPlugin`.
+3. Add the provider to `ProviderType` in `packages/core/src/models/task.ts`.
+4. Add credential fields to `PROVIDER_CREDENTIALS` in
+   `packages/core/src/models/plugin.ts`.
+5. Register the plugin in `packages/cli/src/init.ts`.
+6. Add the dependency in `packages/cli/package.json`.
+7. Document provider-specific capability gaps.
+8. Add or update tests for mapping, auth flow, and command behavior.
+
+## Editing And Review Expectations
+
+- Keep changes small and mechanical when possible.
+- Prefer updating one command path end-to-end rather than scattering partial fixes.
+- When touching help text, verify with `pnpm pm <command> --help`.
+- When changing package metadata or imports, run a full build and test pass.
+- When adding downloads or file side effects, test cleanup and limit/order logic.
+- When doing reviews, prioritize:
+  - user-visible regressions
+  - provider capability mismatches
+  - stale docs/help/examples
+  - missing regression tests
+
+## Conventions
+
+- ESM only
+- TypeScript strict mode
+- Vitest under `packages/*/test/**/*.test.ts`
+- Conventional Commits, lowercase, subject max 72 chars
+- published package names are defined in each package's `package.json`
+- use the root [PUBLISHING.md](./PUBLISHING.md) for release steps

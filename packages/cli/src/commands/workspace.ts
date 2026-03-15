@@ -2,17 +2,17 @@
 
 import { Command, Args, Flags } from '@oclif/core';
 import { select } from '@inquirer/prompts';
-import { pluginManager, renderSuccess, renderError, renderInfo } from '@jogi47/pm-cli-core';
-import type { ProviderType } from '@jogi47/pm-cli-core';
+import { pluginManager, renderSuccess, renderError, renderInfo } from 'pm-cli-core';
+import type { ProviderType } from 'pm-cli-core';
 import '../init.js';
 
 export default class Workspace extends Command {
-  static override description = 'List or switch Asana workspace';
+  static override description = 'List or switch workspaces for providers that support multiple workspaces';
 
   static override examples = [
     '<%= config.bin %> workspace',
     '<%= config.bin %> workspace list',
-    '<%= config.bin %> workspace switch',
+    '<%= config.bin %> workspace switch --source=asana',
     '<%= config.bin %> workspace --source=asana',
   ];
 
@@ -28,7 +28,7 @@ export default class Workspace extends Command {
   static override flags = {
     source: Flags.string({
       char: 's',
-      description: 'Provider to manage workspace for',
+      description: 'Provider to manage workspaces for (Asana is the main supported path today)',
       options: ['asana', 'notion', 'trello', 'linear', 'clickup'],
       default: 'asana',
     }),

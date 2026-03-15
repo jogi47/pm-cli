@@ -7,8 +7,8 @@ import type {
   TaskQueryOptions,
   CreateTaskInput,
   UpdateTaskInput,
-} from '@jogi47/pm-cli-core';
-import { cacheManager, isOverdue } from '@jogi47/pm-cli-core';
+} from 'pm-cli-core';
+import { cacheManager, isOverdue } from 'pm-cli-core';
 import { linearClient } from './client.js';
 import { mapLinearIssue, mapLinearIssues } from './mapper.js';
 

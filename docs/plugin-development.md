@@ -4,7 +4,7 @@ This guide shows how to add a new provider plugin to `pm-cli`.
 
 ## 1) Implement `PMPlugin`
 
-Create a plugin package (for example `packages/plugin-yourtool`) and implement the `PMPlugin` interface from `@jogi47/pm-cli-core/models`.
+Create a plugin package (for example `packages/plugin-yourtool`) and implement the `PMPlugin` interface from `pm-cli-core/models`.
 
 Your plugin should:
 - expose provider metadata (`name`, `displayName`)
@@ -50,6 +50,6 @@ In `packages/cli/src/init.ts`, register your plugin in `initializePlugins()`.
 1. `pnpm install`
 2. `pnpm -r build`
 3. `pnpm test`
-4. Run the CLI in dev mode: `pnpm --filter @jogi47/pm-cli pm`
+4. Run the CLI in dev mode: `pnpm --filter pm-cli pm`
 
 See `examples/plugin-template` for a minimal starting point.

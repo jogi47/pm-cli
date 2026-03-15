@@ -7,8 +7,8 @@ import type {
   TaskQueryOptions,
   CreateTaskInput,
   UpdateTaskInput,
-} from '@jogi47/pm-cli-core';
-import { cacheManager, isOverdue } from '@jogi47/pm-cli-core';
+} from 'pm-cli-core';
+import { cacheManager, isOverdue } from 'pm-cli-core';
 import { clickupClient } from './client.js';
 import { mapClickUpTask, mapClickUpTasks } from './mapper.js';
 

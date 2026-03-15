@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   handleCommandError: vi.fn(),
 }));
 
-vi.mock('@jogi47/pm-cli-core', () => ({
+vi.mock('pm-cli-core', () => ({
   parseTaskId: mocks.parseTaskId,
   pluginManager: {
     initialize: mocks.initialize,
@@ -62,6 +62,9 @@ describe('tasks thread command', () => {
         'comments-only': false,
         'with-task': true,
         limit: undefined,
+        'download-images': false,
+        'temp-dir': undefined,
+        cleanup: false,
       },
     });
 
@@ -71,6 +74,9 @@ describe('tasks thread command', () => {
     expect(plugin.getTaskThread).toHaveBeenCalledWith('123', {
       commentsOnly: false,
       limit: undefined,
+      downloadImages: false,
+      tempDir: undefined,
+      cleanup: false,
     });
     expect(mocks.renderTask).not.toHaveBeenCalled();
     expect(mocks.renderThreadEntries).not.toHaveBeenCalled();

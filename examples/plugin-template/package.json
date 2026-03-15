@@ -1,5 +1,5 @@
 {
-  "name": "@jogi47/pm-cli-plugin-template",
+  "name": "pm-cli-plugin-template",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -9,6 +9,6 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "@jogi47/pm-cli-core": "workspace:^"
+    "pm-cli-core": "workspace:^"
   }
 }

@@ -564,7 +564,7 @@ Work through these in order. Each step builds on the last.
 pnpm test
 
 # Single package
-pnpm --filter @jogi47/pm-cli-core test
+pnpm --filter pm-cli-core test
 
 # Single file
 pnpm test packages/core/test/utils/date.test.ts

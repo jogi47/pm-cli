@@ -1,6 +1,6 @@
 import { Command, Flags } from '@oclif/core';
-import { cacheManager, renderSuccess } from '@jogi47/pm-cli-core';
-import type { ProviderType } from '@jogi47/pm-cli-core';
+import { cacheManager, renderSuccess } from 'pm-cli-core';
+import type { ProviderType } from 'pm-cli-core';
 import { handleCommandError } from '../../lib/command-error.js';
 
 export default class CacheClear extends Command {

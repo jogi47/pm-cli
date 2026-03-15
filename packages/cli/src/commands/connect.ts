@@ -2,17 +2,20 @@
 
 import { Command, Args } from '@oclif/core';
 import { input, password } from '@inquirer/prompts';
-import { pluginManager, renderSuccess, renderError, PROVIDER_CREDENTIALS } from '@jogi47/pm-cli-core';
-import type { ProviderCredentials, ProviderType } from '@jogi47/pm-cli-core';
+import { pluginManager, renderSuccess, renderError, PROVIDER_CREDENTIALS } from 'pm-cli-core';
+import type { ProviderCredentials, ProviderType } from 'pm-cli-core';
 import '../init.js';
 import { handleCommandError } from '../lib/command-error.js';
 
 export default class Connect extends Command {
-  static override description = 'Connect to a project management provider';
+  static override description = 'Connect to a project management provider and store credentials locally';
 
   static override examples = [
     '<%= config.bin %> connect asana',
+    '<%= config.bin %> connect linear',
     '<%= config.bin %> connect notion',
+    '<%= config.bin %> connect trello',
+    '<%= config.bin %> connect clickup',
   ];
 
   static override args = {

@@ -1,7 +1,7 @@
 // src/client.ts
 
 import * as Asana from 'asana';
-import { authManager } from '@jogi47/pm-cli-core';
+import { authManager } from 'pm-cli-core';
 
 export interface AsanaUser {
   gid: string;
@@ -114,6 +114,23 @@ export interface AsanaStory {
   };
 }
 
+export interface AsanaAttachment {
+  gid: string;
+  name: string;
+  created_at?: string;
+  resource_subtype?: string;
+  download_url?: string;
+  permanent_url?: string;
+  view_url?: string;
+  host?: string;
+  parent?: {
+    gid?: string;
+    name?: string;
+    resource_type?: string;
+  };
+  connected_to_app?: boolean;
+}
+
 interface MetadataCacheEntry<T> {
   data: T;
   expiresAt: number;
@@ -153,6 +170,7 @@ export class AsanaClient {
   private customFieldSettingsApi: Asana.CustomFieldSettingsApi | null = null;
   private userTaskListsApi: Asana.UserTaskListsApi | null = null;
   private storiesApi: Asana.StoriesApi | null = null;
+  private attachmentsApi: Asana.AttachmentsApi | null = null;
   private currentUser: AsanaUser | null = null;
   private workspaces: AsanaWorkspace[] = [];
   private selectedWorkspaceGid: string | null = null;
@@ -184,6 +202,7 @@ export class AsanaClient {
       this.customFieldSettingsApi = null;
       this.userTaskListsApi = null;
       this.storiesApi = null;
+      this.attachmentsApi = null;
       this.currentUser = null;
       this.workspaces = [];
       this.selectedWorkspaceGid = null;
@@ -208,6 +227,7 @@ export class AsanaClient {
     this.customFieldSettingsApi = new Asana.CustomFieldSettingsApi();
     this.userTaskListsApi = new Asana.UserTaskListsApi();
     this.storiesApi = new Asana.StoriesApi();
+    this.attachmentsApi = new Asana.AttachmentsApi();
   }
 
   /**
@@ -245,6 +265,7 @@ export class AsanaClient {
     this.customFieldSettingsApi = null;
     this.userTaskListsApi = null;
     this.storiesApi = null;
+    this.attachmentsApi = null;
     this.currentUser = null;
     this.workspaces = [];
     this.selectedWorkspaceGid = null;
@@ -650,6 +671,64 @@ export class AsanaClient {
     }
 
     return stories;
+  }
+
+  /**
+   * Fetch attachment details for a task.
+   */
+  async getTaskAttachments(taskGid: string): Promise<AsanaAttachment[]> {
+    if (!this.attachmentsApi) throw new Error('Not connected');
+
+    const attachments: AsanaAttachment[] = [];
+    let page = await this.attachmentsApi.getAttachmentsForObject(taskGid, {
+      opt_fields: 'gid,name,created_at,resource_subtype,download_url,permanent_url,view_url,host,parent.gid,parent.name,parent.resource_type,connected_to_app',
+      limit: 100,
+    }) as unknown as AsanaCollectionPage<AsanaAttachment>;
+
+    while (page) {
+      if (Array.isArray(page.data)) {
+        attachments.push(...page.data);
+      }
+
+      if (!page.nextPage) {
+        break;
+      }
+
+      page = await page.nextPage();
+    }
+
+    const detailedAttachments = await Promise.all(
+      attachments.map(async (attachment) => {
+        if (!attachment.gid) {
+          return attachment;
+        }
+
+        try {
+          const detail = await this.getAttachment(attachment.gid);
+          return {
+            ...attachment,
+            ...detail,
+          };
+        } catch {
+          return attachment;
+        }
+      })
+    );
+
+    return detailedAttachments.filter((attachment): attachment is AsanaAttachment => Boolean(attachment.gid && attachment.name));
+  }
+
+  /**
+   * Fetch full details for a single attachment.
+   */
+  async getAttachment(attachmentGid: string): Promise<AsanaAttachment> {
+    if (!this.attachmentsApi) throw new Error('Not connected');
+
+    const response = await this.attachmentsApi.getAttachment(attachmentGid, {
+      opt_fields: 'gid,name,created_at,resource_subtype,download_url,permanent_url,view_url,host,parent.gid,parent.name,parent.resource_type,connected_to_app',
+    });
+
+    return response.data as AsanaAttachment;
   }
 
   /**

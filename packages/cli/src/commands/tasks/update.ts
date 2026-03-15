@@ -1,9 +1,9 @@
 // src/commands/tasks/update.ts
 
 import { Command, Args, Flags } from '@oclif/core';
-import { pluginManager, renderTask, renderSuccess, renderError } from '@jogi47/pm-cli-core';
-import type { CustomFieldInput, OutputFormat, ProviderType, UpdateTaskInput } from '@jogi47/pm-cli-core';
-import { parseTaskId } from '@jogi47/pm-cli-core';
+import { pluginManager, renderTask, renderSuccess, renderError } from 'pm-cli-core';
+import type { CustomFieldInput, OutputFormat, ProviderType, UpdateTaskInput } from 'pm-cli-core';
+import { parseTaskId } from 'pm-cli-core';
 import { parseCustomFieldFlags } from '../../lib/task-field-parser.js';
 import { splitIdOrName } from '../../lib/task-id-resolver.js';
 import '../../init.js';

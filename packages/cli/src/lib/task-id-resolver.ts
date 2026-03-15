@@ -1,4 +1,4 @@
-import type { ProviderType } from '@jogi47/pm-cli-core';
+import type { ProviderType } from 'pm-cli-core';
 
 const ASANA_ID_PATTERN = /^\d+$/;
 

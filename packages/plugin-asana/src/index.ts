@@ -1,22 +1,33 @@
 // src/index.ts
 
+import { mkdir, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import type {
   PMPlugin,
   ProviderInfo,
   ProviderCredentials,
   TaskQueryOptions,
   ThreadQueryOptions,
+  AttachmentDownloadOptions,
   CreateTaskInput,
   UpdateTaskInput,
   Task,
+  ThreadAttachment,
   ThreadEntry,
   ProviderType,
   Workspace,
   CustomFieldInput,
   TaskCustomFieldResult,
-} from '@jogi47/pm-cli-core';
-import { cacheManager } from '@jogi47/pm-cli-core';
-import { asanaClient, type AsanaCustomField, type AsanaProject, type AsanaWorkspace } from './client.js';
+} from 'pm-cli-core';
+import { cacheManager } from 'pm-cli-core';
+import {
+  asanaClient,
+  type AsanaAttachment,
+  type AsanaCustomField,
+  type AsanaProject,
+  type AsanaWorkspace,
+} from './client.js';
 import { mapAsanaTask, mapAsanaTasks } from './mapper.js';
 
 type ResolvedProject = {
@@ -271,29 +282,69 @@ export class AsanaPlugin implements PMPlugin {
   }
 
   async getTaskThread(externalId: string, options?: ThreadQueryOptions): Promise<ThreadEntry[]> {
-    const stories = await this.runAsanaOperation('fetch task thread', async () => asanaClient.getTaskStories(externalId));
+    const [stories, attachments] = await Promise.all([
+      this.runAsanaOperation('fetch task thread', async () => asanaClient.getTaskStories(externalId)),
+      this.runAsanaOperation('fetch task attachments', async () => asanaClient.getTaskAttachments(externalId)),
+    ]);
 
-    const entries = stories
+    const storyEntries = stories
       .filter(story => {
         if (options?.commentsOnly && story.resource_subtype !== 'comment_added') {
           return false;
         }
         return story.text && story.text.trim().length > 0;
       })
-      .map(story => ({
+      .map<ThreadEntry>(story => ({
         id: story.gid,
         body: story.text!.trim(),
         author: story.created_by?.name,
+        kind: story.resource_subtype === 'comment_added' ? 'comment' : 'activity',
         source: 'asana' as const,
         createdAt: new Date(story.created_at),
-      }))
+      }));
+
+    const attachmentEntries = attachments.map((attachment) => this.toAttachmentThreadEntry(attachment));
+    const entries = [...storyEntries, ...attachmentEntries]
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+
+    if (options?.downloadImages) {
+      await this.downloadThreadImages(entries, {
+        taskId: externalId,
+        tempDir: options.tempDir,
+        cleanup: options.cleanup,
+      });
+    }
 
     if (options?.limit && options.limit > 0) {
       return entries.slice(-options.limit);
     }
 
     return entries;
+  }
+
+  async downloadAttachment(attachment: ThreadAttachment, options?: AttachmentDownloadOptions): Promise<string | null> {
+    if (attachment.kind !== 'image' || !attachment.downloadUrl) {
+      return null;
+    }
+
+    const baseTempDir = options?.tempDir || os.tmpdir();
+    const downloadDir = path.join(baseTempDir, 'pm-cli', `task-${options?.taskId || 'attachments'}`);
+
+    if (options?.cleanup) {
+      await rm(downloadDir, { recursive: true, force: true });
+    }
+
+    await mkdir(downloadDir, { recursive: true });
+
+    const response = await fetch(attachment.downloadUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to download attachment ${attachment.id}: ${response.status} ${response.statusText}`);
+    }
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const filePath = path.join(downloadDir, buildAttachmentFilename(attachment));
+    await writeFile(filePath, buffer);
+    return filePath;
   }
 
   // WORKSPACE OPERATIONS
@@ -317,6 +368,40 @@ export class AsanaPlugin implements PMPlugin {
 
   setWorkspace(workspaceId: string): void {
     asanaClient.setWorkspace(workspaceId);
+  }
+
+  private toAttachmentThreadEntry(attachment: AsanaAttachment): ThreadEntry {
+    const mappedAttachment = mapAsanaAttachment(attachment);
+
+    return {
+      id: `attachment-${attachment.gid}`,
+      body: `Added attachment: ${attachment.name}`,
+      author: mappedAttachment.author,
+      kind: 'attachment',
+      attachments: [mappedAttachment],
+      source: 'asana',
+      createdAt: mappedAttachment.createdAt || new Date(0),
+    };
+  }
+
+  private async downloadThreadImages(entries: ThreadEntry[], options: AttachmentDownloadOptions): Promise<void> {
+    const imageAttachments = entries.flatMap((entry) => entry.attachments || []);
+    let cleaned = false;
+
+    for (const attachment of imageAttachments) {
+      const localPath = await this.downloadAttachment(attachment, {
+        ...options,
+        cleanup: options.cleanup && !cleaned,
+      });
+
+      if (options.cleanup) {
+        cleaned = true;
+      }
+
+      if (localPath) {
+        attachment.localPath = localPath;
+      }
+    }
   }
 
   private resolveWorkspace(input: WorkspaceInputContext): AsanaWorkspace {
@@ -653,6 +738,48 @@ function getTopProjectSuggestions(projects: ResolvedProject[], query: string): R
   const containing = projects.filter((project) => project.name.toLowerCase().includes(lowerQuery));
   if (containing.length > 0) return containing.slice(0, 10);
   return projects.slice(0, 10);
+}
+
+function mapAsanaAttachment(attachment: AsanaAttachment): ThreadAttachment {
+  return {
+    id: attachment.gid,
+    name: attachment.name,
+    kind: classifyAttachment(attachment),
+    source: 'asana',
+    downloadUrl: attachment.download_url,
+    viewUrl: attachment.view_url,
+    permalinkUrl: attachment.permanent_url,
+    createdAt: attachment.created_at ? new Date(attachment.created_at) : undefined,
+  };
+}
+
+function classifyAttachment(attachment: AsanaAttachment): ThreadAttachment['kind'] {
+  const name = attachment.name.toLowerCase();
+
+  if (/\.(png|jpe?g|gif|webp|svg|bmp|heic|heif)$/i.test(name)) {
+    return 'image';
+  }
+
+  if (/\.(mp4|mov|avi|mkv|webm|m4v)$/i.test(name) || attachment.resource_subtype === 'vimeo') {
+    return 'video';
+  }
+
+  if (/\.(pdf|docx?|xlsx?|pptx?|txt|rtf|csv|json|md|zip)$/i.test(name)) {
+    return 'document';
+  }
+
+  return 'other';
+}
+
+function buildAttachmentFilename(attachment: ThreadAttachment): string {
+  const parsed = path.parse(attachment.name);
+  const safeBase = (parsed.name || attachment.id)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 50) || attachment.id;
+
+  return `${safeBase}-${attachment.id}${parsed.ext || ''}`;
 }
 
 function formatWorkspaceCandidates(workspaces: AsanaWorkspace[]): string {

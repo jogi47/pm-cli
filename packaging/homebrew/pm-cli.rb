@@ -2,9 +2,9 @@ class PmCli < Formula
   include Language::Node
 
   desc "Unified project management CLI"
-  homepage "https://github.com/jogi47/pm-cli"
+  homepage "https://github.com/pm-cli/pm-cli"
   version "0.2.3"
-  url "https://registry.npmjs.org/@jogi47/pm-cli/-/pm-cli-#{version}.tgz"
+  url "https://registry.npmjs.org/pm-cli/-/pm-cli-#{version}.tgz"
   sha256 "REPLACE_WITH_TARBALL_SHA256"
   license "MIT"
 

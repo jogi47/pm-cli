@@ -8,17 +8,18 @@ import {
   renderTask,
   renderThreadEntries,
   type OutputFormat,
-} from '@jogi47/pm-cli-core';
+} from 'pm-cli-core';
 import '../../init.js';
 import { handleCommandError } from '../../lib/command-error.js';
 
 export default class TasksThread extends Command {
-  static override description = 'Show task conversation/thread entries';
+  static override description = 'Show task conversation entries, including attachment events (Asana support today)';
 
   static override examples = [
     '<%= config.bin %> tasks thread ASANA-1234567890',
     '<%= config.bin %> tasks thread ASANA-1234567890 --comments-only --with-task',
-    '<%= config.bin %> tasks thread LINEAR-ENG-42 --json',
+    '<%= config.bin %> tasks thread ASANA-1234567890 --download-images --temp-dir /tmppm-cli',
+    '<%= config.bin %> tasks thread ASANA-1234567890 --json',
   ];
 
   static override args = {
@@ -35,7 +36,7 @@ export default class TasksThread extends Command {
     }),
     'comments-only': Flags.boolean({
       char: 'c',
-      description: 'Only show human comments, filter out system activity',
+      description: 'Only show human comments and attachment entries, filter out system activity',
       default: false,
     }),
     'with-task': Flags.boolean({
@@ -45,6 +46,17 @@ export default class TasksThread extends Command {
     limit: Flags.integer({
       char: 'l',
       description: 'Show only the last N thread entries',
+    }),
+    'download-images': Flags.boolean({
+      description: 'Download image attachments to a local temp directory',
+      default: false,
+    }),
+    'temp-dir': Flags.string({
+      description: 'Base temp directory for downloaded attachments',
+    }),
+    cleanup: Flags.boolean({
+      description: 'Remove this task\'s previous download directory before downloading',
+      default: false,
     }),
   };
 
@@ -86,6 +98,9 @@ export default class TasksThread extends Command {
         plugin.getTaskThread(parsed.externalId, {
           commentsOnly: flags['comments-only'],
           limit: flags.limit,
+          downloadImages: flags['download-images'],
+          tempDir: flags['temp-dir'],
+          cleanup: flags.cleanup,
         }),
       ]);
 

@@ -1,8 +1,8 @@
 // src/commands/tasks/overdue.ts
 
 import { Command, Flags } from '@oclif/core';
-import { pluginManager, renderTasks, renderTasksPlain, renderTaskIds, renderError, filterAndSortTasks, formatError } from '@jogi47/pm-cli-core';
-import type { OutputFormat, ProviderType, TaskStatus, FilterSortOptions } from '@jogi47/pm-cli-core';
+import { pluginManager, renderTasks, renderTasksPlain, renderTaskIds, renderError, filterAndSortTasks, formatError } from 'pm-cli-core';
+import type { OutputFormat, ProviderType, TaskStatus, FilterSortOptions } from 'pm-cli-core';
 import '../../init.js';
 import { handleCommandError } from '../../lib/command-error.js';
 

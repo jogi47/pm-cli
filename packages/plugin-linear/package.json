@@ -1,5 +1,5 @@
 {
-  "name": "@jogi47/pm-cli-plugin-linear",
+  "name": "pm-cli-plugin-linear",
   "version": "0.2.6",
   "description": "Linear plugin for pm-cli",
   "type": "module",
@@ -18,6 +18,6 @@
     "lint": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@jogi47/pm-cli-core": "workspace:^"
+    "pm-cli-core": "workspace:^"
   }
 }

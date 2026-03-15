@@ -1,5 +1,5 @@
 import { Args, Command } from '@oclif/core';
-import { configManager, renderSuccess } from '@jogi47/pm-cli-core';
+import { configManager, renderSuccess } from 'pm-cli-core';
 import { handleCommandError } from '../../lib/command-error.js';
 
 export default class ConfigSet extends Command {

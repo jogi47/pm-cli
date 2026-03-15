@@ -4,6 +4,43 @@ export type TaskStatus = 'todo' | 'in_progress' | 'done';
 export type ProviderType = 'asana' | 'notion' | 'trello' | 'linear' | 'clickup';
 export const SUPPORTED_PROVIDERS: ProviderType[] = ['asana', 'notion', 'trello', 'linear', 'clickup'];
 export type TaskCustomFieldType = 'enum' | 'multi_enum' | 'unsupported';
+export type ThreadEntryKind = 'comment' | 'attachment' | 'activity';
+export type ThreadAttachmentKind = 'image' | 'video' | 'document' | 'other';
+
+export interface ThreadAttachment {
+  /** Provider-specific attachment ID */
+  id: string;
+
+  /** Attachment display name */
+  name: string;
+
+  /** Attachment classification for rendering/download rules */
+  kind: ThreadAttachmentKind;
+
+  /** Provider source */
+  source: ProviderType;
+
+  /** MIME type when available */
+  mimeType?: string;
+
+  /** Provider-hosted download URL when available */
+  downloadUrl?: string;
+
+  /** Provider/browser view URL when available */
+  viewUrl?: string;
+
+  /** Provider permalink when available */
+  permalinkUrl?: string;
+
+  /** Local path after download */
+  localPath?: string;
+
+  /** Attachment author display name */
+  author?: string;
+
+  /** Creation timestamp */
+  createdAt?: Date;
+}
 
 export interface ThreadEntry {
   /** Provider-specific entry ID */
@@ -14,6 +51,12 @@ export interface ThreadEntry {
 
   /** Author display name */
   author?: string;
+
+  /** Entry subtype for richer rendering */
+  kind?: ThreadEntryKind;
+
+  /** Attachment metadata associated with this entry */
+  attachments?: ThreadAttachment[];
 
   /** Provider source */
   source: ProviderType;

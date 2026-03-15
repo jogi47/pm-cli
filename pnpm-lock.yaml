@@ -26,22 +26,22 @@ importers:
       '@inquirer/prompts':
         specifier: ^5.0.0
         version: 5.5.0
-      '@jogi47/pm-cli-core':
+      'pm-cli-core':
         specifier: workspace:^
         version: link:../core
-      '@jogi47/pm-cli-plugin-asana':
+      'pm-cli-plugin-asana':
         specifier: workspace:^
         version: link:../plugin-asana
-      '@jogi47/pm-cli-plugin-clickup':
+      'pm-cli-plugin-clickup':
         specifier: workspace:^
         version: link:../plugin-clickup
-      '@jogi47/pm-cli-plugin-linear':
+      'pm-cli-plugin-linear':
         specifier: workspace:^
         version: link:../plugin-linear
-      '@jogi47/pm-cli-plugin-notion':
+      'pm-cli-plugin-notion':
         specifier: workspace:^
         version: link:../plugin-notion
-      '@jogi47/pm-cli-plugin-trello':
+      'pm-cli-plugin-trello':
         specifier: workspace:^
         version: link:../plugin-trello
       '@oclif/core':
@@ -91,7 +91,7 @@ importers:
 
   packages/plugin-asana:
     dependencies:
-      '@jogi47/pm-cli-core':
+      'pm-cli-core':
         specifier: workspace:^
         version: link:../core
       '@oclif/core':
@@ -110,19 +110,19 @@ importers:
 
   packages/plugin-clickup:
     dependencies:
-      '@jogi47/pm-cli-core':
+      'pm-cli-core':
         specifier: workspace:^
         version: link:../core
 
   packages/plugin-linear:
     dependencies:
-      '@jogi47/pm-cli-core':
+      'pm-cli-core':
         specifier: workspace:^
         version: link:../core
 
   packages/plugin-notion:
     dependencies:
-      '@jogi47/pm-cli-core':
+      'pm-cli-core':
         specifier: workspace:^
         version: link:../core
       '@notionhq/client':
@@ -138,7 +138,7 @@ importers:
 
   packages/plugin-trello:
     dependencies:
-      '@jogi47/pm-cli-core':
+      'pm-cli-core':
         specifier: workspace:^
         version: link:../core
 

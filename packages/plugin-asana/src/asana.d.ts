@@ -25,6 +25,24 @@ declare module 'asana' {
     text?: string;
     created_at?: string;
     created_by?: { gid?: string; name?: string };
+    resource_subtype?: string;
+  }
+
+  interface Attachment {
+    gid?: string;
+    name?: string;
+    created_at?: string;
+    resource_subtype?: string;
+    download_url?: string;
+    permanent_url?: string;
+    view_url?: string;
+    host?: string;
+    parent?: {
+      gid?: string;
+      name?: string;
+      resource_type?: string;
+    };
+    connected_to_app?: boolean;
   }
 
   interface UserTaskList {
@@ -114,6 +132,11 @@ declare module 'asana' {
   export class StoriesApi {
     createStoryForTask(body: { data: Record<string, unknown> }, taskGid: string, opts?: Record<string, unknown>): Promise<ResponseWrapper<unknown>>;
     getStoriesForTask(taskGid: string, opts?: Record<string, unknown>): Promise<ResponseWrapper<Story[]>>;
+  }
+
+  export class AttachmentsApi {
+    getAttachment(attachmentGid: string, opts?: Record<string, unknown>): Promise<ResponseWrapper<Attachment>>;
+    getAttachmentsForObject(parent: string, opts?: Record<string, unknown>): Promise<ResponseWrapper<Attachment[]>>;
   }
 
   export class UserTaskListsApi {

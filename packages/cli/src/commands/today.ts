@@ -1,8 +1,8 @@
 // src/commands/today.ts
 
 import { Command, Flags } from '@oclif/core';
-import { pluginManager, renderDashboard, renderError, formatError } from '@jogi47/pm-cli-core';
-import type { OutputFormat, ProviderType } from '@jogi47/pm-cli-core';
+import { pluginManager, renderDashboard, renderError, formatError } from 'pm-cli-core';
+import type { OutputFormat, ProviderType } from 'pm-cli-core';
 import '../init.js';
 import { handleCommandError } from '../lib/command-error.js';
 

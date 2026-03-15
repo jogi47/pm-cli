@@ -1,8 +1,8 @@
 // src/commands/summary.ts
 
 import { Command, Flags } from '@oclif/core';
-import { pluginManager, renderSummary, renderError, formatError } from '@jogi47/pm-cli-core';
-import type { OutputFormat, Task } from '@jogi47/pm-cli-core';
+import { pluginManager, renderSummary, renderError, formatError } from 'pm-cli-core';
+import type { OutputFormat, Task } from 'pm-cli-core';
 import '../init.js';
 import { handleCommandError } from '../lib/command-error.js';
 
