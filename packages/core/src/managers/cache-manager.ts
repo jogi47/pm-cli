@@ -20,7 +20,10 @@ interface CacheStore {
   taskDetails: Record<string, CacheEntry<Task>>;
 }
 
-class EncryptedJSONFile implements Adapter<CacheStore> {
+// This adapter obfuscates cache contents on disk to avoid obvious plaintext
+// task data. Because the key material is embedded in the codebase, it does not
+// provide strong secret-at-rest guarantees.
+class ObfuscatedJSONFile implements Adapter<CacheStore> {
   private adapter: TextFile;
   private key = crypto.createHash('sha256').update('pm-cli-secure-storage-key-v1').digest();
 
@@ -34,13 +37,14 @@ class EncryptedJSONFile implements Adapter<CacheStore> {
     try {
       const parts = data.split(':');
       const iv = Buffer.from(parts.shift()!, 'hex');
-      const encryptedText = Buffer.from(parts.join(':'), 'hex');
+      const obfuscatedText = Buffer.from(parts.join(':'), 'hex');
       const decipher = crypto.createDecipheriv('aes-256-cbc', this.key, iv);
-      let decrypted = decipher.update(encryptedText);
+      let decrypted = decipher.update(obfuscatedText);
       decrypted = Buffer.concat([decrypted, decipher.final()]);
       return JSON.parse(decrypted.toString());
-    } catch (e) {
-      // If decryption fails (e.g. file was plaintext before this update), treat as empty
+    } catch {
+      // If decoding fails (for example, from an older plaintext cache file),
+      // treat the cache as empty.
       return null;
     }
   }
@@ -49,9 +53,9 @@ class EncryptedJSONFile implements Adapter<CacheStore> {
     const text = JSON.stringify(obj);
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipheriv('aes-256-cbc', this.key, iv);
-    let encrypted = cipher.update(text);
-    encrypted = Buffer.concat([encrypted, cipher.final()]);
-    const data = iv.toString('hex') + ':' + encrypted.toString('hex');
+    let obfuscated = cipher.update(text);
+    obfuscated = Buffer.concat([obfuscated, cipher.final()]);
+    const data = iv.toString('hex') + ':' + obfuscated.toString('hex');
     await this.adapter.write(data);
   }
 }
@@ -77,7 +81,7 @@ class CacheManager {
   private async ensureInitialized(): Promise<void> {
     if (this.initialized) return;
 
-    const adapter = new EncryptedJSONFile(this.dbPath);
+    const adapter = new ObfuscatedJSONFile(this.dbPath);
     this.db = new Low(adapter, { tasks: {}, taskDetails: {} });
     await this.db.read();
     this.initialized = true;

@@ -5,6 +5,7 @@ import { pluginManager, renderTasks, renderTasksPlain, renderTaskIds, renderWarn
 import type { OutputFormat, ProviderType, TaskStatus, FilterSortOptions } from 'pm-cli-core';
 import '../../init.js';
 import { handleCommandError } from '../../lib/command-error.js';
+import { applyDisplayLimit, getFetchLimit } from '../../lib/list-query.js';
 
 export default class TasksAssigned extends Command {
   static override description = 'List tasks assigned to you';
@@ -64,13 +65,15 @@ export default class TasksAssigned extends Command {
   async run(): Promise<void> {
     const { flags } = await this.parse(TasksAssigned);
     const format: OutputFormat = flags.json ? 'json' : 'table';
+    const displayLimit = flags.limit;
+    const fetchLimit = getFetchLimit(displayLimit);
 
     await pluginManager.initialize();
 
     try {
       const result = await pluginManager.aggregateTasks('assigned', {
         source: flags.source as ProviderType | undefined,
-        limit: flags.limit,
+        fetchLimit,
         refresh: flags.refresh,
       });
 
@@ -89,6 +92,7 @@ export default class TasksAssigned extends Command {
       if (filterOpts.status || filterOpts.priority || filterOpts.sort) {
         tasks = filterAndSortTasks(tasks, filterOpts);
       }
+      tasks = applyDisplayLimit(tasks, displayLimit);
 
       if (flags['ids-only']) {
         renderTaskIds(tasks);

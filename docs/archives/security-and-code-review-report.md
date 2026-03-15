@@ -38,11 +38,13 @@ Assessment:
 Status: `resolved`
 
 Current state:
-- the metadata cache is written through an encrypted file adapter rather than
+- the metadata cache is written through an obfuscated file adapter rather than
   plaintext JSON
 
 Result:
 - task metadata is no longer stored in readable plain text on disk
+- this should still be treated as local obfuscation, not strong encryption,
+  because the key material ships with the codebase
 
 Relevant code:
 - `packages/core/src/managers/cache-manager.ts`

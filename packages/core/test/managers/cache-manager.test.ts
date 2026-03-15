@@ -17,7 +17,7 @@ function buildTask(): Task {
   };
 }
 
-describe('cacheManager encryption', () => {
+describe('cacheManager obfuscation', () => {
   const filePath = join(tmpdir(), `pm-cli-cache-test-${process.pid}.json`);
 
   afterEach(async () => {
@@ -32,7 +32,7 @@ describe('cacheManager encryption', () => {
     await rm(filePath, { force: true });
   });
 
-  it('writes encrypted cache data to disk and reads it back', async () => {
+  it('writes obfuscated cache data to disk and reads it back', async () => {
     const manager = cacheManager as unknown as {
       db: unknown;
       dbPath: string;

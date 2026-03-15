@@ -17,12 +17,17 @@ interface AuthStore {
   credentials: Partial<Record<ProviderType, StoredCredential>>;
 }
 
-const ENCRYPTION_KEY = 'pm-cli-secure-storage-key-v1';
+// This is a fixed obfuscation key, not a secure secret-management mechanism.
+// It prevents casual plaintext inspection of the local config file only.
+const LOCAL_STORAGE_OBFUSCATION_KEY = 'pm-cli-secure-storage-key-v1';
 
 class AuthManager {
   private store: Conf<AuthStore>;
 
   constructor() {
+    // Conf's encryption option is used here only as local obfuscation.
+    // Because the key ships with the codebase, this should not be treated as
+    // secure credential storage.
     this.store = new Conf<AuthStore>({
       projectName: 'pm-cli',
       schema: {
@@ -31,7 +36,7 @@ class AuthManager {
           default: {},
         },
       },
-      encryptionKey: ENCRYPTION_KEY,
+      encryptionKey: LOCAL_STORAGE_OBFUSCATION_KEY,
     });
   }
 

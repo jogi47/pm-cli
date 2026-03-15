@@ -155,7 +155,7 @@ class PluginManager {
    */
   async aggregateTasks(
     operation: 'assigned' | 'overdue',
-    options?: { source?: ProviderType; limit?: number; refresh?: boolean }
+    options?: { source?: ProviderType; limit?: number; fetchLimit?: number; refresh?: boolean }
   ): Promise<{ tasks: Task[]; errors: ProviderError[] }> {
     let plugins: PMPlugin[];
 
@@ -174,7 +174,7 @@ class PluginManager {
     }
 
     const queryOptions = {
-      limit: options?.limit,
+      limit: options?.fetchLimit ?? options?.limit,
       refresh: options?.refresh,
     };
 
@@ -219,7 +219,7 @@ class PluginManager {
    */
   async searchTasks(
     query: string,
-    options?: { source?: ProviderType; limit?: number }
+    options?: { source?: ProviderType; limit?: number; fetchLimit?: number }
   ): Promise<{ tasks: Task[]; errors: ProviderError[] }> {
     let plugins: PMPlugin[];
 
@@ -241,8 +241,8 @@ class PluginManager {
 
     const results = await Promise.all(
       plugins.map(async (plugin) => {
-        try {
-          return await plugin.searchTasks(query, { limit: options?.limit });
+          try {
+          return await plugin.searchTasks(query, { limit: options?.fetchLimit ?? options?.limit });
         } catch (error) {
           const providerError = new ProviderError(plugin.name, `Failed to search tasks`, error instanceof Error ? error : undefined, {
             reason: error instanceof Error ? error.message : 'Unknown API error.',
