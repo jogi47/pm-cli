@@ -12,7 +12,11 @@ export function getToday(): Date {
  * Get today's date as ISO string (YYYY-MM-DD)
  */
 export function getTodayISO(): string {
-  return getToday().toISOString().split('T')[0];
+  const today = getToday();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 /**

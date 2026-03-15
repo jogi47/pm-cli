@@ -1,8 +1,9 @@
 // src/managers/auth-manager.ts
 
 import Conf from 'conf';
-import { type ProviderType, SUPPORTED_PROVIDERS } from '../models/task.js';
+import { type ProviderType } from '../models/task.js';
 import type { ProviderCredentials } from '../models/plugin.js';
+import { pluginManager } from './plugin-manager.js';
 
 interface StoredCredential {
   type: 'api_key' | 'oauth';
@@ -106,7 +107,7 @@ class AuthManager {
    * Get all connected providers
    */
   getConnectedProviders(): ProviderType[] {
-    return SUPPORTED_PROVIDERS.filter(p => this.hasCredentials(p));
+    return pluginManager.getRegisteredProviders().filter(provider => this.hasCredentials(provider));
   }
 
   /**

@@ -1,7 +1,7 @@
 // src/commands/delete.ts
 
 import { Command, Args, Flags } from '@oclif/core';
-import { pluginManager, renderError, renderSuccess } from 'pm-cli-core';
+import { pluginManager, renderError, renderSuccess, BulkOperationError } from 'pm-cli-core';
 import '../init.js';
 
 export default class Delete extends Command {
@@ -41,7 +41,16 @@ export default class Delete extends Command {
 
     await pluginManager.initialize();
 
-    const results = await pluginManager.deleteTasks(taskIds);
+    let results;
+    try {
+      results = await pluginManager.deleteTasks(taskIds);
+    } catch (error) {
+      if (error instanceof BulkOperationError) {
+        results = error.results;
+      } else {
+        throw error;
+      }
+    }
 
     const hasErrors = results.some((result) => Boolean(result.error));
 

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { pluginManager } from '../../src/managers/plugin-manager.js';
+import { BulkOperationError } from '../../src/utils/errors.js';
 import type { PMPlugin } from '../../src/models/plugin.js';
 import type { Task, ThreadEntry } from '../../src/models/task.js';
 
@@ -32,6 +33,10 @@ function buildPlugin(
     thread?: ThreadEntry[];
     supportsThread?: boolean;
     threadSpy?: ReturnType<typeof vi.fn>;
+    completeTask?: Task;
+    completeTaskError?: Error;
+    deleteTaskError?: Error;
+    authenticated?: boolean;
   }
 ): PMPlugin {
   const plugin: PMPlugin = {
@@ -40,7 +45,7 @@ function buildPlugin(
     async initialize() {},
     async authenticate() {},
     async disconnect() {},
-    async isAuthenticated() { return true; },
+    async isAuthenticated() { return opts?.authenticated ?? true; },
     async getInfo() { return { name, displayName: name, connected: true }; },
     async validateConnection() { return true; },
     async getAssignedTasks() {
@@ -53,8 +58,14 @@ function buildPlugin(
     getTaskUrl(externalId: string) { return `https://example.com/${externalId}`; },
     async createTask() { throw new Error('not used'); },
     async updateTask() { throw new Error('not used'); },
-    async completeTask() { throw new Error('not used'); },
-    async deleteTask() {},
+    async completeTask() {
+      if (opts?.completeTaskError) throw opts.completeTaskError;
+      if (opts?.completeTask) return opts.completeTask;
+      throw new Error('not used');
+    },
+    async deleteTask() {
+      if (opts?.deleteTaskError) throw opts.deleteTaskError;
+    },
   };
 
   if (opts?.supportsThread !== false) {
@@ -150,5 +161,60 @@ describe('pluginManager thread operations', () => {
       message: 'asana does not support task threads',
       reason: 'The plugin does not implement this feature.',
     });
+  });
+});
+
+describe('pluginManager bulk operations', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    const manager = pluginManager as unknown as { plugins: Map<string, PMPlugin>; initialized: boolean };
+    manager.plugins = new Map();
+    manager.initialized = false;
+  });
+
+  it('throws a typed bulk error for partial complete failures and preserves results', async () => {
+    pluginManager.registerPlugin(buildPlugin('asana', [], {
+      completeTask: task('ASANA-1', 'asana'),
+    }));
+    pluginManager.registerPlugin(buildPlugin('linear', [], {
+      completeTaskError: new Error('linear outage'),
+    }));
+
+    await expect(pluginManager.completeTasks(['ASANA-1', 'LINEAR-2'])).rejects.toMatchObject({
+      name: 'BulkOperationError',
+      operation: 'complete',
+      failedCount: 1,
+    });
+
+    try {
+      await pluginManager.completeTasks(['ASANA-1', 'LINEAR-2']);
+    } catch (error) {
+      expect(error).toBeInstanceOf(BulkOperationError);
+      const bulkError = error as BulkOperationError<{ id: string; task?: Task; error?: string }>;
+      expect(bulkError.results).toEqual([
+        { id: 'ASANA-1', task: task('ASANA-1', 'asana') },
+        { id: 'LINEAR-2', error: 'linear outage' },
+      ]);
+    }
+  });
+
+  it('throws a typed bulk error for delete failures and preserves results', async () => {
+    pluginManager.registerPlugin(buildPlugin('asana', []));
+    pluginManager.registerPlugin(buildPlugin('linear', [], {
+      deleteTaskError: new Error('delete denied'),
+    }));
+
+    try {
+      await pluginManager.deleteTasks(['ASANA-1', 'LINEAR-2']);
+    } catch (error) {
+      expect(error).toBeInstanceOf(BulkOperationError);
+      const bulkError = error as BulkOperationError<{ id: string; error?: string }>;
+      expect(bulkError.operation).toBe('delete');
+      expect(bulkError.failedCount).toBe(1);
+      expect(bulkError.results).toEqual([
+        { id: 'ASANA-1' },
+        { id: 'LINEAR-2', error: 'delete denied' },
+      ]);
+    }
   });
 });

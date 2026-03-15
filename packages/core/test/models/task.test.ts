@@ -24,6 +24,11 @@ describe('Task Model', () => {
     it('should create correct ID for ClickUp', () => {
       expect(createTaskId('clickup', 'abc123')).toBe('CLICKUP-abc123');
     });
+
+    it('should allow empty or hyphenated external IDs as plain string composition', () => {
+      expect(createTaskId('asana', '')).toBe('ASANA-');
+      expect(createTaskId('notion', 'abc-def-123')).toBe('NOTION-abc-def-123');
+    });
   });
 
   describe('parseTaskId', () => {
@@ -55,11 +60,21 @@ describe('Task Model', () => {
     it('should return null for invalid format', () => {
       expect(parseTaskId('invalid')).toBeNull();
       expect(parseTaskId('JIRA-123')).toBeNull();
+      expect(parseTaskId('ASANA-')).toBeNull();
+      expect(parseTaskId('')).toBeNull();
+      expect(parseTaskId('-12345')).toBeNull();
     });
 
     it('should be case insensitive', () => {
       const result = parseTaskId('asana-12345');
       expect(result).toEqual({ source: 'asana', externalId: '12345' });
+    });
+
+    it('should preserve hyphens in the external ID payload', () => {
+      expect(parseTaskId('ASANA-NOTION-xyz')).toEqual({
+        source: 'asana',
+        externalId: 'NOTION-xyz',
+      });
     });
   });
 });

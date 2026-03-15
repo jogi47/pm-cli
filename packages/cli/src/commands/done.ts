@@ -1,7 +1,7 @@
 // src/commands/done.ts
 
 import { Command, Args, Flags } from '@oclif/core';
-import { pluginManager, renderSuccess, renderError } from 'pm-cli-core';
+import { pluginManager, renderSuccess, renderError, BulkOperationError } from 'pm-cli-core';
 import '../init.js';
 
 export default class Done extends Command {
@@ -41,20 +41,30 @@ export default class Done extends Command {
 
     await pluginManager.initialize();
 
-    const results = await pluginManager.completeTasks(taskIds);
+    let results;
+    try {
+      results = await pluginManager.completeTasks(taskIds);
+    } catch (error) {
+      if (error instanceof BulkOperationError) {
+        results = error.results;
+      } else {
+        throw error;
+      }
+    }
+
+    const hasErrors = results.some((result) => Boolean(result.error));
 
     if (flags.json) {
       console.log(JSON.stringify(results, null, 2));
+      if (hasErrors) this.exit(1);
       return;
     }
 
-    let hasErrors = false;
     for (const result of results) {
       if (result.task) {
         renderSuccess(`Completed: ${result.id} — ${result.task.title}`);
       } else {
         renderError(`${result.id}: ${result.error}`);
-        hasErrors = true;
       }
     }
 

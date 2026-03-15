@@ -3,7 +3,7 @@
 import type { PMPlugin, ProviderInfo, CreateTaskInput, UpdateTaskInput, ThreadQueryOptions } from '../models/plugin.js';
 import type { Task, TaskStatus, ProviderType, ThreadEntry } from '../models/task.js';
 import { parseTaskId } from '../models/task.js';
-import { PMCliError, ProviderError, NotConnectedError, formatError } from '../utils/errors.js';
+import { PMCliError, ProviderError, NotConnectedError, BulkOperationError } from '../utils/errors.js';
 
 export interface FilterSortOptions {
   status?: TaskStatus;
@@ -113,6 +113,13 @@ class PluginManager {
    */
   getAllPlugins(): PMPlugin[] {
     return Array.from(this.plugins.values());
+  }
+
+  /**
+   * Get registered provider names from the active plugin registry
+   */
+  getRegisteredProviders(): ProviderType[] {
+    return Array.from(this.plugins.keys());
   }
 
   /**
@@ -281,6 +288,17 @@ class PluginManager {
     return plugin.updateTask(parsed.externalId, updates);
   }
 
+  private throwOnBulkErrors<T extends { error?: string }>(operation: string, results: T[]): void {
+    if (!results.some((result) => Boolean(result.error))) {
+      return;
+    }
+
+    throw new BulkOperationError(operation, results, {
+      reason: `One or more task ${operation} operations failed.`,
+      suggestion: 'Review the per-item errors and retry only the failed task IDs.',
+    });
+  }
+
   /**
    * Complete one or more tasks
    */
@@ -312,6 +330,7 @@ class PluginManager {
       }
     }
 
+    this.throwOnBulkErrors('complete', results);
     return results;
   }
 
@@ -346,6 +365,7 @@ class PluginManager {
       }
     }
 
+    this.throwOnBulkErrors('delete', results);
     return results;
   }
 

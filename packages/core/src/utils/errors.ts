@@ -5,6 +5,10 @@ export interface ErrorDetails {
   docsUrl?: string;
 }
 
+export interface BulkOperationResult {
+  error?: string;
+}
+
 export class PMCliError extends Error {
   public reason?: string;
   public suggestion?: string;
@@ -69,6 +73,29 @@ export class NotConnectedError extends PMCliError {
       suggestion: `Run: pm connect ${provider}`,
     });
     this.name = 'NotConnectedError';
+  }
+}
+
+/**
+ * Typed error for bulk operations that contain one or more item-level failures.
+ */
+export class BulkOperationError<T extends BulkOperationResult> extends PMCliError {
+  public failedCount: number;
+
+  constructor(
+    public operation: string,
+    public results: T[],
+    details?: Omit<ErrorDetails, 'message'>
+  ) {
+    const failedCount = results.filter((result) => Boolean(result.error)).length;
+    super({
+      message: `Bulk ${operation} completed with ${failedCount} error${failedCount === 1 ? '' : 's'}`,
+      reason: details?.reason,
+      suggestion: details?.suggestion,
+      docsUrl: details?.docsUrl,
+    });
+    this.name = 'BulkOperationError';
+    this.failedCount = failedCount;
   }
 }
 
