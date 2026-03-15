@@ -27,7 +27,12 @@ function entry(id: string, source: Task['source']): ThreadEntry {
 function buildPlugin(
   name: Task['source'],
   tasks: Task[],
-  opts?: { throwAssigned?: boolean; thread?: ThreadEntry[]; supportsThread?: boolean }
+  opts?: {
+    throwAssigned?: boolean;
+    thread?: ThreadEntry[];
+    supportsThread?: boolean;
+    threadSpy?: ReturnType<typeof vi.fn>;
+  }
 ): PMPlugin {
   const plugin: PMPlugin = {
     name,
@@ -53,7 +58,10 @@ function buildPlugin(
   };
 
   if (opts?.supportsThread !== false) {
-    plugin.getTaskThread = async () => opts?.thread ?? [];
+    plugin.getTaskThread = async (_externalId, options) => {
+      opts?.threadSpy?.(options);
+      return opts?.thread ?? [];
+    };
   }
 
   return plugin;
@@ -102,6 +110,18 @@ describe('pluginManager thread operations', () => {
     const result = await pluginManager.getTaskThread('ASANA-123');
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('story-1');
+  });
+
+  it('forwards thread query options to provider', async () => {
+    const threadSpy = vi.fn();
+    pluginManager.registerPlugin(buildPlugin('asana', [], {
+      thread: [entry('story-1', 'asana')],
+      threadSpy,
+    }));
+
+    await pluginManager.getTaskThread('ASANA-123', { commentsOnly: true, limit: 5 });
+
+    expect(threadSpy).toHaveBeenCalledWith({ commentsOnly: true, limit: 5 });
   });
 
   it('rejects invalid task IDs for thread fetch', async () => {

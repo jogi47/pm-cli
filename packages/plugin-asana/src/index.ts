@@ -5,6 +5,7 @@ import type {
   ProviderInfo,
   ProviderCredentials,
   TaskQueryOptions,
+  ThreadQueryOptions,
   CreateTaskInput,
   UpdateTaskInput,
   Task,
@@ -269,11 +270,16 @@ export class AsanaPlugin implements PMPlugin {
     await asanaClient.addComment(externalId, body);
   }
 
-  async getTaskThread(externalId: string): Promise<ThreadEntry[]> {
+  async getTaskThread(externalId: string, options?: ThreadQueryOptions): Promise<ThreadEntry[]> {
     const stories = await this.runAsanaOperation('fetch task thread', async () => asanaClient.getTaskStories(externalId));
 
-    return stories
-      .filter(story => story.text && story.text.trim().length > 0)
+    const entries = stories
+      .filter(story => {
+        if (options?.commentsOnly && story.resource_subtype !== 'comment_added') {
+          return false;
+        }
+        return story.text && story.text.trim().length > 0;
+      })
       .map(story => ({
         id: story.gid,
         body: story.text!.trim(),
@@ -282,6 +288,12 @@ export class AsanaPlugin implements PMPlugin {
         createdAt: new Date(story.created_at),
       }))
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+
+    if (options?.limit && options.limit > 0) {
+      return entries.slice(-options.limit);
+    }
+
+    return entries;
   }
 
   // WORKSPACE OPERATIONS

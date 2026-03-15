@@ -97,6 +97,13 @@ export interface TaskQueryOptions {
   refresh?: boolean;
 }
 
+export interface ThreadQueryOptions {
+  /** Only return human comments, exclude system activity */
+  commentsOnly?: boolean;
+  /** Limit the number of entries */
+  limit?: number;
+}
+
 export interface ProviderCredentials {
   /** API token or access token */
   token: string;
@@ -240,7 +247,7 @@ export interface PMPlugin {
   /**
    * Fetch task conversation/thread entries
    */
-  getTaskThread?(externalId: string): Promise<ThreadEntry[]>;
+  getTaskThread?(externalId: string, options?: ThreadQueryOptions): Promise<ThreadEntry[]>;
 
   // ═══════════════════════════════════════════════
   // WORKSPACE OPERATIONS (optional)

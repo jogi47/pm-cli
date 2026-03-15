@@ -106,6 +106,7 @@ export interface AsanaTask {
 export interface AsanaStory {
   gid: string;
   text?: string;
+  resource_subtype?: string;
   created_at: string;
   created_by?: {
     gid: string;
@@ -116,6 +117,11 @@ export interface AsanaStory {
 interface MetadataCacheEntry<T> {
   data: T;
   expiresAt: number;
+}
+
+interface AsanaCollectionPage<T> {
+  data?: T[];
+  nextPage?: () => Promise<AsanaCollectionPage<T>>;
 }
 
 // Field list for API requests
@@ -624,12 +630,26 @@ export class AsanaClient {
   async getTaskStories(taskGid: string): Promise<AsanaStory[]> {
     if (!this.storiesApi) throw new Error('Not connected');
 
-    const response = await this.storiesApi.getStoriesForTask(taskGid, {
-      opt_fields: 'gid,text,created_at,created_by.gid,created_by.name',
+    const stories: AsanaStory[] = [];
+    let page = await this.storiesApi.getStoriesForTask(taskGid, {
+      opt_fields: 'gid,text,resource_subtype,created_at,created_by.gid,created_by.name',
       limit: 100,
-    });
+    }) as unknown as AsanaCollectionPage<AsanaStory>;
 
-    return (response.data || []) as AsanaStory[];
+    // Asana collection responses expose nextPage() when more stories exist.
+    while (page) {
+      if (Array.isArray(page.data)) {
+        stories.push(...page.data);
+      }
+
+      if (!page.nextPage) {
+        break;
+      }
+
+      page = await page.nextPage();
+    }
+
+    return stories;
   }
 
   /**

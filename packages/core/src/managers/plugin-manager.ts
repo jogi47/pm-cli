@@ -1,6 +1,6 @@
 // src/managers/plugin-manager.ts
 
-import type { PMPlugin, ProviderInfo, CreateTaskInput, UpdateTaskInput } from '../models/plugin.js';
+import type { PMPlugin, ProviderInfo, CreateTaskInput, UpdateTaskInput, ThreadQueryOptions } from '../models/plugin.js';
 import type { Task, TaskStatus, ProviderType, ThreadEntry } from '../models/task.js';
 import { parseTaskId } from '../models/task.js';
 import { PMCliError, ProviderError, NotConnectedError, formatError } from '../utils/errors.js';
@@ -352,7 +352,7 @@ class PluginManager {
   /**
    * Fetch thread entries for a task (provider determined from task ID)
    */
-  async getTaskThread(taskId: string): Promise<ThreadEntry[]> {
+  async getTaskThread(taskId: string, options?: ThreadQueryOptions): Promise<ThreadEntry[]> {
     const parsed = parseTaskId(taskId);
     if (!parsed) throw new PMCliError({ message: `Invalid task ID format: ${taskId}`, reason: 'Task IDs must look like ASANA-123 or NOTION-abc.', suggestion: 'Copy an ID from `pm tasks assigned --ids-only` and try again.' });
 
@@ -369,7 +369,7 @@ class PluginManager {
       });
     }
 
-    return plugin.getTaskThread(parsed.externalId);
+    return plugin.getTaskThread(parsed.externalId, options);
   }
 
   /**

@@ -5,6 +5,7 @@ import {
   parseTaskId,
   pluginManager,
   renderError,
+  renderTask,
   renderThreadEntries,
   type OutputFormat,
 } from '@jogi47/pm-cli-core';
@@ -16,6 +17,7 @@ export default class TasksThread extends Command {
 
   static override examples = [
     '<%= config.bin %> tasks thread ASANA-1234567890',
+    '<%= config.bin %> tasks thread ASANA-1234567890 --comments-only --with-task',
     '<%= config.bin %> tasks thread LINEAR-ENG-42 --json',
   ];
 
@@ -30,6 +32,19 @@ export default class TasksThread extends Command {
     json: Flags.boolean({
       description: 'Output in JSON format',
       default: false,
+    }),
+    'comments-only': Flags.boolean({
+      char: 'c',
+      description: 'Only show human comments, filter out system activity',
+      default: false,
+    }),
+    'with-task': Flags.boolean({
+      description: 'Include the task title and description at the top',
+      default: false,
+    }),
+    limit: Flags.integer({
+      char: 'l',
+      description: 'Show only the last N thread entries',
     }),
   };
 
@@ -66,7 +81,30 @@ export default class TasksThread extends Command {
     }
 
     try {
-      const entries = await plugin.getTaskThread(parsed.externalId);
+      const [task, entries] = await Promise.all([
+        flags['with-task'] ? plugin.getTask(parsed.externalId) : Promise.resolve(null),
+        plugin.getTaskThread(parsed.externalId, {
+          commentsOnly: flags['comments-only'],
+          limit: flags.limit,
+        }),
+      ]);
+
+      if (flags['with-task']) {
+        if (task) {
+          if (format === 'json') {
+            // handled below in a single JSON payload
+          } else {
+            renderTask(task, format);
+            console.log('--- Thread ------------------------------------------\n');
+          }
+        }
+      }
+
+      if (format === 'json' && flags['with-task']) {
+        console.log(JSON.stringify({ task, entries }, null, 2));
+        return;
+      }
+
       renderThreadEntries(entries, format);
     } catch (error) {
       handleCommandError(error, 'Failed to fetch task thread');
