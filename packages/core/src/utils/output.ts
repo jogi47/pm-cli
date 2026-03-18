@@ -3,7 +3,7 @@
 import Table from 'cli-table3';
 import chalk from 'chalk';
 import type { Task, TaskStatus, ProviderType, ThreadAttachment, ThreadEntry } from '../models/task.js';
-import type { ProviderInfo } from '../models/plugin.js';
+import type { ProviderCapabilities, ProviderInfo } from '../models/plugin.js';
 import { formatError } from './errors.js';
 
 export type OutputFormat = 'table' | 'json';
@@ -64,6 +64,25 @@ function truncate(str: string, maxLength: number): string {
 function formatPlacement(value: { id: string; name: string } | undefined): string {
   if (!value) return chalk.gray('—');
   return `${value.name} ${chalk.gray(`(${value.id})`)}`;
+}
+
+function formatProviderCapabilities(capabilities?: ProviderCapabilities): string {
+  if (!capabilities) return chalk.gray('—');
+
+  const labels: Array<[keyof ProviderCapabilities, string]> = [
+    ['comments', 'comments'],
+    ['thread', 'thread'],
+    ['attachmentDownload', 'attachments'],
+    ['workspaces', 'workspaces'],
+    ['customFields', 'custom fields'],
+    ['projectPlacement', 'placement'],
+  ];
+
+  const enabled = labels
+    .filter(([key]) => capabilities[key])
+    .map(([, label]) => label);
+
+  return enabled.length > 0 ? enabled.join(', ') : chalk.gray('—');
 }
 
 /**
@@ -170,7 +189,7 @@ export function renderTask(task: Task, format: OutputFormat): void {
  * Render provider status
  */
 export function renderProviders(
-  providers: Array<{ name: string; connected: boolean; workspace?: string; user?: string }>,
+  providers: Array<{ name: string; connected: boolean; workspace?: string; user?: string; capabilities?: ProviderCapabilities }>,
   format: OutputFormat
 ): void {
   if (format === 'json') {
@@ -190,6 +209,7 @@ export function renderProviders(
       chalk.bold('Status'),
       chalk.bold('Workspace'),
       chalk.bold('User'),
+      chalk.bold('Capabilities'),
     ],
     style: { head: [], border: [] },
   });
@@ -200,6 +220,7 @@ export function renderProviders(
       provider.connected ? chalk.green('Connected') : chalk.red('Disconnected'),
       provider.workspace || chalk.gray('—'),
       provider.user || chalk.gray('—'),
+      formatProviderCapabilities(provider.capabilities),
     ]);
   }
 

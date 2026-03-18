@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  isAttachmentDownloadCapable: vi.fn(),
+  isThreadCapable: vi.fn(),
   parseTaskId: vi.fn(),
   initialize: vi.fn(),
   getPlugin: vi.fn(),
@@ -10,6 +12,8 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('pm-cli-core', () => ({
+  isAttachmentDownloadCapable: mocks.isAttachmentDownloadCapable,
+  isThreadCapable: mocks.isThreadCapable,
   parseTaskId: mocks.parseTaskId,
   pluginManager: {
     initialize: mocks.initialize,
@@ -29,12 +33,22 @@ const { default: TasksAttachments } = await import('../../../src/commands/tasks/
 describe('tasks attachments command', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.isAttachmentDownloadCapable.mockReturnValue(true);
+    mocks.isThreadCapable.mockReturnValue(true);
     mocks.parseTaskId.mockReturnValue({ source: 'asana', externalId: '123' });
     mocks.initialize.mockResolvedValue(undefined);
   });
 
   it('renders flattened task attachments', async () => {
     const plugin = {
+      capabilities: {
+        comments: true,
+        thread: true,
+        attachmentDownload: true,
+        workspaces: false,
+        customFields: true,
+        projectPlacement: true,
+      },
       isAuthenticated: vi.fn().mockResolvedValue(true),
       getTaskThread: vi.fn().mockResolvedValue([
         {

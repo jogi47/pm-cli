@@ -2,7 +2,7 @@
 
 import Conf from 'conf';
 import { type ProviderType } from '../models/task.js';
-import type { ProviderCredentials } from '../models/plugin.js';
+import { PROVIDER_CREDENTIALS, validateProviderCredentials, type ProviderCredentials } from '../models/plugin.js';
 import { pluginManager } from './plugin-manager.js';
 
 interface StoredCredential {
@@ -73,6 +73,11 @@ class AuthManager {
     credentials: ProviderCredentials,
     options?: { expiresIn?: number }
   ): void {
+    const missingFields = validateProviderCredentials(provider, credentials);
+    if (missingFields.length > 0) {
+      throw new Error(`Missing required credentials for ${provider}: ${missingFields.join(', ')}`);
+    }
+
     // Extract metadata, filtering out undefined values and the token
     const metadata: Record<string, string> = {};
     for (const [key, value] of Object.entries(credentials)) {
@@ -119,32 +124,34 @@ class AuthManager {
    * Get token from environment variable
    */
   private getEnvCredentials(provider: ProviderType): ProviderCredentials | null {
-    if (provider === 'trello') {
-      const apiKey = process.env.TRELLO_API_KEY;
-      const token = process.env.TRELLO_TOKEN;
-      if (apiKey && token) {
-        return { token, apiKey };
+    const spec = PROVIDER_CREDENTIALS[provider];
+    const credentials: Record<string, string> = {};
+
+    for (const field of spec.requiredFields) {
+      const envVar = spec.fields[field]?.envVar;
+      if (!envVar) {
+        return null;
       }
-      return null;
+
+      const value = process.env[envVar];
+      if (!value) {
+        return null;
+      }
+
+      credentials[field] = value;
     }
 
-    if (provider === 'notion') {
-      const token = process.env.NOTION_TOKEN;
-      const databaseId = process.env.NOTION_DATABASE_ID;
-      if (token && databaseId) {
-        return { token, databaseId };
+    for (const field of spec.optionalFields || []) {
+      const envVar = spec.fields[field]?.envVar;
+      if (!envVar) continue;
+
+      const value = process.env[envVar];
+      if (value) {
+        credentials[field] = value;
       }
-      return null;
     }
 
-    const envVars: Record<Exclude<ProviderType, 'trello' | 'notion'>, string> = {
-      asana: 'ASANA_TOKEN',
-      linear: 'LINEAR_API_KEY',
-      clickup: 'CLICKUP_TOKEN',
-    };
-
-    const token = process.env[envVars[provider as Exclude<ProviderType, 'trello' | 'notion'>]];
-    return token ? { token } : null;
+    return credentials as ProviderCredentials;
   }
 
   /**

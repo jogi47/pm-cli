@@ -42,11 +42,19 @@ function buildPlugin(
   const plugin: PMPlugin = {
     name,
     displayName: name,
+    capabilities: {
+      comments: false,
+      thread: opts?.supportsThread !== false,
+      attachmentDownload: false,
+      workspaces: false,
+      customFields: false,
+      projectPlacement: false,
+    },
     async initialize() {},
     async authenticate() {},
     async disconnect() {},
     async isAuthenticated() { return opts?.authenticated ?? true; },
-    async getInfo() { return { name, displayName: name, connected: true }; },
+    async getInfo() { return { name, displayName: name, connected: true, capabilities: this.capabilities }; },
     async validateConnection() { return true; },
     async getAssignedTasks() {
       if (opts?.throwAssigned) throw new Error('boom');
@@ -104,6 +112,28 @@ describe('pluginManager aggregation', () => {
     expect(result.tasks.map((t) => t.id)).toEqual(['ASANA-1']);
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0].message).toContain('Failed to fetch assigned tasks');
+  });
+
+  it('includes declared capabilities in provider info', async () => {
+    pluginManager.registerPlugin(buildPlugin('asana', [task('ASANA-1', 'asana')]));
+
+    const result = await pluginManager.getProvidersInfo();
+
+    expect(result).toEqual([
+      expect.objectContaining({
+        name: 'asana',
+        displayName: 'asana',
+        connected: true,
+        capabilities: {
+          comments: false,
+          thread: true,
+          attachmentDownload: false,
+          workspaces: false,
+          customFields: false,
+          projectPlacement: false,
+        },
+      }),
+    ]);
   });
 });
 
@@ -186,7 +216,25 @@ describe('pluginManager thread operations', () => {
     await expect(pluginManager.getTaskThread('ASANA-123')).rejects.toMatchObject({
       name: 'PMCliError',
       message: 'asana does not support task threads',
-      reason: 'The plugin does not implement this feature.',
+      reason: 'The provider capability manifest marks task thread support as unavailable.',
+    });
+  });
+});
+
+describe('pluginManager comment operations', () => {
+  beforeEach(() => {
+    const manager = pluginManager as unknown as { plugins: Map<string, PMPlugin>; initialized: boolean };
+    manager.plugins = new Map();
+    manager.initialized = false;
+  });
+
+  it('rejects when provider does not support comments', async () => {
+    pluginManager.registerPlugin(buildPlugin('asana', []));
+
+    await expect(pluginManager.addComment('ASANA-123', 'hello')).rejects.toMatchObject({
+      name: 'PMCliError',
+      message: 'asana does not support comments',
+      reason: 'The provider capability manifest marks comment support as unavailable.',
     });
   });
 });

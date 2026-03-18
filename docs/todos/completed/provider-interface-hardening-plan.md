@@ -1,8 +1,42 @@
 # provider interface hardening plan
 
 date: 2026-03-15
-status: proposed
+status: completed
+last_updated: 2026-03-18
 audience: maintainers and future plugin authors
+
+## progress update
+
+### completed in the 2026-03-17 and 2026-03-18 implementation slices
+
+- added `ProviderCapabilities` in `packages/core/src/models/plugin.ts`
+- added `capabilities` to `PMPlugin`
+- added capability helpers/type guards for comments, thread, attachment
+  downloads, and workspaces
+- updated all first-party providers to declare capabilities
+- updated runtime support checks in the plugin manager and CLI command paths to
+  consult the capability manifest first
+- split the shared contract into `PMPluginBase` plus capability-specific
+  interfaces
+- updated first-party providers to implement explicit composed provider types
+- removed the leftover `supportsWorkspaces` hidden capability path
+- introduced nested `context` and `providerOptions` mutation inputs to reduce
+  provider-specific top-level fields
+- added normalization helpers so nested inputs work immediately while legacy
+  aliases remain supported during the transition
+- formalized `ProviderCredentialSpec` metadata with required fields, per-field
+  prompt/env metadata, and shared validation helpers
+- updated auth loading and `pm connect` to read the shared credential spec
+- aligned `docs/plugin-development.md`, `README.md`, and
+  `examples/plugin-template/` with the hardened provider contract
+- introduced narrow `ProviderAuthStore` and `ProviderTaskCache` runtime
+  interfaces and switched first-party providers/clients to depend on them
+  instead of importing concrete shared singletons directly
+- removed the transitional top-level create/update aliases and helper
+  normalization layer so provider mutations now use only `context` and
+  `providerOptions`
+- surfaced provider capabilities in `pm providers`
+- added targeted regression tests and verified the change with `pnpm build`
 
 ## purpose
 
@@ -635,22 +669,25 @@ This work should also be done incrementally.
 
 ## milestone 0: document the contract
 
+status: partial
+
 ### goal
 
 Make the intended provider structure explicit before changing types.
 
 ### tasks
 
-1. add this design document
-2. update `docs/plugin-development.md` to reflect:
+1. done: add this design document
+2. pending: update `docs/plugin-development.md` to reflect:
    - base provider concept
    - capability concept
    - normalized task expectations
-3. add a short provider checklist for future plugins
+3. pending: add a short provider checklist for future plugins
 
 ### acceptance criteria
 
 - future maintainers have one document that explains the direction
+- plugin-development docs and checklist are aligned with the same direction
 
 ### effort
 
@@ -660,6 +697,8 @@ Make the intended provider structure explicit before changing types.
 
 ## milestone 1: add capability manifest
 
+status: completed on 2026-03-17
+
 ### goal
 
 Introduce explicit runtime-declared capabilities without breaking existing
@@ -667,10 +706,10 @@ providers.
 
 ### tasks
 
-1. define `ProviderCapabilities`
-2. add `capabilities` to `PMPlugin`
-3. update all providers to declare capabilities
-4. update commands/services to read the manifest
+1. done: define `ProviderCapabilities`
+2. done: add `capabilities` to `PMPlugin`
+3. done: update all providers to declare capabilities
+4. done: update commands/services to read the manifest
 
 ### initial capability set
 
@@ -700,20 +739,22 @@ providers.
 
 ## milestone 2: split base and capability interfaces
 
+status: completed on 2026-03-17
+
 ### goal
 
 Replace the monolithic plugin contract with a clearer type structure.
 
 ### tasks
 
-1. add `PMPluginBase`
-2. add capability interfaces:
+1. done: add `PMPluginBase`
+2. done: add capability interfaces:
    - comments
    - thread
    - attachment download
    - workspaces
-3. add type guards
-4. refactor internal call sites
+3. done: add type guards
+4. done: refactor internal call sites
 
 ### acceptance criteria
 
@@ -728,19 +769,20 @@ Replace the monolithic plugin contract with a clearer type structure.
 
 ## milestone 3: harden shared input types
 
+status: completed on 2026-03-17
+
 ### goal
 
 Reduce Asana-specific shape leakage from core provider inputs.
 
 ### tasks
 
-1. classify every field in `CreateTaskInput` and `UpdateTaskInput` as:
-   - universal
-   - shared-but-advanced
-   - provider-specific
-2. move provider-specific pieces into clearer extension structures
-3. keep compatibility shims where needed
-4. update create/update command docs
+1. done: classify the current shape into universal fields, provider context, and
+   provider-specific options
+2. done: move provider-specific pieces into clearer extension structures
+   (`context` and `providerOptions`)
+3. done: keep compatibility shims where needed
+4. done: update create/update command docs
 
 ### recommended rule
 
@@ -751,6 +793,7 @@ the universal core contract without explicit justification.
 
 - shared inputs become more provider-neutral
 - advanced features remain possible without polluting the base contract
+- commands, tests, and provider implementations use the nested shape by default
 
 ### effort
 
@@ -760,15 +803,17 @@ the universal core contract without explicit justification.
 
 ## milestone 4: harden provider auth contract
 
+status: completed on 2026-03-17
+
 ### goal
 
 Make credential requirements clearer for future plugin authors.
 
 ### tasks
 
-1. formalize provider credential specs
-2. standardize auth field documentation
-3. optionally add credential validation helpers
+1. done: formalize provider credential specs
+2. done: standardize auth field documentation
+3. done: add shared credential validation helpers
 
 ### acceptance criteria
 
@@ -783,16 +828,18 @@ Make credential requirements clearer for future plugin authors.
 
 ## milestone 5: align docs, examples, and plugin template
 
+status: completed on 2026-03-17
+
 ### goal
 
 Make the intended architecture visible everywhere plugin authors look.
 
 ### tasks
 
-1. update `docs/plugin-development.md`
-2. update `examples/plugin-template`
-3. add capability declaration to the template
-4. document expected test coverage for new plugins
+1. done: update `docs/plugin-development.md`
+2. done: update `examples/plugin-template`
+3. done: add capability declaration to the template
+4. done: document expected test coverage for new plugins
 
 ### acceptance criteria
 
@@ -806,6 +853,8 @@ Make the intended architecture visible everywhere plugin authors look.
 
 ## milestone 6: optional deeper boundary cleanup
 
+status: completed on 2026-03-17
+
 ### goal
 
 If still valuable after the contract hardening work, reduce direct singleton
@@ -813,9 +862,9 @@ leakage from provider implementations.
 
 ### tasks
 
-1. define narrow interfaces for cache/auth interaction
-2. inject them into providers or clients gradually
-3. avoid large-scale runtime rewiring
+1. done: define narrow interfaces for cache/auth interaction
+2. done: inject them into providers or clients gradually
+3. done: avoid large-scale runtime rewiring
 
 ### acceptance criteria
 

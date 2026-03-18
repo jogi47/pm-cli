@@ -32,6 +32,7 @@ export default class Providers extends Command {
       connected: p.connected,
       workspace: p.workspace,
       user: p.userName,
+      capabilities: p.capabilities,
     }));
 
     renderProviders(displayData, format);

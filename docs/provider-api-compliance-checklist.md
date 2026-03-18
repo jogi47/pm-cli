@@ -25,7 +25,7 @@ Related docs:
 
 - [api risk report](/Users/jogimac/playgrounds/pm-cli/docs/API-risk-report.md)
 - [plugin development](/Users/jogimac/playgrounds/pm-cli/docs/plugin-development.md)
-- [provider interface hardening plan](/Users/jogimac/playgrounds/pm-cli/docs/provider-interface-hardening-plan.md)
+- [provider interface hardening plan](/Users/jogimac/playgrounds/pm-cli/docs/todos/completed/provider-interface-hardening-plan.md)
 
 ## required review inputs
 

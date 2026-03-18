@@ -2,7 +2,7 @@
 
 import { Command, Args, Flags } from '@oclif/core';
 import { select } from '@inquirer/prompts';
-import { pluginManager, renderSuccess, renderError, renderInfo } from 'pm-cli-core';
+import { isWorkspaceCapable, pluginManager, renderSuccess, renderError, renderInfo } from 'pm-cli-core';
 import type { ProviderType } from 'pm-cli-core';
 import '../init.js';
 
@@ -52,13 +52,17 @@ export default class Workspace extends Command {
     }
 
     // Check if plugin supports workspaces
-    if (!plugin.supportsWorkspaces?.()) {
+    if (!plugin.capabilities.workspaces) {
       renderError(`${plugin.displayName} does not support multiple workspaces`);
       return;
     }
+    if (!isWorkspaceCapable(plugin)) {
+      renderError(`${plugin.displayName} declared workspace support but is not wired correctly`);
+      return;
+    }
 
-    const workspaces = plugin.getWorkspaces?.() || [];
-    const current = plugin.getCurrentWorkspace?.();
+    const workspaces = plugin.getWorkspaces();
+    const current = plugin.getCurrentWorkspace();
 
     if (workspaces.length === 0) {
       renderError('No workspaces found');
@@ -87,8 +91,8 @@ export default class Workspace extends Command {
         })),
       });
 
-      plugin.setWorkspace?.(answer);
-      const newWorkspace = plugin.getCurrentWorkspace?.();
+      plugin.setWorkspace(answer);
+      const newWorkspace = plugin.getCurrentWorkspace();
       renderSuccess(`Switched to workspace: ${newWorkspace?.name}`);
     }
   }

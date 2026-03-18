@@ -226,22 +226,35 @@ export function buildCreateTaskInput(args: {
     description: args.description,
     dueDate: args.dueDate,
     assigneeEmail: args.assigneeEmail,
-    difficulty: args.difficulty,
-    customFields: args.customFields,
-    refresh: args.refresh,
   };
 
+  if (args.difficulty || (args.customFields && args.customFields.length > 0)) {
+    input.providerOptions = {};
+    if (args.difficulty) input.providerOptions.difficulty = args.difficulty;
+    if (args.customFields && args.customFields.length > 0) input.providerOptions.customFields = args.customFields;
+  }
+
   const project = splitIdOrName(args.project, args.source);
-  if (project.id) input.projectId = project.id;
-  if (project.name) input.projectName = project.name;
-
   const section = splitIdOrName(args.section, args.source);
-  if (section.id) input.sectionId = section.id;
-  if (section.name) input.sectionName = section.name;
-
   const workspace = splitIdOrName(args.workspace, args.source);
-  if (workspace.id) input.workspaceId = workspace.id;
-  if (workspace.name) input.workspaceName = workspace.name;
+  const placement = {
+    containerId: project.id,
+    containerName: project.name,
+    parentId: section.id,
+    parentName: section.name,
+  };
+  const hasPlacement = Object.values(placement).some((value) => value !== undefined);
+
+  if (hasPlacement || workspace.id || workspace.name || args.refresh) {
+    input.context = {};
+    if (workspace.id) input.context.workspaceId = workspace.id;
+    if (workspace.name) input.context.workspaceName = workspace.name;
+    if (args.refresh) input.context.refresh = true;
+
+    if (hasPlacement) {
+      input.context.placement = placement;
+    }
+  }
 
   return input;
 }

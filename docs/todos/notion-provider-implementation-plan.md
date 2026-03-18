@@ -67,7 +67,7 @@ database-scoped rather than genuinely assignee-scoped.
 
 - `packages/plugin-notion/src/index.ts`
 - `docs/features/notion.md`
-- `docs/provider-interface-hardening-plan.md`
+- `docs/todos/completed/provider-interface-hardening-plan.md`
 - potentially `packages/core/src/models/plugin.ts` later
 
 ### implementation notes

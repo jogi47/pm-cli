@@ -1,5 +1,6 @@
 import type {
-  PMPlugin,
+  CommentCapablePlugin,
+  PMPluginBase,
   ProviderCredentials,
   ProviderInfo,
   ProviderType,
@@ -8,7 +9,7 @@ import type {
   CreateTaskInput,
   UpdateTaskInput,
 } from 'pm-cli-core';
-import { cacheManager, isOverdue } from 'pm-cli-core';
+import { defaultProviderTaskCache, isOverdue, type ProviderTaskCache } from 'pm-cli-core';
 import { clickupClient } from './client.js';
 import { mapClickUpTask, mapClickUpTasks } from './mapper.js';
 
@@ -20,9 +21,19 @@ function statusToClickUpStatus(status: UpdateTaskInput['status']): string | unde
 }
 
 
-export class ClickUpPlugin implements PMPlugin {
+export class ClickUpPlugin implements PMPluginBase, CommentCapablePlugin {
   readonly name: ProviderType = 'clickup';
   readonly displayName = 'ClickUp';
+  readonly capabilities = {
+    comments: true,
+    thread: false,
+    attachmentDownload: false,
+    workspaces: false,
+    customFields: false,
+    projectPlacement: true,
+  };
+
+  constructor(private readonly taskCache: ProviderTaskCache = defaultProviderTaskCache) {}
 
   async initialize(): Promise<void> {
     await clickupClient.initialize();
@@ -38,7 +49,7 @@ export class ClickUpPlugin implements PMPlugin {
 
   async disconnect(): Promise<void> {
     clickupClient.disconnect();
-    await cacheManager.invalidateProvider('clickup');
+    await this.taskCache.invalidateProvider('clickup');
   }
 
   async getInfo(): Promise<ProviderInfo> {
@@ -52,6 +63,7 @@ export class ClickUpPlugin implements PMPlugin {
       workspace: workspace?.name,
       userName: user?.username,
       userEmail: user?.email,
+      capabilities: this.capabilities,
     };
   }
 
@@ -66,7 +78,7 @@ export class ClickUpPlugin implements PMPlugin {
 
   async getAssignedTasks(options?: TaskQueryOptions): Promise<Task[]> {
     if (!options?.refresh) {
-      const cached = await cacheManager.getTasks('assigned', 'clickup');
+      const cached = await this.taskCache.getTasks('assigned', 'clickup');
       if (cached) return cached;
     }
 
@@ -75,13 +87,13 @@ export class ClickUpPlugin implements PMPlugin {
       tasks = tasks.filter(task => task.status !== 'done');
     }
 
-    await cacheManager.setTasks('assigned', 'clickup', tasks);
+    await this.taskCache.setTasks('assigned', 'clickup', tasks);
     return tasks;
   }
 
   async getOverdueTasks(options?: TaskQueryOptions): Promise<Task[]> {
     if (!options?.refresh) {
-      const cached = await cacheManager.getTasks('overdue', 'clickup');
+      const cached = await this.taskCache.getTasks('overdue', 'clickup');
       if (cached) return cached;
     }
 
@@ -89,13 +101,13 @@ export class ClickUpPlugin implements PMPlugin {
     tasks = tasks.filter(task => task.status !== 'done' && isOverdue(task.dueDate));
     if (options?.limit) tasks = tasks.slice(0, options.limit);
 
-    await cacheManager.setTasks('overdue', 'clickup', tasks);
+    await this.taskCache.setTasks('overdue', 'clickup', tasks);
     return tasks;
   }
 
   async searchTasks(query: string, options?: TaskQueryOptions): Promise<Task[]> {
     if (!options?.refresh) {
-      const cached = await cacheManager.getTasks('search', 'clickup', query);
+      const cached = await this.taskCache.getTasks('search', 'clickup', query);
       if (cached) return cached;
     }
 
@@ -104,20 +116,20 @@ export class ClickUpPlugin implements PMPlugin {
       tasks = tasks.filter(task => task.status !== 'done');
     }
 
-    await cacheManager.setTasks('search', 'clickup', tasks, query);
+    await this.taskCache.setTasks('search', 'clickup', tasks, query);
     return tasks;
   }
 
   async getTask(externalId: string): Promise<Task | null> {
     const taskId = `CLICKUP-${externalId}`;
-    const cached = await cacheManager.getTaskDetail(taskId);
+    const cached = await this.taskCache.getTaskDetail(taskId);
     if (cached) return cached;
 
     const clickupTask = await clickupClient.getTask(externalId);
     if (!clickupTask) return null;
 
     const task = mapClickUpTask(clickupTask);
-    await cacheManager.setTaskDetail(task);
+    await this.taskCache.setTaskDetail(task);
     return task;
   }
 
@@ -126,14 +138,15 @@ export class ClickUpPlugin implements PMPlugin {
   }
 
   async createTask(input: CreateTaskInput): Promise<Task> {
+    const context = input.context;
     const clickupTask = await clickupClient.createTask({
       title: input.title,
       description: input.description,
       dueDate: input.dueDate?.getTime(),
-      listId: input.sectionId || input.projectId,
+      listId: context?.placement?.parentId || context?.placement?.containerId,
     });
 
-    await cacheManager.invalidateProvider('clickup');
+    await this.taskCache.invalidateProvider('clickup');
     return mapClickUpTask(clickupTask);
   }
 
@@ -145,7 +158,7 @@ export class ClickUpPlugin implements PMPlugin {
       status: statusToClickUpStatus(updates.status),
     });
 
-    await cacheManager.invalidateProvider('clickup');
+    await this.taskCache.invalidateProvider('clickup');
     return mapClickUpTask(clickupTask);
   }
 
@@ -155,7 +168,7 @@ export class ClickUpPlugin implements PMPlugin {
 
   async deleteTask(externalId: string): Promise<void> {
     await clickupClient.deleteTask(externalId);
-    await cacheManager.invalidateProvider('clickup');
+    await this.taskCache.invalidateProvider('clickup');
   }
 
   async addComment(externalId: string, body: string): Promise<void> {

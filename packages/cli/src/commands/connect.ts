@@ -2,7 +2,7 @@
 
 import { Command, Args } from '@oclif/core';
 import { input, password } from '@inquirer/prompts';
-import { pluginManager, renderSuccess, renderError, PROVIDER_CREDENTIALS } from 'pm-cli-core';
+import { pluginManager, renderSuccess, renderError, PROVIDER_CREDENTIALS, validateProviderCredentials } from 'pm-cli-core';
 import type { ProviderCredentials, ProviderType } from 'pm-cli-core';
 import '../init.js';
 import { handleCommandError } from '../lib/command-error.js';
@@ -55,11 +55,12 @@ export default class Connect extends Command {
     this.log(`\nConnecting to ${plugin.displayName}...\n`);
 
     // Prompt for each required field
-    for (const field of credConfig.fields) {
-      const label = credConfig.labels[field];
+    for (const field of credConfig.requiredFields) {
+      const fieldSpec = credConfig.fields[field];
+      const label = fieldSpec?.label ?? field;
 
-      if (field === 'token') {
-        credentials.token = await password({
+      if (fieldSpec?.secret) {
+        credentials[field] = await password({
           message: label,
           mask: '*',
         });
@@ -68,6 +69,12 @@ export default class Connect extends Command {
           message: label,
         });
       }
+    }
+
+    const missingFields = validateProviderCredentials(providerName, credentials);
+    if (missingFields.length > 0) {
+      renderError(`Missing required credentials: ${missingFields.join(', ')}`);
+      return;
     }
 
     // Attempt to authenticate

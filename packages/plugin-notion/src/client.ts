@@ -1,7 +1,7 @@
 // src/client.ts
 
 import { Client } from '@notionhq/client';
-import { authManager } from 'pm-cli-core';
+import { defaultProviderAuthStore, type ProviderAuthStore } from 'pm-cli-core';
 import type {
   PageObjectResponse,
   QueryDatabaseResponse,
@@ -11,6 +11,8 @@ import type {
 export type NotionPage = PageObjectResponse;
 
 export class NotionClient {
+  constructor(private readonly authStore: ProviderAuthStore = defaultProviderAuthStore) {}
+
   private client: Client | null = null;
   private databaseId: string | null = null;
   private userName: string | null = null;
@@ -21,7 +23,7 @@ export class NotionClient {
    * Initialize the client with stored credentials
    */
   async initialize(): Promise<boolean> {
-    const credentials = authManager.getCredentials('notion');
+    const credentials = this.authStore.getCredentials('notion');
     if (!credentials || !credentials.databaseId) return false;
 
     try {
@@ -47,7 +49,7 @@ export class NotionClient {
     // Verify database access
     await this.client.databases.retrieve({ database_id: databaseId });
 
-    authManager.setCredentials('notion', { token, databaseId });
+    this.authStore.setCredentials('notion', { token, databaseId });
   }
 
   /**
@@ -59,7 +61,7 @@ export class NotionClient {
     this.userName = null;
     this.userEmail = null;
     this.userId = null;
-    authManager.removeCredentials('notion');
+    this.authStore.removeCredentials('notion');
   }
 
   /**

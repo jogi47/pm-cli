@@ -2,6 +2,8 @@
 
 import { Args, Command, Flags } from '@oclif/core';
 import {
+  isAttachmentDownloadCapable,
+  isThreadCapable,
   parseTaskId,
   pluginManager,
   renderError,
@@ -86,8 +88,23 @@ export default class TasksThread extends Command {
       return;
     }
 
-    if (!plugin.getTaskThread) {
+    if (!plugin.capabilities.thread) {
       renderError(`${parsed.source} does not support task threads`);
+      this.exit(1);
+      return;
+    }
+    if (!isThreadCapable(plugin)) {
+      renderError(`${parsed.source} declared thread support but is not wired correctly`);
+      this.exit(1);
+      return;
+    }
+    if (flags['download-images'] && !plugin.capabilities.attachmentDownload) {
+      renderError(`${parsed.source} does not support attachment downloads`);
+      this.exit(1);
+      return;
+    }
+    if (flags['download-images'] && !isAttachmentDownloadCapable(plugin)) {
+      renderError(`${parsed.source} declared attachment downloads but is not wired correctly`);
       this.exit(1);
       return;
     }

@@ -6,7 +6,7 @@ Use this as the practical implementation guide.
 
 For broader architectural direction, also read:
 
-- [provider-interface-hardening-plan.md](./provider-interface-hardening-plan.md)
+- [provider-interface-hardening-plan.md](./todos/completed/provider-interface-hardening-plan.md)
 - [application-service-refactor-plan.md](./application-service-refactor-plan.md)
 
 ## purpose
@@ -68,16 +68,17 @@ The shared provider contract currently lives in:
 - `packages/core/src/models/task.ts`
 
 At minimum, a provider should fit the common lifecycle and task operations in
-`PMPlugin`.
+`PMPluginBase`.
 
 Important note:
 
-- the current contract is evolving
-- future work will likely split it into a stricter base interface plus explicit
-  optional capability interfaces
+- the base provider contract is now explicit
+- optional behaviors should be represented with capability-specific interfaces
+  and a capability manifest
 
-For now, implement the current contract carefully, but follow the design
-direction in `provider-interface-hardening-plan.md`.
+Implement the current contract directly, and use
+`todos/completed/provider-interface-hardening-plan.md` as the reference for why
+the current contract looks the way it does.
 
 ## design rules for new plugins
 
@@ -129,6 +130,17 @@ Recommended split:
   - orchestrate client + mapper + cache invalidation
   - surface consistent capability behavior
 
+For runtime dependencies, prefer narrow injected interfaces over direct
+singleton imports:
+
+- provider clients can accept `ProviderAuthStore` with
+  `defaultProviderAuthStore` as the default
+- provider plugins can accept `ProviderTaskCache` with
+  `defaultProviderTaskCache` as the default
+
+This keeps the provider boundary explicit without forcing large runtime
+rewiring.
+
 ### 4. be explicit about unsupported features
 
 If the provider does not support a feature such as:
@@ -165,6 +177,11 @@ packages/plugin-yourtool/
     index.test.ts   # if needed
 ```
 
+Starter reference:
+
+- `examples/plugin-template/` shows the current base contract, capability
+  manifest, and normalized create/update helper pattern
+
 ## implementation workflow
 
 ## step 1: create the plugin package
@@ -197,9 +214,31 @@ Update `PROVIDER_CREDENTIALS` in:
 Add:
 
 - required auth fields
-- human-readable labels for prompts
+- optional auth fields when needed
+- per-field prompt metadata
+- env var names for each supported auth input
 
-This is the current repo mechanism for interactive auth collection.
+Current credential metadata shape:
+
+```ts
+interface ProviderCredentialFieldSpec {
+  label: string;
+  envVar?: string;
+  secret?: boolean;
+}
+
+interface ProviderCredentialSpec {
+  requiredFields: string[];
+  optionalFields?: string[];
+  fields: Record<string, ProviderCredentialFieldSpec>;
+}
+```
+
+This metadata is used for:
+
+- interactive `pm connect` prompts
+- environment-variable auth loading in `authManager`
+- shared credential validation before credentials are stored
 
 ## step 4: implement the provider client
 
@@ -216,6 +255,8 @@ Recommended rules:
 - keep provider-specific types close to the client
 - wrap low-level errors into clearer provider failures in the plugin layer
 - do not put normalization logic in the client if it belongs in the mapper
+- prefer an injected `ProviderAuthStore` dependency over importing
+  `authManager` directly
 
 ## step 5: implement the provider mapper
 
@@ -263,6 +304,11 @@ Recommended pattern:
 
 - keep `index.ts` as the provider adapter boundary
 - do not bury plugin contract behavior across multiple files without reason
+- implement `PMPluginBase` plus only the capability interfaces the provider
+  actually supports
+- declare a `capabilities` manifest that matches those implemented interfaces
+- prefer an injected `ProviderTaskCache` dependency over importing
+  `cacheManager` directly
 
 ## step 7: register the plugin in CLI bootstrap
 
@@ -293,12 +339,18 @@ Examples:
 
 ## current contract guidance
 
-The current `PMPlugin` interface is still monolithic, but new plugins should be
-implemented with future hardening in mind.
+The current shared contract is split into:
+
+- `PMPluginBase` for required lifecycle and task operations
+- capability-specific interfaces such as comments, thread, attachment download,
+  and workspaces
+- a runtime `capabilities` manifest used by commands and services before they
+  call optional behavior
 
 That means:
 
-- keep common behavior in the required methods
+- keep common behavior in `PMPluginBase`
+- implement only the capability interfaces the provider really supports
 - keep provider-specific advanced logic inside the plugin
 - do not assume optional capabilities are universal
 - avoid extending shared inputs unless the need is genuinely cross-provider
@@ -307,7 +359,7 @@ That means:
 
 The codebase is moving toward clearer capability modeling.
 
-Until that work is complete, use these practical rules:
+Use these practical rules:
 
 ### comments
 
@@ -387,12 +439,50 @@ model.
 
 ## create and update guidance
 
-Shared create/update inputs currently include fields that are richer for some
-providers than others.
+Shared create/update inputs are split into:
+
+- universal fields such as `title`, `description`, `dueDate`, `status`, and
+  `assigneeEmail`
+- `context` for provider-routing inputs such as workspace and placement
+- `providerOptions` for provider-specific mutation details such as advanced
+  custom fields
+
+Current normalized shapes:
+
+```ts
+interface TaskPlacementInput {
+  containerId?: string;
+  containerName?: string;
+  parentId?: string;
+  parentName?: string;
+}
+
+interface TaskProviderContextInput {
+  workspaceId?: string;
+  workspaceName?: string;
+  placement?: TaskPlacementInput;
+  refresh?: boolean;
+}
+
+interface CreateTaskProviderOptionsInput {
+  difficulty?: string;
+  customFields?: CustomFieldInput[];
+}
+
+interface UpdateTaskProviderOptionsInput {
+  customFields?: CustomFieldInput[];
+}
+```
+
+The CLI still exposes provider-friendly flags like `--project`, `--section`,
+`--workspace`, `--difficulty`, and `--field`, but command code should normalize
+them into `context` and `providerOptions` before calling plugins.
 
 When implementing a new provider:
 
 - support the common parts first
+- read placement/workspace data from `context`
+- read provider-specific advanced mutation data from `providerOptions`
 - support richer fields only when the provider has a real equivalent
 - reject unsupported advanced fields explicitly when necessary
 
@@ -410,9 +500,20 @@ Each provider should define:
 
 Current implementation uses `PROVIDER_CREDENTIALS` plus plugin/client validation.
 
-Future direction:
+Current rules:
 
-- capability and auth contracts may become stricter
+- every required auth field should be declared in `requiredFields`
+- every declared auth field should have a human-readable `label`
+- every environment-backed field should declare `envVar`
+- secret values such as tokens should set `secret: true`
+- shared validation should reject missing required fields before storing
+  credentials
+
+Examples:
+
+- Asana: token only
+- Notion: token + database id
+- Trello: api key + token
 
 ## testing expectations
 
@@ -471,6 +572,7 @@ Use this checklist before considering a new plugin complete:
 - [ ] mapper tests added
 - [ ] auth/connection tests added
 - [ ] capability behavior tests added where relevant
+- [ ] example/template patterns reviewed before introducing new shared shapes
 
 ## future-facing guidance
 
@@ -491,6 +593,6 @@ Until then, plugin authors should follow the spirit of that design:
 
 ## related docs
 
-- [provider-interface-hardening-plan.md](./provider-interface-hardening-plan.md)
+- [provider-interface-hardening-plan.md](./todos/completed/provider-interface-hardening-plan.md)
 - [application-service-refactor-plan.md](./application-service-refactor-plan.md)
 - [README.md](../README.md)

@@ -1,4 +1,4 @@
-import { authManager, ProviderError } from 'pm-cli-core';
+import { defaultProviderAuthStore, ProviderError, type ProviderAuthStore } from 'pm-cli-core';
 
 export interface ClickUpUser {
   id: number;
@@ -51,12 +51,14 @@ type ClickUpRequestInit = {
 };
 
 class ClickUpClient {
+  constructor(private readonly authStore: ProviderAuthStore = defaultProviderAuthStore) {}
+
   private token: string | null = null;
   private me: ClickUpUser | null = null;
   private workspace: ClickUpWorkspace | null = null;
 
   async initialize(): Promise<boolean> {
-    const credentials = authManager.getCredentials('clickup');
+    const credentials = this.authStore.getCredentials('clickup');
     if (!credentials?.token) return false;
 
     try {
@@ -79,14 +81,14 @@ class ClickUpClient {
     this.me = me.user;
     this.workspace = workspaces.teams[0] ?? null;
 
-    authManager.setCredentials('clickup', { token });
+    this.authStore.setCredentials('clickup', { token });
   }
 
   disconnect(): void {
     this.token = null;
     this.me = null;
     this.workspace = null;
-    authManager.removeCredentials('clickup');
+    this.authStore.removeCredentials('clickup');
   }
 
   isConnected(): boolean {

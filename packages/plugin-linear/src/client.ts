@@ -1,4 +1,4 @@
-import { authManager, ProviderError } from 'pm-cli-core';
+import { defaultProviderAuthStore, ProviderError, type ProviderAuthStore } from 'pm-cli-core';
 
 const LINEAR_API_URL = 'https://api.linear.app/graphql';
 
@@ -22,11 +22,13 @@ export interface LinearIssue {
 type GraphQLResponse<T> = { data?: T; errors?: Array<{ message: string }> };
 
 class LinearPluginClient {
+  constructor(private readonly authStore: ProviderAuthStore = defaultProviderAuthStore) {}
+
   private token: string | null = null;
   private viewer: { id: string; name?: string; email?: string; activeTeam?: { id: string } } | null = null;
 
   async initialize(): Promise<boolean> {
-    const credentials = authManager.getCredentials('linear');
+    const credentials = this.authStore.getCredentials('linear');
     if (!credentials?.token) return false;
 
     try {
@@ -44,13 +46,13 @@ class LinearPluginClient {
       `query Viewer { viewer { id name email activeTeam { id } } }`
     );
     this.viewer = data.viewer;
-    authManager.setCredentials('linear', { token });
+    this.authStore.setCredentials('linear', { token });
   }
 
   disconnect(): void {
     this.token = null;
     this.viewer = null;
-    authManager.removeCredentials('linear');
+    this.authStore.removeCredentials('linear');
   }
 
   isConnected(): boolean {

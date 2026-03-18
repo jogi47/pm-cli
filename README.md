@@ -76,9 +76,11 @@ export CLICKUP_TOKEN=...
 ```
 
 Provider notes:
+- env var auth requires the same required inputs as `pm connect`
 - Notion also needs a database ID during `pm connect notion`
+- Trello needs both `TRELLO_API_KEY` and `TRELLO_TOKEN`
 - Asana workspace switching is available through `pm workspace`
-- `pm providers` shows connection state and current workspace/user details
+- `pm providers` shows connection state, current workspace/user details, and declared provider capabilities
 
 ## Command reference
 
@@ -234,6 +236,15 @@ Create/update notes:
 - project/section/workspace can be passed by ID or exact case-insensitive name
 - `--refresh` bypasses metadata cache during project/section/custom-field resolution
 
+Internal mutation contract notes:
+- CLI flags are still user-facing and provider-friendly: `--project`,
+  `--section`, `--workspace`, `--difficulty`, and `--field`
+- inside `packages/core`, create/update mutations use only the nested
+  `context` and `providerOptions` shape
+- new command or provider code should keep provider-specific routing and
+  advanced mutation data inside those nested objects instead of adding more
+  top-level fields
+
 ## Output modes
 
 The CLI supports several output styles:
@@ -343,7 +354,9 @@ Monorepo packages:
 
 ## Building plugins
 
-See core plugin contracts in `packages/core/src/models/plugin.ts` and registration in `packages/cli/src/init.ts`.
+See core plugin contracts in `packages/core/src/models/plugin.ts`, the plugin
+guide in `docs/plugin-development.md`, and the starter under
+`examples/plugin-template/`. Register new providers in `packages/cli/src/init.ts`.
 
 ## Development
 

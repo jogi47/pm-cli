@@ -1,7 +1,8 @@
 // src/index.ts
 
 import type {
-  PMPlugin,
+  CommentCapablePlugin,
+  PMPluginBase,
   ProviderInfo,
   ProviderCredentials,
   TaskQueryOptions,
@@ -10,13 +11,27 @@ import type {
   Task,
   ProviderType,
 } from 'pm-cli-core';
-import { cacheManager, isOverdue } from 'pm-cli-core';
+import {
+  defaultProviderTaskCache,
+  isOverdue,
+  type ProviderTaskCache,
+} from 'pm-cli-core';
 import { notionClient } from './client.js';
 import { mapNotionPage, mapNotionPages } from './mapper.js';
 
-export class NotionPlugin implements PMPlugin {
+export class NotionPlugin implements PMPluginBase, CommentCapablePlugin {
   readonly name: ProviderType = 'notion';
   readonly displayName = 'Notion';
+  readonly capabilities = {
+    comments: true,
+    thread: false,
+    attachmentDownload: false,
+    workspaces: false,
+    customFields: false,
+    projectPlacement: false,
+  };
+
+  constructor(private readonly taskCache: ProviderTaskCache = defaultProviderTaskCache) {}
 
   async initialize(): Promise<void> {
     await notionClient.initialize();
@@ -36,7 +51,7 @@ export class NotionPlugin implements PMPlugin {
 
   async disconnect(): Promise<void> {
     notionClient.disconnect();
-    await cacheManager.invalidateProvider('notion');
+    await this.taskCache.invalidateProvider('notion');
   }
 
   async getInfo(): Promise<ProviderInfo> {
@@ -49,6 +64,7 @@ export class NotionPlugin implements PMPlugin {
       workspace: notionClient.getDatabaseId() ? 'Notion Database' : undefined,
       userName: user?.name,
       userEmail: user?.email,
+      capabilities: this.capabilities,
     };
   }
 
@@ -67,7 +83,7 @@ export class NotionPlugin implements PMPlugin {
 
   async getAssignedTasks(options?: TaskQueryOptions): Promise<Task[]> {
     if (!options?.refresh) {
-      const cached = await cacheManager.getTasks('assigned', 'notion');
+      const cached = await this.taskCache.getTasks('assigned', 'notion');
       if (cached) return cached;
     }
 
@@ -83,13 +99,13 @@ export class NotionPlugin implements PMPlugin {
       tasks = tasks.filter((t) => t.status !== 'done');
     }
 
-    await cacheManager.setTasks('assigned', 'notion', tasks);
+    await this.taskCache.setTasks('assigned', 'notion', tasks);
     return tasks;
   }
 
   async getOverdueTasks(options?: TaskQueryOptions): Promise<Task[]> {
     if (!options?.refresh) {
-      const cached = await cacheManager.getTasks('overdue', 'notion');
+      const cached = await this.taskCache.getTasks('overdue', 'notion');
       if (cached) return cached;
     }
 
@@ -141,13 +157,13 @@ export class NotionPlugin implements PMPlugin {
       tasks = tasks.slice(0, options.limit);
     }
 
-    await cacheManager.setTasks('overdue', 'notion', tasks);
+    await this.taskCache.setTasks('overdue', 'notion', tasks);
     return tasks;
   }
 
   async searchTasks(query: string, options?: TaskQueryOptions): Promise<Task[]> {
     if (!options?.refresh) {
-      const cached = await cacheManager.getTasks('search', 'notion', query);
+      const cached = await this.taskCache.getTasks('search', 'notion', query);
       if (cached) return cached;
     }
 
@@ -161,20 +177,20 @@ export class NotionPlugin implements PMPlugin {
       tasks = tasks.filter((t) => t.status !== 'done');
     }
 
-    await cacheManager.setTasks('search', 'notion', tasks, query);
+    await this.taskCache.setTasks('search', 'notion', tasks, query);
     return tasks;
   }
 
   async getTask(externalId: string): Promise<Task | null> {
     const taskId = `NOTION-${externalId}`;
-    const cached = await cacheManager.getTaskDetail(taskId);
+    const cached = await this.taskCache.getTaskDetail(taskId);
     if (cached) return cached;
 
     const page = await notionClient.getPage(externalId);
     if (!page) return null;
 
     const task = mapNotionPage(page);
-    await cacheManager.setTaskDetail(task);
+    await this.taskCache.setTaskDetail(task);
     return task;
   }
 
@@ -189,7 +205,8 @@ export class NotionPlugin implements PMPlugin {
   // ═══════════════════════════════════════════════
 
   async createTask(input: CreateTaskInput): Promise<Task> {
-    if ((input.customFields && input.customFields.length > 0) || input.difficulty) {
+    const providerOptions = input.providerOptions;
+    if ((providerOptions?.customFields && providerOptions.customFields.length > 0) || providerOptions?.difficulty) {
       throw new Error('Provider "notion" does not support custom field updates yet.');
     }
 
@@ -226,12 +243,13 @@ export class NotionPlugin implements PMPlugin {
 
     const page = await notionClient.createPage(properties);
     const task = mapNotionPage(page);
-    await cacheManager.invalidateProvider('notion');
+    await this.taskCache.invalidateProvider('notion');
     return task;
   }
 
   async updateTask(externalId: string, updates: UpdateTaskInput): Promise<Task> {
-    if (updates.customFields && updates.customFields.length > 0) {
+    const providerOptions = updates.providerOptions;
+    if (providerOptions?.customFields && providerOptions.customFields.length > 0) {
       throw new Error('Provider "notion" does not support custom field updates yet.');
     }
 
@@ -281,7 +299,7 @@ export class NotionPlugin implements PMPlugin {
 
     const page = await notionClient.updatePage(externalId, properties);
     const task = mapNotionPage(page);
-    await cacheManager.invalidateProvider('notion');
+    await this.taskCache.invalidateProvider('notion');
     return task;
   }
 
@@ -291,7 +309,7 @@ export class NotionPlugin implements PMPlugin {
 
   async deleteTask(externalId: string): Promise<void> {
     await notionClient.archivePage(externalId);
-    await cacheManager.invalidateProvider('notion');
+    await this.taskCache.invalidateProvider('notion');
   }
 
   async addComment(externalId: string, body: string): Promise<void> {

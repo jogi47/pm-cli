@@ -52,9 +52,13 @@ describe('AsanaPlugin createTask resolution', () => {
 
     const task = await plugin.createTask({
       title: 'Create with placement',
-      projectName: 'Teacher Feature Development',
-      sectionName: 'Prioritised',
-      refresh: true,
+      context: {
+        placement: {
+          containerName: 'Teacher Feature Development',
+          parentName: 'Prioritised',
+        },
+        refresh: true,
+      },
     });
 
     expect(createSpy).toHaveBeenCalledWith(
@@ -80,7 +84,14 @@ describe('AsanaPlugin createTask resolution', () => {
       workspace: { gid: workspaceGid, name: workspaceGid === 'ws-1' ? 'Workspace One' : 'Workspace Two' },
     }]);
 
-    await expect(plugin.createTask({ title: 'Ambiguous', projectName: 'Shared Project' }))
+    await expect(plugin.createTask({
+      title: 'Ambiguous',
+      context: {
+        placement: {
+          containerName: 'Shared Project',
+        },
+      },
+    }))
       .rejects
       .toThrow('Ambiguous project: "Shared Project"');
   });
@@ -98,8 +109,12 @@ describe('AsanaPlugin createTask resolution', () => {
 
     await expect(plugin.createTask({
       title: 'Missing section',
-      projectName: 'Teacher Feature Development',
-      sectionName: 'Prioritised',
+      context: {
+        placement: {
+          containerName: 'Teacher Feature Development',
+          parentName: 'Prioritised',
+        },
+      },
     })).rejects.toThrow('Available sections');
   });
 
@@ -124,10 +139,14 @@ describe('AsanaPlugin createTask resolution', () => {
 
     await plugin.createTask({
       title: 'Refresh metadata',
-      workspaceName: 'Workspace One',
-      projectName: 'Teacher Feature Development',
-      sectionName: 'Prioritised',
-      refresh: true,
+      context: {
+        workspaceName: 'Workspace One',
+        placement: {
+          containerName: 'Teacher Feature Development',
+          parentName: 'Prioritised',
+        },
+        refresh: true,
+      },
     });
 
     expect(getProjectsSpy).toHaveBeenCalledWith('ws-1', { refresh: true });
@@ -147,7 +166,11 @@ describe('AsanaPlugin createTask resolution', () => {
 
     await plugin.createTask({
       title: 'Project ID only',
-      projectId: 'proj-123',
+      context: {
+        placement: {
+          containerId: 'proj-123',
+        },
+      },
     });
 
     expect(createSpy).toHaveBeenCalledWith(
@@ -187,8 +210,14 @@ describe('AsanaPlugin createTask resolution', () => {
 
     await plugin.createTask({
       title: 'Set difficulty',
-      projectName: 'Teacher Feature Development',
-      difficulty: 'S',
+      context: {
+        placement: {
+          containerName: 'Teacher Feature Development',
+        },
+      },
+      providerOptions: {
+        difficulty: 'S',
+      },
     });
 
     expect(createSpy).toHaveBeenCalledWith(
@@ -237,11 +266,17 @@ describe('AsanaPlugin createTask resolution', () => {
 
     const task = await plugin.createTask({
       title: 'Set fields',
-      projectName: 'Teacher Feature Development',
-      customFields: [
-        { field: 'Importance', values: ['High'] },
-        { field: 'Other', values: ['Bugs', 'Analytics'] },
-      ],
+      context: {
+        placement: {
+          containerName: 'Teacher Feature Development',
+        },
+      },
+      providerOptions: {
+        customFields: [
+          { field: 'Importance', values: ['High'] },
+          { field: 'Other', values: ['Bugs', 'Analytics'] },
+        ],
+      },
     });
 
     expect(createSpy).toHaveBeenCalledWith(
@@ -294,8 +329,14 @@ describe('AsanaPlugin createTask resolution', () => {
 
     await expect(plugin.createTask({
       title: 'Bad difficulty',
-      projectName: 'Teacher Feature Development',
-      difficulty: 'L',
+      context: {
+        placement: {
+          containerName: 'Teacher Feature Development',
+        },
+      },
+      providerOptions: {
+        difficulty: 'L',
+      },
     })).rejects.toThrow('Available options: XS (opt-xs), S (opt-s)');
   });
 });

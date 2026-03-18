@@ -1,5 +1,6 @@
 import type {
-  PMPlugin,
+  CommentCapablePlugin,
+  PMPluginBase,
   ProviderCredentials,
   ProviderInfo,
   ProviderType,
@@ -8,7 +9,7 @@ import type {
   CreateTaskInput,
   UpdateTaskInput,
 } from 'pm-cli-core';
-import { cacheManager, isOverdue } from 'pm-cli-core';
+import { defaultProviderTaskCache, isOverdue, type ProviderTaskCache } from 'pm-cli-core';
 import { linearClient } from './client.js';
 import { mapLinearIssue, mapLinearIssues } from './mapper.js';
 
@@ -19,9 +20,19 @@ function statusToLinearState(status: UpdateTaskInput['status']): 'unstarted' | '
   return 'completed';
 }
 
-export class LinearPlugin implements PMPlugin {
+export class LinearPlugin implements PMPluginBase, CommentCapablePlugin {
   readonly name: ProviderType = 'linear';
   readonly displayName = 'Linear';
+  readonly capabilities = {
+    comments: true,
+    thread: false,
+    attachmentDownload: false,
+    workspaces: false,
+    customFields: false,
+    projectPlacement: false,
+  };
+
+  constructor(private readonly taskCache: ProviderTaskCache = defaultProviderTaskCache) {}
 
   async initialize(): Promise<void> {
     await linearClient.initialize();
@@ -37,7 +48,7 @@ export class LinearPlugin implements PMPlugin {
 
   async disconnect(): Promise<void> {
     linearClient.disconnect();
-    await cacheManager.invalidateProvider('linear');
+    await this.taskCache.invalidateProvider('linear');
   }
 
   async getInfo(): Promise<ProviderInfo> {
@@ -49,6 +60,7 @@ export class LinearPlugin implements PMPlugin {
       workspace: 'Linear Workspace',
       userName: user?.name || undefined,
       userEmail: user?.email || undefined,
+      capabilities: this.capabilities,
     };
   }
 
@@ -63,20 +75,20 @@ export class LinearPlugin implements PMPlugin {
 
   async getAssignedTasks(options?: TaskQueryOptions): Promise<Task[]> {
     if (!options?.refresh) {
-      const cached = await cacheManager.getTasks('assigned', 'linear');
+      const cached = await this.taskCache.getTasks('assigned', 'linear');
       if (cached) return cached;
     }
 
     let tasks = mapLinearIssues(await linearClient.getAssignedIssues(options?.limit ?? 50));
     if (!options?.includeCompleted) tasks = tasks.filter((task) => task.status !== 'done');
 
-    await cacheManager.setTasks('assigned', 'linear', tasks);
+    await this.taskCache.setTasks('assigned', 'linear', tasks);
     return tasks;
   }
 
   async getOverdueTasks(options?: TaskQueryOptions): Promise<Task[]> {
     if (!options?.refresh) {
-      const cached = await cacheManager.getTasks('overdue', 'linear');
+      const cached = await this.taskCache.getTasks('overdue', 'linear');
       if (cached) return cached;
     }
 
@@ -84,33 +96,33 @@ export class LinearPlugin implements PMPlugin {
     tasks = tasks.filter((task) => task.status !== 'done' && isOverdue(task.dueDate));
     if (options?.limit) tasks = tasks.slice(0, options.limit);
 
-    await cacheManager.setTasks('overdue', 'linear', tasks);
+    await this.taskCache.setTasks('overdue', 'linear', tasks);
     return tasks;
   }
 
   async searchTasks(query: string, options?: TaskQueryOptions): Promise<Task[]> {
     if (!options?.refresh) {
-      const cached = await cacheManager.getTasks('search', 'linear', query);
+      const cached = await this.taskCache.getTasks('search', 'linear', query);
       if (cached) return cached;
     }
 
     let tasks = mapLinearIssues(await linearClient.searchIssues(query, options?.limit ?? 25));
     if (!options?.includeCompleted) tasks = tasks.filter((task) => task.status !== 'done');
 
-    await cacheManager.setTasks('search', 'linear', tasks, query);
+    await this.taskCache.setTasks('search', 'linear', tasks, query);
     return tasks;
   }
 
   async getTask(externalId: string): Promise<Task | null> {
     const taskId = `LINEAR-${externalId}`;
-    const cached = await cacheManager.getTaskDetail(taskId);
+    const cached = await this.taskCache.getTaskDetail(taskId);
     if (cached) return cached;
 
     const issue = await linearClient.getIssue(externalId);
     if (!issue) return null;
 
     const task = mapLinearIssue(issue);
-    await cacheManager.setTaskDetail(task);
+    await this.taskCache.setTaskDetail(task);
     return task;
   }
 
@@ -124,7 +136,7 @@ export class LinearPlugin implements PMPlugin {
       description: input.description,
       dueDate: input.dueDate?.toISOString().split('T')[0],
     });
-    await cacheManager.invalidateProvider('linear');
+    await this.taskCache.invalidateProvider('linear');
     return mapLinearIssue(issue);
   }
 
@@ -135,7 +147,7 @@ export class LinearPlugin implements PMPlugin {
       dueDate: updates.dueDate === undefined ? undefined : updates.dueDate ? updates.dueDate.toISOString().split('T')[0] : null,
       stateType: statusToLinearState(updates.status),
     });
-    await cacheManager.invalidateProvider('linear');
+    await this.taskCache.invalidateProvider('linear');
     return mapLinearIssue(issue);
   }
 
@@ -145,7 +157,7 @@ export class LinearPlugin implements PMPlugin {
 
   async deleteTask(externalId: string): Promise<void> {
     await linearClient.deleteIssue(externalId);
-    await cacheManager.invalidateProvider('linear');
+    await this.taskCache.invalidateProvider('linear');
   }
 
   async addComment(externalId: string, body: string): Promise<void> {

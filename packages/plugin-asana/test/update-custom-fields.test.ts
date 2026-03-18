@@ -56,10 +56,12 @@ describe('AsanaPlugin updateTask custom fields', () => {
     const updateSpy = vi.spyOn(asanaClient, 'updateTask').mockResolvedValue(buildAsanaTask());
 
     const task = await plugin.updateTask('12345', {
-      customFields: [
-        { field: 'Importance', values: ['High'] },
-        { field: 'Other', values: ['Bugs', 'Analytics'] },
-      ],
+      providerOptions: {
+        customFields: [
+          { field: 'Importance', values: ['High'] },
+          { field: 'Other', values: ['Bugs', 'Analytics'] },
+        ],
+      },
     });
 
     expect(updateSpy).toHaveBeenCalledWith(
@@ -115,10 +117,12 @@ describe('AsanaPlugin updateTask custom fields', () => {
     const updateSpy = vi.spyOn(asanaClient, 'updateTask').mockResolvedValue(buildAsanaTask());
 
     await plugin.updateTask('12345', {
-      customFields: [
-        { field: 'cf-importance', values: [] },
-        { field: 'cf-other', values: [] },
-      ],
+      providerOptions: {
+        customFields: [
+          { field: 'cf-importance', values: [] },
+          { field: 'cf-other', values: [] },
+        ],
+      },
     });
 
     expect(updateSpy).toHaveBeenCalledWith(
@@ -149,7 +153,9 @@ describe('AsanaPlugin updateTask custom fields', () => {
     ]);
 
     await expect(plugin.updateTask('12345', {
-      customFields: [{ field: 'Importance', values: ['High', 'Low'] }],
+      providerOptions: {
+        customFields: [{ field: 'Importance', values: ['High', 'Low'] }],
+      },
     })).rejects.toThrow('expects a single value');
   });
 
@@ -188,7 +194,9 @@ describe('AsanaPlugin updateTask custom fields', () => {
     });
 
     await expect(plugin.updateTask('12345', {
-      customFields: [{ field: 'Department', values: ['Frontend'] }],
+      providerOptions: {
+        customFields: [{ field: 'Department', values: ['Frontend'] }],
+      },
     })).rejects.toThrow('Ambiguous custom field');
   });
 });

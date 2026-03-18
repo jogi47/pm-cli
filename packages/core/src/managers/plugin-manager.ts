@@ -1,6 +1,14 @@
 // src/managers/plugin-manager.ts
 
-import type { PMPlugin, ProviderInfo, CreateTaskInput, UpdateTaskInput, ThreadQueryOptions } from '../models/plugin.js';
+import {
+  isCommentCapable,
+  isThreadCapable,
+  type PMPluginBase,
+  type ProviderInfo,
+  type CreateTaskInput,
+  type UpdateTaskInput,
+  type ThreadQueryOptions,
+} from '../models/plugin.js';
 import type { Task, TaskStatus, ProviderType, ThreadEntry } from '../models/task.js';
 import { parseTaskId } from '../models/task.js';
 import { PMCliError, ProviderError, NotConnectedError, BulkOperationError } from '../utils/errors.js';
@@ -77,13 +85,13 @@ export function filterAndSortTasks(tasks: Task[], options: FilterSortOptions): T
 }
 
 class PluginManager {
-  private plugins: Map<ProviderType, PMPlugin> = new Map();
+  private plugins: Map<ProviderType, PMPluginBase> = new Map();
   private initialized = false;
 
   /**
    * Register a plugin
    */
-  registerPlugin(plugin: PMPlugin): void {
+  registerPlugin(plugin: PMPluginBase): void {
     this.plugins.set(plugin.name, plugin);
   }
 
@@ -104,14 +112,14 @@ class PluginManager {
   /**
    * Get a specific plugin
    */
-  getPlugin(provider: ProviderType): PMPlugin | undefined {
+  getPlugin(provider: ProviderType): PMPluginBase | undefined {
     return this.plugins.get(provider);
   }
 
   /**
    * Get all registered plugins
    */
-  getAllPlugins(): PMPlugin[] {
+  getAllPlugins(): PMPluginBase[] {
     return Array.from(this.plugins.values());
   }
 
@@ -125,8 +133,8 @@ class PluginManager {
   /**
    * Get all connected (authenticated) plugins
    */
-  async getConnectedPlugins(): Promise<PMPlugin[]> {
-    const connected: PMPlugin[] = [];
+  async getConnectedPlugins(): Promise<PMPluginBase[]> {
+    const connected: PMPluginBase[] = [];
 
     for (const plugin of this.plugins.values()) {
       if (await plugin.isAuthenticated()) {
@@ -157,7 +165,7 @@ class PluginManager {
     operation: 'assigned' | 'overdue',
     options?: { source?: ProviderType; limit?: number; fetchLimit?: number; refresh?: boolean }
   ): Promise<{ tasks: Task[]; errors: ProviderError[] }> {
-    let plugins: PMPlugin[];
+    let plugins: PMPluginBase[];
 
     if (options?.source) {
       const plugin = this.getPlugin(options.source);
@@ -221,7 +229,7 @@ class PluginManager {
     query: string,
     options?: { source?: ProviderType; limit?: number; fetchLimit?: number }
   ): Promise<{ tasks: Task[]; errors: ProviderError[] }> {
-    let plugins: PMPlugin[];
+    let plugins: PMPluginBase[];
 
     if (options?.source) {
       const plugin = this.getPlugin(options.source);
@@ -387,10 +395,17 @@ class PluginManager {
     if (!(await plugin.isAuthenticated())) {
       throw new NotConnectedError(parsed.source);
     }
-    if (!plugin.getTaskThread) {
+    if (!plugin.capabilities.thread) {
       throw new PMCliError({
         message: `${parsed.source} does not support task threads`,
-        reason: 'The plugin does not implement this feature.',
+        reason: 'The provider capability manifest marks task thread support as unavailable.',
+        suggestion: 'Use `pm providers` to list available providers and their capabilities.',
+      });
+    }
+    if (!isThreadCapable(plugin)) {
+      throw new PMCliError({
+        message: `${parsed.source} does not support task threads`,
+        reason: 'The provider declared thread support, but the required method is missing.',
         suggestion: 'Use `pm providers` to list available providers and their capabilities.',
       });
     }
@@ -410,8 +425,19 @@ class PluginManager {
     if (!(await plugin.isAuthenticated())) {
       throw new NotConnectedError(parsed.source);
     }
-    if (!plugin.addComment) {
-      throw new Error(`${parsed.source} does not support comments`);
+    if (!plugin.capabilities.comments) {
+      throw new PMCliError({
+        message: `${parsed.source} does not support comments`,
+        reason: 'The provider capability manifest marks comment support as unavailable.',
+        suggestion: 'Choose a provider that supports comments or use the provider UI directly.',
+      });
+    }
+    if (!isCommentCapable(plugin)) {
+      throw new PMCliError({
+        message: `${parsed.source} does not support comments`,
+        reason: 'The provider declared comment support, but the required method is missing.',
+        suggestion: 'Choose a provider that supports comments or use the provider UI directly.',
+      });
     }
     await plugin.addComment(parsed.externalId, body);
   }

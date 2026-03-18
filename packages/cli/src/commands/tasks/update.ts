@@ -143,16 +143,28 @@ export function buildUpdateTaskInput(args: {
   if (args.description !== undefined) updates.description = args.description;
   if (args.status !== undefined) updates.status = args.status;
   if (args.dueDate !== undefined) updates.dueDate = args.dueDate;
-  if (args.customFields.length > 0) updates.customFields = args.customFields;
-  if (args.refresh) updates.refresh = true;
+  if (args.customFields.length > 0) {
+    updates.providerOptions = { customFields: args.customFields };
+  }
 
   const project = splitIdOrName(args.project, args.source);
-  if (project.id) updates.projectId = project.id;
-  if (project.name) updates.projectName = project.name;
-
   const workspace = splitIdOrName(args.workspace, args.source);
-  if (workspace.id) updates.workspaceId = workspace.id;
-  if (workspace.name) updates.workspaceName = workspace.name;
+  const placement = {
+    containerId: project.id,
+    containerName: project.name,
+  };
+  const hasPlacement = Object.values(placement).some((value) => value !== undefined);
+
+  if (hasPlacement || workspace.id || workspace.name || args.refresh) {
+    updates.context = {};
+    if (workspace.id) updates.context.workspaceId = workspace.id;
+    if (workspace.name) updates.context.workspaceName = workspace.name;
+    if (args.refresh) updates.context.refresh = true;
+
+    if (hasPlacement) {
+      updates.context.placement = placement;
+    }
+  }
 
   return updates;
 }

@@ -8,11 +8,19 @@ function buildPlugin(name: Task['source']): PMPlugin {
   return {
     name,
     displayName: name,
+    capabilities: {
+      comments: false,
+      thread: false,
+      attachmentDownload: false,
+      workspaces: false,
+      customFields: false,
+      projectPlacement: false,
+    },
     async initialize() {},
     async authenticate() {},
     async disconnect() {},
     async isAuthenticated() { return true; },
-    async getInfo() { return { name, displayName: name, connected: true }; },
+    async getInfo() { return { name, displayName: name, connected: true, capabilities: this.capabilities }; },
     async validateConnection() { return true; },
     async getAssignedTasks() { return []; },
     async getOverdueTasks() { return []; },
@@ -65,5 +73,34 @@ describe('authManager getConnectedProviders', () => {
       if (originalDatabaseId === undefined) delete process.env.NOTION_DATABASE_ID;
       else process.env.NOTION_DATABASE_ID = originalDatabaseId;
     }
+  });
+
+  it('builds Trello env credentials from the shared credential spec', () => {
+    const originalApiKey = process.env.TRELLO_API_KEY;
+    const originalToken = process.env.TRELLO_TOKEN;
+
+    try {
+      process.env.TRELLO_API_KEY = 'trello-key';
+      delete process.env.TRELLO_TOKEN;
+      expect(authManager.getCredentials('trello')).toBeNull();
+
+      process.env.TRELLO_TOKEN = 'trello-token';
+      expect(authManager.getCredentials('trello')).toEqual({
+        apiKey: 'trello-key',
+        token: 'trello-token',
+      });
+    } finally {
+      if (originalApiKey === undefined) delete process.env.TRELLO_API_KEY;
+      else process.env.TRELLO_API_KEY = originalApiKey;
+
+      if (originalToken === undefined) delete process.env.TRELLO_TOKEN;
+      else process.env.TRELLO_TOKEN = originalToken;
+    }
+  });
+
+  it('rejects storing incomplete credentials for providers with multiple required fields', () => {
+    expect(() => authManager.setCredentials('notion', { token: 'notion-token' })).toThrow(
+      'Missing required credentials for notion: databaseId'
+    );
   });
 });

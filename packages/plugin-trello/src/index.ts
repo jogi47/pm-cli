@@ -1,5 +1,6 @@
 import type {
-  PMPlugin,
+  CommentCapablePlugin,
+  PMPluginBase,
   ProviderCredentials,
   ProviderInfo,
   ProviderType,
@@ -8,13 +9,23 @@ import type {
   CreateTaskInput,
   UpdateTaskInput,
 } from 'pm-cli-core';
-import { cacheManager, isOverdue } from 'pm-cli-core';
+import { defaultProviderTaskCache, isOverdue, type ProviderTaskCache } from 'pm-cli-core';
 import { trelloClient } from './client.js';
 import { mapTrelloCard, mapTrelloCards } from './mapper.js';
 
-export class TrelloPlugin implements PMPlugin {
+export class TrelloPlugin implements PMPluginBase, CommentCapablePlugin {
   readonly name: ProviderType = 'trello';
   readonly displayName = 'Trello';
+  readonly capabilities = {
+    comments: true,
+    thread: false,
+    attachmentDownload: false,
+    workspaces: false,
+    customFields: false,
+    projectPlacement: true,
+  };
+
+  constructor(private readonly taskCache: ProviderTaskCache = defaultProviderTaskCache) {}
 
   async initialize(): Promise<void> {
     await trelloClient.initialize();
@@ -32,7 +43,7 @@ export class TrelloPlugin implements PMPlugin {
 
   async disconnect(): Promise<void> {
     trelloClient.disconnect();
-    await cacheManager.invalidateProvider('trello');
+    await this.taskCache.invalidateProvider('trello');
   }
 
   async getInfo(): Promise<ProviderInfo> {
@@ -44,6 +55,7 @@ export class TrelloPlugin implements PMPlugin {
       workspace: 'Trello Workspace',
       userName: user?.fullName,
       userEmail: user?.username,
+      capabilities: this.capabilities,
     };
   }
 
@@ -58,7 +70,7 @@ export class TrelloPlugin implements PMPlugin {
 
   async getAssignedTasks(options?: TaskQueryOptions): Promise<Task[]> {
     if (!options?.refresh) {
-      const cached = await cacheManager.getTasks('assigned', 'trello');
+      const cached = await this.taskCache.getTasks('assigned', 'trello');
       if (cached) return cached;
     }
 
@@ -66,13 +78,13 @@ export class TrelloPlugin implements PMPlugin {
     let tasks = mapTrelloCards(cards);
     if (!options?.includeCompleted) tasks = tasks.filter((t) => t.status !== 'done');
 
-    await cacheManager.setTasks('assigned', 'trello', tasks);
+    await this.taskCache.setTasks('assigned', 'trello', tasks);
     return tasks;
   }
 
   async getOverdueTasks(options?: TaskQueryOptions): Promise<Task[]> {
     if (!options?.refresh) {
-      const cached = await cacheManager.getTasks('overdue', 'trello');
+      const cached = await this.taskCache.getTasks('overdue', 'trello');
       if (cached) return cached;
     }
 
@@ -80,13 +92,13 @@ export class TrelloPlugin implements PMPlugin {
     let tasks = mapTrelloCards(cards).filter((t) => t.status !== 'done' && isOverdue(t.dueDate));
     if (options?.limit) tasks = tasks.slice(0, options.limit);
 
-    await cacheManager.setTasks('overdue', 'trello', tasks);
+    await this.taskCache.setTasks('overdue', 'trello', tasks);
     return tasks;
   }
 
   async searchTasks(query: string, options?: TaskQueryOptions): Promise<Task[]> {
     if (!options?.refresh) {
-      const cached = await cacheManager.getTasks('search', 'trello', query);
+      const cached = await this.taskCache.getTasks('search', 'trello', query);
       if (cached) return cached;
     }
 
@@ -94,20 +106,20 @@ export class TrelloPlugin implements PMPlugin {
     let tasks = mapTrelloCards(cards);
     if (!options?.includeCompleted) tasks = tasks.filter((t) => t.status !== 'done');
 
-    await cacheManager.setTasks('search', 'trello', tasks, query);
+    await this.taskCache.setTasks('search', 'trello', tasks, query);
     return tasks;
   }
 
   async getTask(externalId: string): Promise<Task | null> {
     const taskId = `TRELLO-${externalId}`;
-    const cached = await cacheManager.getTaskDetail(taskId);
+    const cached = await this.taskCache.getTaskDetail(taskId);
     if (cached) return cached;
 
     const card = await trelloClient.getCard(externalId);
     if (!card) return null;
 
     const task = mapTrelloCard(card);
-    await cacheManager.setTaskDetail(task);
+    await this.taskCache.setTaskDetail(task);
     return task;
   }
 
@@ -116,13 +128,14 @@ export class TrelloPlugin implements PMPlugin {
   }
 
   async createTask(input: CreateTaskInput): Promise<Task> {
+    const context = input.context;
     const card = await trelloClient.createCard({
       name: input.title,
       desc: input.description,
       due: input.dueDate?.toISOString(),
-      idList: input.sectionId || input.projectId,
+      idList: context?.placement?.parentId || context?.placement?.containerId,
     });
-    await cacheManager.invalidateProvider('trello');
+    await this.taskCache.invalidateProvider('trello');
     return mapTrelloCard(card);
   }
 
@@ -133,7 +146,7 @@ export class TrelloPlugin implements PMPlugin {
       due: updates.dueDate === undefined ? undefined : updates.dueDate ? updates.dueDate.toISOString() : null,
       closed: updates.status ? updates.status === 'done' : undefined,
     });
-    await cacheManager.invalidateProvider('trello');
+    await this.taskCache.invalidateProvider('trello');
     return mapTrelloCard(card);
   }
 
@@ -143,7 +156,7 @@ export class TrelloPlugin implements PMPlugin {
 
   async deleteTask(externalId: string): Promise<void> {
     await trelloClient.deleteCard(externalId);
-    await cacheManager.invalidateProvider('trello');
+    await this.taskCache.invalidateProvider('trello');
   }
 
   async addComment(externalId: string, body: string): Promise<void> {

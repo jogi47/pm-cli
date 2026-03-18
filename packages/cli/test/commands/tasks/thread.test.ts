@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  isAttachmentDownloadCapable: vi.fn(),
+  isThreadCapable: vi.fn(),
   parseTaskId: vi.fn(),
   initialize: vi.fn(),
   getPlugin: vi.fn(),
@@ -11,6 +13,8 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('pm-cli-core', () => ({
+  isAttachmentDownloadCapable: mocks.isAttachmentDownloadCapable,
+  isThreadCapable: mocks.isThreadCapable,
   parseTaskId: mocks.parseTaskId,
   pluginManager: {
     initialize: mocks.initialize,
@@ -31,6 +35,8 @@ const { default: TasksThread } = await import('../../../src/commands/tasks/threa
 describe('tasks thread command', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.isAttachmentDownloadCapable.mockReturnValue(true);
+    mocks.isThreadCapable.mockReturnValue(true);
     mocks.parseTaskId.mockReturnValue({ source: 'asana', externalId: '123' });
     mocks.initialize.mockResolvedValue(undefined);
   });
@@ -38,6 +44,14 @@ describe('tasks thread command', () => {
   it('does not render task details before thread fetch succeeds', async () => {
     const threadError = new Error('temporary Asana failure');
     const plugin = {
+      capabilities: {
+        comments: true,
+        thread: true,
+        attachmentDownload: true,
+        workspaces: false,
+        customFields: true,
+        projectPlacement: true,
+      },
       isAuthenticated: vi.fn().mockResolvedValue(true),
       getTask: vi.fn().mockResolvedValue({
         id: 'ASANA-123',

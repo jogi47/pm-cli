@@ -10,6 +10,47 @@ export interface CustomFieldInput {
   values: string[];
 }
 
+export interface TaskPlacementInput {
+  /** Primary container identifier, such as a project, board, or list */
+  containerId?: string;
+
+  /** Primary container display name */
+  containerName?: string;
+
+  /** Nested grouping identifier, such as a section or column */
+  parentId?: string;
+
+  /** Nested grouping display name */
+  parentName?: string;
+}
+
+export interface TaskProviderContextInput {
+  /** Provider workspace or organization identifier */
+  workspaceId?: string;
+
+  /** Provider workspace or organization display name */
+  workspaceName?: string;
+
+  /** Neutral placement context for provider-specific routing */
+  placement?: TaskPlacementInput;
+
+  /** Skip provider metadata cache when resolving context */
+  refresh?: boolean;
+}
+
+export interface CreateTaskProviderOptionsInput {
+  /** Provider-specific enum convenience input */
+  difficulty?: string;
+
+  /** Provider-specific custom field mutations */
+  customFields?: CustomFieldInput[];
+}
+
+export interface UpdateTaskProviderOptionsInput {
+  /** Provider-specific custom field mutations */
+  customFields?: CustomFieldInput[];
+}
+
 export interface CreateTaskInput {
   /** Task title */
   title: string;
@@ -20,35 +61,14 @@ export interface CreateTaskInput {
   /** Due date */
   dueDate?: Date;
 
-  /** Project ID to add task to */
-  projectId?: string;
-
-  /** Project name to resolve in provider */
-  projectName?: string;
-
-  /** Section/column ID to place task into */
-  sectionId?: string;
-
-  /** Section/column name to resolve in provider */
-  sectionName?: string;
-
-  /** Workspace ID to resolve for creation context */
-  workspaceId?: string;
-
-  /** Workspace name to resolve for creation context */
-  workspaceName?: string;
-
-  /** Skip cache when resolving metadata */
-  refresh?: boolean;
-
-  /** Difficulty enum option name (provider-specific) */
-  difficulty?: string;
-
-  /** Custom fields to set */
-  customFields?: CustomFieldInput[];
-
   /** Assignee email */
   assigneeEmail?: string;
+
+  /** Provider-specific context such as workspace and placement */
+  context?: TaskProviderContextInput;
+
+  /** Provider-specific mutation options */
+  providerOptions?: CreateTaskProviderOptionsInput;
 }
 
 export interface UpdateTaskInput {
@@ -64,23 +84,11 @@ export interface UpdateTaskInput {
   /** New status */
   status?: 'todo' | 'in_progress' | 'done';
 
-  /** Project ID to scope custom field resolution */
-  projectId?: string;
+  /** Provider-specific context such as workspace and placement */
+  context?: TaskProviderContextInput;
 
-  /** Project name to scope custom field resolution */
-  projectName?: string;
-
-  /** Workspace ID to scope project resolution */
-  workspaceId?: string;
-
-  /** Workspace name to scope project resolution */
-  workspaceName?: string;
-
-  /** Skip cache when resolving metadata */
-  refresh?: boolean;
-
-  /** Custom fields to set */
-  customFields?: CustomFieldInput[];
+  /** Provider-specific mutation options */
+  providerOptions?: UpdateTaskProviderOptionsInput;
 }
 
 export interface TaskQueryOptions {
@@ -119,6 +127,28 @@ export interface AttachmentDownloadOptions {
   taskId?: string;
 }
 
+export interface ProviderCredentialFieldSpec {
+  /** Human-readable prompt label */
+  label: string;
+
+  /** Matching environment variable when supported */
+  envVar?: string;
+
+  /** Whether interactive prompts should hide the value */
+  secret?: boolean;
+}
+
+export interface ProviderCredentialSpec {
+  /** Required credential fields */
+  requiredFields: string[];
+
+  /** Optional credential fields */
+  optionalFields?: string[];
+
+  /** Per-field prompt and env metadata */
+  fields: Record<string, ProviderCredentialFieldSpec>;
+}
+
 export interface ProviderCredentials {
   /** API token or access token */
   token: string;
@@ -145,6 +175,9 @@ export interface ProviderInfo {
 
   /** Connection status */
   connected: boolean;
+
+  /** Declared provider capability manifest */
+  capabilities: ProviderCapabilities;
 }
 
 /**
@@ -158,12 +191,44 @@ export interface Workspace {
   name: string;
 }
 
-export interface PMPlugin {
+export interface ProviderCapabilities {
+  comments: boolean;
+  thread: boolean;
+  attachmentDownload: boolean;
+  workspaces: boolean;
+  customFields: boolean;
+  projectPlacement: boolean;
+}
+
+export type ProviderCapability = keyof ProviderCapabilities;
+
+export interface CommentCapablePlugin {
+  addComment(externalId: string, body: string): Promise<void>;
+}
+
+export interface ThreadCapablePlugin {
+  getTaskThread(externalId: string, options?: ThreadQueryOptions): Promise<ThreadEntry[]>;
+}
+
+export interface AttachmentDownloadCapablePlugin {
+  downloadAttachment(attachment: ThreadAttachment, options?: AttachmentDownloadOptions): Promise<string | null>;
+}
+
+export interface WorkspaceCapablePlugin {
+  getWorkspaces(): Workspace[];
+  getCurrentWorkspace(): Workspace | null;
+  setWorkspace(workspaceId: string): void;
+}
+
+export interface PMPluginBase {
   /** Provider identifier */
   readonly name: ProviderType;
 
   /** Human-readable display name */
   readonly displayName: string;
+
+  /** Explicit runtime capability manifest */
+  readonly capabilities: ProviderCapabilities;
 
   // ═══════════════════════════════════════════════
   // LIFECYCLE METHODS
@@ -253,81 +318,109 @@ export interface PMPlugin {
    * Delete a task
    */
   deleteTask(externalId: string): Promise<void>;
+}
 
-  /**
-   * Add a comment to a task
-   */
-  addComment?(externalId: string, body: string): Promise<void>;
+export type PMPlugin =
+  & PMPluginBase
+  & Partial<CommentCapablePlugin>
+  & Partial<ThreadCapablePlugin>
+  & Partial<AttachmentDownloadCapablePlugin>
+  & Partial<WorkspaceCapablePlugin>;
 
-  /**
-   * Fetch task conversation/thread entries
-   */
-  getTaskThread?(externalId: string, options?: ThreadQueryOptions): Promise<ThreadEntry[]>;
+export function hasProviderCapability(plugin: PMPluginBase, capability: ProviderCapability): boolean {
+  return plugin.capabilities[capability];
+}
 
-  /**
-   * Download an attachment and return its local file path
-   */
-  downloadAttachment?(attachment: ThreadAttachment, options?: AttachmentDownloadOptions): Promise<string | null>;
+export function isCommentCapable(plugin: PMPluginBase): plugin is PMPluginBase & CommentCapablePlugin {
+  return hasProviderCapability(plugin, 'comments') && typeof (plugin as Partial<CommentCapablePlugin>).addComment === 'function';
+}
 
-  // ═══════════════════════════════════════════════
-  // WORKSPACE OPERATIONS (optional)
-  // ═══════════════════════════════════════════════
+export function isThreadCapable(plugin: PMPluginBase): plugin is PMPluginBase & ThreadCapablePlugin {
+  return hasProviderCapability(plugin, 'thread') && typeof (plugin as Partial<ThreadCapablePlugin>).getTaskThread === 'function';
+}
 
-  /**
-   * Check if this plugin supports multiple workspaces
-   */
-  supportsWorkspaces?(): boolean;
+export function isAttachmentDownloadCapable(
+  plugin: PMPluginBase
+): plugin is PMPluginBase & AttachmentDownloadCapablePlugin {
+  return hasProviderCapability(plugin, 'attachmentDownload')
+    && typeof (plugin as Partial<AttachmentDownloadCapablePlugin>).downloadAttachment === 'function';
+}
 
-  /**
-   * Get available workspaces
-   */
-  getWorkspaces?(): Workspace[];
-
-  /**
-   * Get the currently selected workspace
-   */
-  getCurrentWorkspace?(): Workspace | null;
-
-  /**
-   * Switch to a different workspace
-   */
-  setWorkspace?(workspaceId: string): void;
+export function isWorkspaceCapable(plugin: PMPluginBase): plugin is PMPluginBase & WorkspaceCapablePlugin {
+  return hasProviderCapability(plugin, 'workspaces')
+    && typeof (plugin as Partial<WorkspaceCapablePlugin>).getWorkspaces === 'function'
+    && typeof (plugin as Partial<WorkspaceCapablePlugin>).getCurrentWorkspace === 'function'
+    && typeof (plugin as Partial<WorkspaceCapablePlugin>).setWorkspace === 'function';
 }
 
 /**
  * Credentials required for each provider type
  */
-export const PROVIDER_CREDENTIALS: Record<ProviderType, { fields: string[]; labels: Record<string, string> }> = {
+export const PROVIDER_CREDENTIALS: Record<ProviderType, ProviderCredentialSpec> = {
   asana: {
-    fields: ['token'],
-    labels: {
-      token: 'Personal Access Token (from https://app.asana.com/0/my-apps)',
+    requiredFields: ['token'],
+    fields: {
+      token: {
+        label: 'Personal Access Token (from https://app.asana.com/0/my-apps)',
+        envVar: 'ASANA_TOKEN',
+        secret: true,
+      },
     },
   },
   notion: {
-    fields: ['token', 'databaseId'],
-    labels: {
-      token: 'Integration Token (from https://www.notion.so/my-integrations)',
-      databaseId: 'Task Database ID (from database URL)',
+    requiredFields: ['token', 'databaseId'],
+    fields: {
+      token: {
+        label: 'Integration Token (from https://www.notion.so/my-integrations)',
+        envVar: 'NOTION_TOKEN',
+        secret: true,
+      },
+      databaseId: {
+        label: 'Task Database ID (from database URL)',
+        envVar: 'NOTION_DATABASE_ID',
+      },
     },
   },
   trello: {
-    fields: ['apiKey', 'token'],
-    labels: {
-      apiKey: 'Trello API Key (from https://trello.com/power-ups/admin)',
-      token: 'Trello Token (from https://trello.com/1/authorize)',
+    requiredFields: ['apiKey', 'token'],
+    fields: {
+      apiKey: {
+        label: 'Trello API Key (from https://trello.com/power-ups/admin)',
+        envVar: 'TRELLO_API_KEY',
+      },
+      token: {
+        label: 'Trello Token (from https://trello.com/1/authorize)',
+        envVar: 'TRELLO_TOKEN',
+        secret: true,
+      },
     },
   },
   linear: {
-    fields: ['token'],
-    labels: {
-      token: 'Linear API Key (from https://linear.app/settings/api)',
+    requiredFields: ['token'],
+    fields: {
+      token: {
+        label: 'Linear API Key (from https://linear.app/settings/api)',
+        envVar: 'LINEAR_API_KEY',
+        secret: true,
+      },
     },
   },
   clickup: {
-    fields: ['token'],
-    labels: {
-      token: 'ClickUp Personal API Token (from https://app.clickup.com/settings/apps)',
+    requiredFields: ['token'],
+    fields: {
+      token: {
+        label: 'ClickUp Personal API Token (from https://app.clickup.com/settings/apps)',
+        envVar: 'CLICKUP_TOKEN',
+        secret: true,
+      },
     },
   },
 };
+
+export function validateProviderCredentials(provider: ProviderType, credentials: ProviderCredentials): string[] {
+  const spec = PROVIDER_CREDENTIALS[provider];
+  return spec.requiredFields.filter((field) => {
+    const value = credentials[field];
+    return value === undefined || value.trim().length === 0;
+  });
+}

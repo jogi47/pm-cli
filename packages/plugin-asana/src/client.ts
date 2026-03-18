@@ -1,7 +1,7 @@
 // src/client.ts
 
 import * as Asana from 'asana';
-import { authManager } from 'pm-cli-core';
+import { defaultProviderAuthStore, type ProviderAuthStore } from 'pm-cli-core';
 
 export interface AsanaUser {
   gid: string;
@@ -162,6 +162,8 @@ const TASK_DETAIL_FIELDS = [
 const METADATA_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 export class AsanaClient {
+  constructor(private readonly authStore: ProviderAuthStore = defaultProviderAuthStore) {}
+
   private apiClient: typeof Asana.ApiClient.instance | null = null;
   private usersApi: Asana.UsersApi | null = null;
   private tasksApi: Asana.TasksApi | null = null;
@@ -182,7 +184,7 @@ export class AsanaClient {
    * Initialize the client with stored credentials
    */
   async initialize(): Promise<boolean> {
-    const credentials = authManager.getCredentials('asana');
+    const credentials = this.authStore.getCredentials('asana');
     if (!credentials) return false;
 
     try {
@@ -247,7 +249,7 @@ export class AsanaClient {
       this.selectedWorkspaceGid = this.workspaces[0].gid;
     }
 
-    authManager.setCredentials('asana', {
+    this.authStore.setCredentials('asana', {
       token,
       workspaceGid: this.selectedWorkspaceGid || undefined,
     });
@@ -272,7 +274,7 @@ export class AsanaClient {
     this.projectsCacheByWorkspace = {};
     this.sectionsCacheByProject = {};
     this.customFieldSettingsCacheByProject = {};
-    authManager.removeCredentials('asana');
+    this.authStore.removeCredentials('asana');
   }
 
   /**
@@ -333,9 +335,9 @@ export class AsanaClient {
     this.selectedWorkspaceGid = workspaceGid;
 
     // Update stored credentials with new workspace
-    const credentials = authManager.getCredentials('asana');
+    const credentials = this.authStore.getCredentials('asana');
     if (credentials) {
-      authManager.setCredentials('asana', {
+      this.authStore.setCredentials('asana', {
         ...credentials,
         workspaceGid,
       });

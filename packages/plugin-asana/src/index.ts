@@ -4,11 +4,16 @@ import { mkdir, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import type {
-  PMPlugin,
+  AttachmentDownloadCapablePlugin,
+  CommentCapablePlugin,
+  CreateTaskProviderOptionsInput,
   ProviderInfo,
   ProviderCredentials,
+  PMPluginBase,
   TaskQueryOptions,
+  TaskProviderContextInput,
   ThreadQueryOptions,
+  ThreadCapablePlugin,
   AttachmentDownloadOptions,
   CreateTaskInput,
   UpdateTaskInput,
@@ -17,10 +22,15 @@ import type {
   ThreadEntry,
   ProviderType,
   Workspace,
+  WorkspaceCapablePlugin,
   CustomFieldInput,
   TaskCustomFieldResult,
+  UpdateTaskProviderOptionsInput,
 } from 'pm-cli-core';
-import { cacheManager } from 'pm-cli-core';
+import {
+  defaultProviderTaskCache,
+  type ProviderTaskCache,
+} from 'pm-cli-core';
 import {
   asanaClient,
   type AsanaAttachment,
@@ -41,23 +51,6 @@ type ResolvedSection = {
   name: string;
 };
 
-type WorkspaceInputContext = {
-  workspaceId?: string;
-  workspaceName?: string;
-};
-
-type ProjectInputContext = WorkspaceInputContext & {
-  projectId?: string;
-  projectName?: string;
-  refresh?: boolean;
-};
-
-type CreateSectionContext = {
-  sectionId?: string;
-  sectionName?: string;
-  refresh?: boolean;
-};
-
 type ResolvedCustomFieldMutation = {
   fieldId: string;
   fieldName: string;
@@ -73,9 +66,25 @@ type CustomFieldContext = {
   projectNames: Set<string>;
 };
 
-export class AsanaPlugin implements PMPlugin {
+export class AsanaPlugin implements
+  PMPluginBase,
+  CommentCapablePlugin,
+  ThreadCapablePlugin,
+  AttachmentDownloadCapablePlugin,
+  WorkspaceCapablePlugin
+{
   readonly name: ProviderType = 'asana';
   readonly displayName = 'Asana';
+  readonly capabilities = {
+    comments: true,
+    thread: true,
+    attachmentDownload: true,
+    workspaces: true,
+    customFields: true,
+    projectPlacement: true,
+  };
+
+  constructor(private readonly taskCache: ProviderTaskCache = defaultProviderTaskCache) {}
 
   async initialize(): Promise<void> {
     await asanaClient.initialize();
@@ -91,7 +100,7 @@ export class AsanaPlugin implements PMPlugin {
 
   async disconnect(): Promise<void> {
     asanaClient.disconnect();
-    await cacheManager.invalidateProvider('asana');
+    await this.taskCache.invalidateProvider('asana');
   }
 
   async getInfo(): Promise<ProviderInfo> {
@@ -105,6 +114,7 @@ export class AsanaPlugin implements PMPlugin {
       workspace: workspace?.name,
       userName: user?.name,
       userEmail: user?.email,
+      capabilities: this.capabilities,
     };
   }
 
@@ -120,7 +130,7 @@ export class AsanaPlugin implements PMPlugin {
   async getAssignedTasks(options?: TaskQueryOptions): Promise<Task[]> {
     // Check cache first
     if (!options?.refresh) {
-      const cached = await cacheManager.getTasks('assigned', 'asana');
+      const cached = await this.taskCache.getTasks('assigned', 'asana');
       if (cached) return cached;
     }
 
@@ -130,7 +140,7 @@ export class AsanaPlugin implements PMPlugin {
     });
 
     const tasks = mapAsanaTasks(asanaTasks);
-    await cacheManager.setTasks('assigned', 'asana', tasks);
+    await this.taskCache.setTasks('assigned', 'asana', tasks);
 
     return tasks;
   }
@@ -138,7 +148,7 @@ export class AsanaPlugin implements PMPlugin {
   async getOverdueTasks(options?: TaskQueryOptions): Promise<Task[]> {
     // Check cache first
     if (!options?.refresh) {
-      const cached = await cacheManager.getTasks('overdue', 'asana');
+      const cached = await this.taskCache.getTasks('overdue', 'asana');
       if (cached) return cached;
     }
 
@@ -147,7 +157,7 @@ export class AsanaPlugin implements PMPlugin {
     });
 
     const tasks = mapAsanaTasks(asanaTasks);
-    await cacheManager.setTasks('overdue', 'asana', tasks);
+    await this.taskCache.setTasks('overdue', 'asana', tasks);
 
     return tasks;
   }
@@ -155,7 +165,7 @@ export class AsanaPlugin implements PMPlugin {
   async searchTasks(query: string, options?: TaskQueryOptions): Promise<Task[]> {
     // Check cache first
     if (!options?.refresh) {
-      const cached = await cacheManager.getTasks('search', 'asana', query);
+      const cached = await this.taskCache.getTasks('search', 'asana', query);
       if (cached) return cached;
     }
 
@@ -164,7 +174,7 @@ export class AsanaPlugin implements PMPlugin {
     });
 
     const tasks = mapAsanaTasks(asanaTasks);
-    await cacheManager.setTasks('search', 'asana', tasks, query);
+    await this.taskCache.setTasks('search', 'asana', tasks, query);
 
     return tasks;
   }
@@ -172,14 +182,14 @@ export class AsanaPlugin implements PMPlugin {
   async getTask(externalId: string): Promise<Task | null> {
     // Check cache first
     const taskId = `ASANA-${externalId}`;
-    const cached = await cacheManager.getTaskDetail(taskId);
+    const cached = await this.taskCache.getTaskDetail(taskId);
     if (cached) return cached;
 
     const asanaTask = await asanaClient.getTask(externalId);
     if (!asanaTask) return null;
 
     const task = mapAsanaTask(asanaTask);
-    await cacheManager.setTaskDetail(task);
+    await this.taskCache.setTaskDetail(task);
 
     return task;
   }
@@ -193,19 +203,26 @@ export class AsanaPlugin implements PMPlugin {
   // ═══════════════════════════════════════════════
 
   async createTask(input: CreateTaskInput): Promise<Task> {
-    const workspace = this.resolveWorkspace(input);
-    const project = await this.resolveProject(input, workspace);
-    const section = await this.resolveSection(input, project);
+    const context = input.context;
+    const providerOptions = input.providerOptions;
+    const workspace = this.resolveWorkspace(context);
+    const project = await this.resolveProject(context, workspace);
+    const section = await this.resolveSection(context, project);
 
-    const projectId = project?.id ?? input.projectId;
+    const projectId = project?.id ?? context?.placement?.containerId;
     const workspaceGid = project?.workspace.gid ?? workspace.gid;
     const memberships = projectId && section
       ? [{ project: projectId, section: section.id }]
       : undefined;
 
-    const customFieldInputs = getRequestedCustomFields(input.customFields, input.difficulty);
+    const customFieldInputs = getRequestedCustomFields(providerOptions);
     const resolvedFields = customFieldInputs.length > 0
-      ? await this.resolveCustomFields(customFieldInputs, projectId ? [{ id: projectId, name: project?.name || projectId }] : [], Boolean(input.refresh), '--field requires --project')
+      ? await this.resolveCustomFields(
+        customFieldInputs,
+        projectId ? [{ id: projectId, name: project?.name || projectId }] : [],
+        Boolean(context?.refresh),
+        '--field requires --project'
+      )
       : [];
 
     const asanaTask = await this.runAsanaOperation('create task', async () => asanaClient.createTask({
@@ -224,7 +241,7 @@ export class AsanaPlugin implements PMPlugin {
       task.customFieldResults = toCustomFieldResults(resolvedFields);
     }
 
-    await cacheManager.invalidateProvider('asana');
+    await this.taskCache.invalidateProvider('asana');
     return task;
   }
 
@@ -244,7 +261,7 @@ export class AsanaPlugin implements PMPlugin {
     }
     if (updates.status === 'done') params.completed = true;
 
-    const customFieldInputs = updates.customFields || [];
+    const customFieldInputs = updates.providerOptions?.customFields || [];
     const resolvedFields = customFieldInputs.length > 0
       ? await this.resolveCustomFieldsForUpdate(externalId, updates, customFieldInputs)
       : [];
@@ -260,7 +277,7 @@ export class AsanaPlugin implements PMPlugin {
       task.customFieldResults = toCustomFieldResults(resolvedFields);
     }
 
-    await cacheManager.invalidateProvider('asana');
+    await this.taskCache.invalidateProvider('asana');
     return task;
   }
 
@@ -268,13 +285,13 @@ export class AsanaPlugin implements PMPlugin {
     const asanaTask = await asanaClient.updateTask(externalId, { completed: true });
 
     const task = mapAsanaTask(asanaTask);
-    await cacheManager.invalidateProvider('asana');
+    await this.taskCache.invalidateProvider('asana');
     return task;
   }
 
   async deleteTask(externalId: string): Promise<void> {
     await asanaClient.deleteTask(externalId);
-    await cacheManager.invalidateProvider('asana');
+    await this.taskCache.invalidateProvider('asana');
   }
 
   async addComment(externalId: string, body: string): Promise<void> {
@@ -348,10 +365,6 @@ export class AsanaPlugin implements PMPlugin {
   // WORKSPACE OPERATIONS
   // ═══════════════════════════════════════════════
 
-  supportsWorkspaces(): boolean {
-    return true;
-  }
-
   getWorkspaces(): Workspace[] {
     return asanaClient.getWorkspaces().map(ws => ({
       id: ws.gid,
@@ -401,42 +414,47 @@ export class AsanaPlugin implements PMPlugin {
     }
   }
 
-  private resolveWorkspace(input: WorkspaceInputContext): AsanaWorkspace {
+  private resolveWorkspace(context: TaskProviderContextInput | undefined): AsanaWorkspace {
     const workspaces = asanaClient.getWorkspaces();
     if (workspaces.length === 0) {
       throw new Error('No Asana workspaces available for this account');
     }
 
-    if (input.workspaceId) {
-      const match = workspaces.find((workspace) => workspace.gid === input.workspaceId);
+    if (context?.workspaceId) {
+      const match = workspaces.find((workspace) => workspace.gid === context.workspaceId);
       if (!match) {
-        throw new Error(`Workspace not found: "${input.workspaceId}". Available workspaces:\n${formatWorkspaceCandidates(workspaces)}`);
+        throw new Error(`Workspace not found: "${context.workspaceId}". Available workspaces:\n${formatWorkspaceCandidates(workspaces)}`);
       }
       return match;
     }
 
-    if (input.workspaceName) {
-      const exactMatches = workspaces.filter((workspace) => matchesExactCaseInsensitive(workspace.name, input.workspaceName!));
+    if (context?.workspaceName) {
+      const workspaceName = context.workspaceName;
+      const exactMatches = workspaces.filter((workspace) => matchesExactCaseInsensitive(workspace.name, workspaceName));
       if (exactMatches.length === 1) return exactMatches[0];
       if (exactMatches.length > 1) {
         throw new Error(
-          `Ambiguous workspace: "${input.workspaceName}". Use --workspace ID.\nCandidates:\n${formatWorkspaceCandidates(exactMatches)}`
+          `Ambiguous workspace: "${workspaceName}". Use --workspace ID.\nCandidates:\n${formatWorkspaceCandidates(exactMatches)}`
         );
       }
-      throw new Error(`Workspace not found: "${input.workspaceName}". Available workspaces:\n${formatWorkspaceCandidates(workspaces)}`);
+      throw new Error(`Workspace not found: "${workspaceName}". Available workspaces:\n${formatWorkspaceCandidates(workspaces)}`);
     }
 
     return asanaClient.getDefaultWorkspace() || workspaces[0];
   }
 
-  private async resolveProject(input: ProjectInputContext, workspace: AsanaWorkspace): Promise<ResolvedProject | undefined> {
-    if (input.projectName) {
-      const scopedWorkspaces = (input.workspaceId || input.workspaceName)
+  private async resolveProject(
+    context: TaskProviderContextInput | undefined,
+    workspace: AsanaWorkspace
+  ): Promise<ResolvedProject | undefined> {
+    if (context?.placement?.containerName) {
+      const containerName = context.placement.containerName;
+      const scopedWorkspaces = (context.workspaceId || context.workspaceName)
         ? [workspace]
         : asanaClient.getWorkspaces();
 
-      const allProjects = await this.loadProjects(scopedWorkspaces, Boolean(input.refresh));
-      const exactMatches = allProjects.filter((project) => matchesExactCaseInsensitive(project.name, input.projectName!));
+      const allProjects = await this.loadProjects(scopedWorkspaces, Boolean(context.refresh));
+      const exactMatches = allProjects.filter((project) => matchesExactCaseInsensitive(project.name, containerName));
 
       if (exactMatches.length === 1) {
         return exactMatches[0];
@@ -446,31 +464,32 @@ export class AsanaPlugin implements PMPlugin {
         const candidates = exactMatches
           .map((project) => `${project.id} (${project.workspace.name})`)
           .join('\n');
-        throw new Error(`Ambiguous project: "${input.projectName}". Use --project ID or --workspace.\nCandidates:\n${candidates}`);
+        throw new Error(`Ambiguous project: "${containerName}". Use --project ID or --workspace.\nCandidates:\n${candidates}`);
       }
 
-      const topMatches = getTopProjectSuggestions(allProjects, input.projectName);
+      const topMatches = getTopProjectSuggestions(allProjects, containerName);
       const suffix = topMatches.length > 0
         ? `\nPossible matches:\n${topMatches.map((project) => `${project.name} (${project.id}, ${project.workspace.name})`).join('\n')}`
         : '';
-      throw new Error(`Project not found: "${input.projectName}".${suffix}`);
+      throw new Error(`Project not found: "${containerName}".${suffix}`);
     }
 
-    if (input.projectId) {
+    if (context?.placement?.containerId) {
+      const containerId = context.placement.containerId;
       try {
-        const scopedWorkspaces = (input.workspaceId || input.workspaceName)
+        const scopedWorkspaces = (context.workspaceId || context.workspaceName)
           ? [workspace]
           : asanaClient.getWorkspaces();
-        const allProjects = await this.loadProjects(scopedWorkspaces, Boolean(input.refresh));
-        const matchedProject = allProjects.find((project) => project.id === input.projectId);
+        const allProjects = await this.loadProjects(scopedWorkspaces, Boolean(context.refresh));
+        const matchedProject = allProjects.find((project) => project.id === containerId);
         if (matchedProject) return matchedProject;
       } catch {
         // For ID-based project input, listing metadata is best effort only.
       }
 
       return {
-        id: input.projectId,
-        name: input.projectId,
+        id: containerId,
+        name: containerId,
         workspace,
       };
     }
@@ -479,23 +498,24 @@ export class AsanaPlugin implements PMPlugin {
   }
 
   private async resolveSection(
-    input: CreateSectionContext & { projectId?: string },
+    context: TaskProviderContextInput | undefined,
     project: ResolvedProject | undefined
   ): Promise<ResolvedSection | undefined> {
-    if (!input.sectionId && !input.sectionName) {
+    if (!context?.placement?.parentId && !context?.placement?.parentName) {
       return undefined;
     }
 
-    const projectId = project?.id ?? input.projectId;
+    const projectId = project?.id ?? context?.placement?.containerId;
     if (!projectId) {
       throw new Error('--section requires --project');
     }
 
-    if (input.sectionName) {
+    if (context.placement?.parentName) {
+      const parentName = context.placement.parentName;
       const sections = await this.runAsanaOperation('resolve project sections', async () => (
-        asanaClient.getSectionsForProject(projectId, { refresh: Boolean(input.refresh) })
+        asanaClient.getSectionsForProject(projectId, { refresh: Boolean(context.refresh) })
       ));
-      const exactMatches = sections.filter((section) => matchesExactCaseInsensitive(section.name, input.sectionName!));
+      const exactMatches = sections.filter((section) => matchesExactCaseInsensitive(section.name, parentName));
 
       if (exactMatches.length === 1) {
         return { id: exactMatches[0].gid, name: exactMatches[0].name };
@@ -503,16 +523,16 @@ export class AsanaPlugin implements PMPlugin {
 
       if (exactMatches.length > 1) {
         const candidates = exactMatches.map((section) => `${section.gid} (${section.name})`).join('\n');
-        throw new Error(`Ambiguous section: "${input.sectionName}" in project ${projectId}. Use --section ID.\nCandidates:\n${candidates}`);
+        throw new Error(`Ambiguous section: "${parentName}" in project ${projectId}. Use --section ID.\nCandidates:\n${candidates}`);
       }
 
       const available = sections.map((section) => `${section.name} (${section.gid})`).join('\n');
-      throw new Error(`Section not found: "${input.sectionName}" in project ${projectId}. Available sections:\n${available || '(none)'}`);
+      throw new Error(`Section not found: "${parentName}" in project ${projectId}. Available sections:\n${available || '(none)'}`);
     }
 
-    const sectionId = input.sectionId!;
+    const sectionId = context.placement!.parentId!;
     const sections = await this.runAsanaOperation('resolve project sections', async () => (
-      asanaClient.getSectionsForProject(projectId, { refresh: Boolean(input.refresh) })
+      asanaClient.getSectionsForProject(projectId, { refresh: Boolean(context.refresh) })
     ));
     const found = sections.find((section) => section.gid === sectionId);
 
@@ -528,11 +548,12 @@ export class AsanaPlugin implements PMPlugin {
     updates: UpdateTaskInput,
     customFieldInputs: CustomFieldInput[]
   ): Promise<ResolvedCustomFieldMutation[]> {
-    const refresh = Boolean(updates.refresh);
+    const context = updates.context;
+    const refresh = Boolean(context?.refresh);
 
-    if (updates.projectId || updates.projectName) {
-      const workspace = this.resolveWorkspace(updates);
-      const project = await this.resolveProject(updates, workspace);
+    if (context?.placement?.containerId || context?.placement?.containerName) {
+      const workspace = this.resolveWorkspace(context);
+      const project = await this.resolveProject(context, workspace);
       if (!project) {
         throw new Error('--project could not be resolved for --field updates');
       }
@@ -783,18 +804,15 @@ function formatWorkspaceCandidates(workspaces: AsanaWorkspace[]): string {
   return workspaces.map((workspace) => `${workspace.name} (${workspace.gid})`).join('\n');
 }
 
-function getRequestedCustomFields(
-  customFields: CustomFieldInput[] | undefined,
-  difficulty: string | undefined
-): CustomFieldInput[] {
+function getRequestedCustomFields(providerOptions: CreateTaskProviderOptionsInput | undefined): CustomFieldInput[] {
   const fields: CustomFieldInput[] = [];
 
-  if (difficulty) {
-    fields.push({ field: 'Difficulty', values: [difficulty] });
+  if (providerOptions?.difficulty) {
+    fields.push({ field: 'Difficulty', values: [providerOptions.difficulty] });
   }
 
-  if (customFields && customFields.length > 0) {
-    fields.push(...customFields);
+  if (providerOptions?.customFields && providerOptions.customFields.length > 0) {
+    fields.push(...providerOptions.customFields);
   }
 
   return fields;

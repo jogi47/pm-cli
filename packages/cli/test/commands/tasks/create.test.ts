@@ -31,11 +31,17 @@ describe('tasks create helpers', () => {
       description: 'Task details',
       dueDate: undefined,
       assigneeEmail: undefined,
-      difficulty: 'S',
-      refresh: true,
-      projectName: 'Teacher Feature Development',
-      sectionName: 'Prioritised',
-      workspaceName: 'Engineering',
+      providerOptions: {
+        difficulty: 'S',
+      },
+      context: {
+        workspaceName: 'Engineering',
+        refresh: true,
+        placement: {
+          containerName: 'Teacher Feature Development',
+          parentName: 'Prioritised',
+        },
+      },
     });
   });
 
@@ -58,22 +64,34 @@ describe('tasks create helpers', () => {
         description: 'Shared details',
         dueDate: undefined,
         assigneeEmail: 'dev@company.com',
-        difficulty: 'S',
-        customFields: [{ field: 'Other', values: ['Bugs', 'Analytics'] }],
-        refresh: true,
-        projectName: 'Teacher Feature Development',
-        sectionName: 'Prioritised',
+        providerOptions: {
+          difficulty: 'S',
+          customFields: [{ field: 'Other', values: ['Bugs', 'Analytics'] }],
+        },
+        context: {
+          refresh: true,
+          placement: {
+            containerName: 'Teacher Feature Development',
+            parentName: 'Prioritised',
+          },
+        },
       },
       {
         title: 'Task B',
         description: 'Shared details',
         dueDate: undefined,
         assigneeEmail: 'dev@company.com',
-        difficulty: 'S',
-        customFields: [{ field: 'Other', values: ['Bugs', 'Analytics'] }],
-        refresh: true,
-        projectName: 'Teacher Feature Development',
-        sectionName: 'Prioritised',
+        providerOptions: {
+          difficulty: 'S',
+          customFields: [{ field: 'Other', values: ['Bugs', 'Analytics'] }],
+        },
+        context: {
+          refresh: true,
+          placement: {
+            containerName: 'Teacher Feature Development',
+            parentName: 'Prioritised',
+          },
+        },
       },
     ]);
   });

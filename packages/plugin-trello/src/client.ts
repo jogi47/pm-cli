@@ -1,4 +1,4 @@
-import { authManager, ProviderError } from 'pm-cli-core';
+import { defaultProviderAuthStore, ProviderError, type ProviderAuthStore } from 'pm-cli-core';
 
 export interface TrelloMember {
   id: string;
@@ -42,12 +42,14 @@ type TrelloRequestInit = {
 };
 
 class TrelloClient {
+  constructor(private readonly authStore: ProviderAuthStore = defaultProviderAuthStore) {}
+
   private apiKey: string | null = null;
   private token: string | null = null;
   private me: TrelloMember | null = null;
 
   async initialize(): Promise<boolean> {
-    const credentials = authManager.getCredentials('trello');
+    const credentials = this.authStore.getCredentials('trello');
     if (!credentials?.apiKey || !credentials.token) return false;
 
     try {
@@ -64,14 +66,14 @@ class TrelloClient {
     this.token = token;
     this.me = await this.request<TrelloMember>('/members/me');
 
-    authManager.setCredentials('trello', { token, apiKey });
+    this.authStore.setCredentials('trello', { token, apiKey });
   }
 
   disconnect(): void {
     this.apiKey = null;
     this.token = null;
     this.me = null;
-    authManager.removeCredentials('trello');
+    this.authStore.removeCredentials('trello');
   }
 
   isConnected(): boolean {
