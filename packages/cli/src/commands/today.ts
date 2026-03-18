@@ -1,7 +1,7 @@
 // src/commands/today.ts
 
 import { Command, Flags } from '@oclif/core';
-import { pluginManager, renderDashboard, renderWarning, formatError } from 'pm-cli-core';
+import { renderDashboard, renderWarnings, taskQueryService } from 'pm-cli-core';
 import type { OutputFormat, ProviderType } from 'pm-cli-core';
 import '../init.js';
 import { handleCommandError } from '../lib/command-error.js';
@@ -31,20 +31,14 @@ export default class Today extends Command {
     const { flags } = await this.parse(Today);
     const format: OutputFormat = flags.json ? 'json' : 'table';
 
-    await pluginManager.initialize();
-
     try {
-      const result = await pluginManager.aggregateTasks('assigned', {
+      const result = await taskQueryService.getAssignedTasks({
         source: flags.source as ProviderType | undefined,
       });
 
       const tasks = result.tasks;
 
-      if (result.errors && result.errors.length > 0) {
-        for (const err of result.errors) {
-          renderWarning(formatError(err));
-        }
-      }
+      renderWarnings(result.warnings);
 
       renderDashboard(tasks, format);
     } catch (error) {

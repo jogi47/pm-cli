@@ -7,7 +7,7 @@ Use this as the practical implementation guide.
 For broader architectural direction, also read:
 
 - [provider-interface-hardening-plan.md](./todos/completed/provider-interface-hardening-plan.md)
-- [application-service-refactor-plan.md](./application-service-refactor-plan.md)
+- [application-service-refactor-plan.md](./todos/completed/application-service-refactor-plan.md)
 
 ## purpose
 
@@ -594,5 +594,5 @@ Until then, plugin authors should follow the spirit of that design:
 ## related docs
 
 - [provider-interface-hardening-plan.md](./todos/completed/provider-interface-hardening-plan.md)
-- [application-service-refactor-plan.md](./application-service-refactor-plan.md)
+- [application-service-refactor-plan.md](./todos/completed/application-service-refactor-plan.md)
 - [README.md](../README.md)

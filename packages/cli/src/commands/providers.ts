@@ -1,7 +1,7 @@
 // src/commands/providers.ts
 
 import { Command, Flags } from '@oclif/core';
-import { pluginManager, renderProviders } from 'pm-cli-core';
+import { providerSessionService, renderProviders } from 'pm-cli-core';
 import type { OutputFormat } from 'pm-cli-core';
 import '../init.js';
 
@@ -23,9 +23,7 @@ export default class Providers extends Command {
   async run(): Promise<void> {
     const { flags } = await this.parse(Providers);
     const format: OutputFormat = flags.json ? 'json' : 'table';
-
-    await pluginManager.initialize();
-    const providersInfo = await pluginManager.getProvidersInfo();
+    const providersInfo = await providerSessionService.getProviders();
 
     const displayData = providersInfo.map((p) => ({
       name: p.displayName,

@@ -1,26 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  isAttachmentDownloadCapable: vi.fn(),
-  isThreadCapable: vi.fn(),
-  parseTaskId: vi.fn(),
-  initialize: vi.fn(),
-  getPlugin: vi.fn(),
-  renderError: vi.fn(),
+  getTaskAttachments: vi.fn(),
   renderTaskAttachments: vi.fn(),
+  renderWarnings: vi.fn(),
   handleCommandError: vi.fn(),
 }));
 
 vi.mock('pm-cli-core', () => ({
-  isAttachmentDownloadCapable: mocks.isAttachmentDownloadCapable,
-  isThreadCapable: mocks.isThreadCapable,
-  parseTaskId: mocks.parseTaskId,
-  pluginManager: {
-    initialize: mocks.initialize,
-    getPlugin: mocks.getPlugin,
+  taskReadService: {
+    getTaskAttachments: mocks.getTaskAttachments,
   },
-  renderError: mocks.renderError,
   renderTaskAttachments: mocks.renderTaskAttachments,
+  renderWarnings: mocks.renderWarnings,
 }));
 
 vi.mock('../../../src/init.js', () => ({}));
@@ -33,46 +25,27 @@ const { default: TasksAttachments } = await import('../../../src/commands/tasks/
 describe('tasks attachments command', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.isAttachmentDownloadCapable.mockReturnValue(true);
-    mocks.isThreadCapable.mockReturnValue(true);
-    mocks.parseTaskId.mockReturnValue({ source: 'asana', externalId: '123' });
-    mocks.initialize.mockResolvedValue(undefined);
+    mocks.getTaskAttachments.mockResolvedValue({ attachments: [], warnings: [] });
   });
 
-  it('renders flattened task attachments', async () => {
-    const plugin = {
-      capabilities: {
-        comments: true,
-        thread: true,
-        attachmentDownload: true,
-        workspaces: false,
-        customFields: true,
-        projectPlacement: true,
-      },
-      isAuthenticated: vi.fn().mockResolvedValue(true),
-      getTaskThread: vi.fn().mockResolvedValue([
+  it('renders attachment results from the read service', async () => {
+    mocks.getTaskAttachments.mockResolvedValue({
+      attachments: [
         {
-          id: 'attachment-att-1',
-          attachments: [{
-            id: 'att-1',
-            name: 'mockup.png',
-            kind: 'image',
-            source: 'asana',
-          }],
+          id: 'att-1',
+          name: 'mockup.png',
+          kind: 'image',
+          source: 'asana',
         },
         {
-          id: 'attachment-att-2',
-          attachments: [{
-            id: 'att-2',
-            name: 'notes.pdf',
-            kind: 'document',
-            source: 'asana',
-          }],
+          id: 'att-2',
+          name: 'notes.pdf',
+          kind: 'document',
+          source: 'asana',
         },
-      ]),
-    };
-
-    mocks.getPlugin.mockReturnValue(plugin);
+      ],
+      warnings: ['attachment warning'],
+    });
 
     const command = Object.create(TasksAttachments.prototype) as InstanceType<typeof TasksAttachments> & {
       parse: ReturnType<typeof vi.fn>;
@@ -89,11 +62,12 @@ describe('tasks attachments command', () => {
 
     await command.run();
 
-    expect(plugin.getTaskThread).toHaveBeenCalledWith('123', {
+    expect(mocks.getTaskAttachments).toHaveBeenCalledWith('ASANA-123', {
       downloadImages: true,
       tempDir: '/tmppm-cli',
       cleanup: true,
     });
+    expect(mocks.renderWarnings).toHaveBeenCalledWith(['attachment warning']);
     expect(mocks.renderTaskAttachments).toHaveBeenCalledWith([
       {
         id: 'att-1',

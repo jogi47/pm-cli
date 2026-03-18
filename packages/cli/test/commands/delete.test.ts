@@ -1,22 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
-  class BulkOperationError<T extends { error?: string }> extends Error {
-    results: T[];
-
-    constructor(public operation: string, results: T[]) {
-      super(`Bulk ${operation} completed with errors`);
-      this.name = 'BulkOperationError';
-      this.results = results;
-    }
-  }
-
   return {
-    initialize: vi.fn(),
     deleteTasks: vi.fn(),
     renderSuccess: vi.fn(),
     renderError: vi.fn(),
-    BulkOperationError,
+    renderWarnings: vi.fn(),
   };
 });
 
@@ -25,13 +14,12 @@ vi.mock('@inquirer/prompts', () => ({
 }));
 
 vi.mock('pm-cli-core', () => ({
-  pluginManager: {
-    initialize: mocks.initialize,
+  taskMutationService: {
     deleteTasks: mocks.deleteTasks,
   },
   renderSuccess: mocks.renderSuccess,
   renderError: mocks.renderError,
-  BulkOperationError: mocks.BulkOperationError,
+  renderWarnings: mocks.renderWarnings,
 }));
 
 vi.mock('../../src/init.js', () => ({}));
@@ -41,14 +29,17 @@ const { default: Delete } = await import('../../src/commands/delete.js');
 describe('delete command', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.initialize.mockResolvedValue(undefined);
+    mocks.deleteTasks.mockResolvedValue({ items: [], warnings: [] });
   });
 
-  it('renders typed bulk delete errors and exits non-zero', async () => {
-    mocks.deleteTasks.mockRejectedValue(new mocks.BulkOperationError('delete', [
-      { id: 'ASANA-1' },
-      { id: 'LINEAR-2', error: 'delete denied' },
-    ]));
+  it('renders normalized bulk delete errors and exits non-zero', async () => {
+    mocks.deleteTasks.mockResolvedValue({
+      items: [
+        { id: 'ASANA-1' },
+        { id: 'LINEAR-2', error: 'delete denied' },
+      ],
+      warnings: [],
+    });
 
     const command = Object.create(Delete.prototype) as InstanceType<typeof Delete> & {
       parse: ReturnType<typeof vi.fn>;
@@ -62,6 +53,7 @@ describe('delete command', () => {
 
     await command.run();
 
+    expect(mocks.deleteTasks).toHaveBeenCalledWith(['ASANA-1', 'LINEAR-2']);
     expect(mocks.renderSuccess).toHaveBeenCalledWith('Deleted: ASANA-1');
     expect(mocks.renderError).toHaveBeenCalledWith('LINEAR-2: delete denied');
     expect(command.exit).toHaveBeenCalledWith(1);
@@ -93,7 +85,6 @@ describe('delete command', () => {
       });
     }
 
-    expect(mocks.initialize).not.toHaveBeenCalled();
     expect(mocks.deleteTasks).not.toHaveBeenCalled();
     expect(mocks.renderError).toHaveBeenCalledWith('Delete requires confirmation. Re-run with --force to confirm.');
     expect(command.exit).toHaveBeenCalledWith(1);

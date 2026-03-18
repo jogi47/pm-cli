@@ -1,7 +1,7 @@
 // src/commands/tasks/create.ts
 
 import { Command, Args, Flags } from '@oclif/core';
-import { pluginManager, renderTask, renderSuccess, renderError, renderTasks } from 'pm-cli-core';
+import { renderTask, renderSuccess, renderError, renderTasks, renderWarnings, taskMutationService } from 'pm-cli-core';
 import type { CreateTaskInput, CustomFieldInput, OutputFormat, ProviderType } from 'pm-cli-core';
 import { mergeLegacyDifficultyField, parseCustomFieldFlags } from '../../lib/task-field-parser.js';
 import { splitIdOrName } from '../../lib/task-id-resolver.js';
@@ -81,27 +81,6 @@ export default class TasksCreate extends Command {
     const { args, flags } = await this.parse(TasksCreate);
     const format: OutputFormat = flags.json ? 'json' : 'table';
 
-    await pluginManager.initialize();
-
-    // Determine target provider
-    let source: ProviderType;
-    if (flags.source) {
-      source = flags.source as ProviderType;
-    } else {
-      const connected = await pluginManager.getConnectedPlugins();
-      if (connected.length === 0) {
-        renderError('No providers connected. Run: pm connect <provider>');
-        this.exit(1);
-        return;
-      }
-      if (connected.length > 1) {
-        renderError('Multiple providers connected. Use --source to specify which one.');
-        this.exit(1);
-        return;
-      }
-      source = connected[0].name;
-    }
-
     const parsedFields = parseCustomFieldFlags(flags.field);
     if (parsedFields.error) {
       renderError(parsedFields.error);
@@ -137,6 +116,7 @@ export default class TasksCreate extends Command {
     }
 
     try {
+      const source = await taskMutationService.resolveCreateSource(flags.source as ProviderType | undefined);
       const inputs = buildCreateTaskInputs({
         titles,
         description: flags.description,
@@ -150,12 +130,12 @@ export default class TasksCreate extends Command {
         refresh: flags.refresh,
         source,
       });
-      const createdTasks = [];
-
-      for (const input of inputs) {
-        const task = await pluginManager.createTask(source, input);
-        createdTasks.push(task);
-      }
+      const result = await taskMutationService.createTasks({
+        source,
+        inputs,
+      });
+      renderWarnings(result.warnings);
+      const createdTasks = result.data;
 
       if (createdTasks.length === 1) {
         renderSuccess(`Task created: ${createdTasks[0].id}`);

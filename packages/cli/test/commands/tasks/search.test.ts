@@ -1,28 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  initialize: vi.fn(),
   searchTasks: vi.fn(),
   renderTasks: vi.fn(),
   renderTasksPlain: vi.fn(),
   renderTaskIds: vi.fn(),
-  renderWarning: vi.fn(),
-  filterAndSortTasks: vi.fn(),
-  formatError: vi.fn((error: { message?: string }) => error.message ?? 'warning'),
+  renderWarnings: vi.fn(),
   handleCommandError: vi.fn(),
 }));
 
 vi.mock('pm-cli-core', () => ({
-  pluginManager: {
-    initialize: mocks.initialize,
+  taskQueryService: {
     searchTasks: mocks.searchTasks,
   },
   renderTasks: mocks.renderTasks,
   renderTasksPlain: mocks.renderTasksPlain,
   renderTaskIds: mocks.renderTaskIds,
-  renderWarning: mocks.renderWarning,
-  filterAndSortTasks: mocks.filterAndSortTasks,
-  formatError: mocks.formatError,
+  renderWarnings: mocks.renderWarnings,
 }));
 
 vi.mock('../../../src/init.js', () => ({}));
@@ -35,11 +29,10 @@ const { default: TasksSearch } = await import('../../../src/commands/tasks/searc
 describe('tasks search command', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.initialize.mockResolvedValue(undefined);
-    mocks.filterAndSortTasks.mockImplementation((tasks: unknown[]) => tasks);
+    mocks.searchTasks.mockResolvedValue({ tasks: [], warnings: [] });
   });
 
-  it('uses an inflated fetch limit and applies the display limit after sorting', async () => {
+  it('delegates search orchestration to the task query service', async () => {
     const sortedTasks = [
       { id: 'ASANA-3', title: 'alpha', status: 'todo', source: 'asana', url: 'https://example.com/3' },
       { id: 'ASANA-2', title: 'bravo', status: 'todo', source: 'asana', url: 'https://example.com/2' },
@@ -47,10 +40,9 @@ describe('tasks search command', () => {
     ];
 
     mocks.searchTasks.mockResolvedValue({
-      tasks: [...sortedTasks],
-      errors: [],
+      tasks: sortedTasks.slice(0, 2),
+      warnings: ['search warning'],
     });
-    mocks.filterAndSortTasks.mockReturnValue(sortedTasks);
 
     const command = Object.create(TasksSearch.prototype) as InstanceType<typeof TasksSearch> & {
       parse: ReturnType<typeof vi.fn>;
@@ -71,11 +63,15 @@ describe('tasks search command', () => {
 
     await command.run();
 
-    expect(mocks.searchTasks).toHaveBeenCalledWith('bug', {
+    expect(mocks.searchTasks).toHaveBeenCalledWith({
+      query: 'bug',
       source: 'asana',
-      fetchLimit: 100,
+      displayLimit: 2,
+      status: undefined,
+      priority: undefined,
+      sort: 'title',
     });
-    expect(mocks.filterAndSortTasks).toHaveBeenCalled();
+    expect(mocks.renderWarnings).toHaveBeenCalledWith(['search warning']);
     expect(mocks.renderTasks).toHaveBeenCalledWith(sortedTasks.slice(0, 2), 'table');
   });
 });

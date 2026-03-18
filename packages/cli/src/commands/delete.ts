@@ -2,7 +2,7 @@
 
 import { Command, Args, Flags } from '@oclif/core';
 import { confirm } from '@inquirer/prompts';
-import { pluginManager, renderError, renderSuccess, BulkOperationError } from 'pm-cli-core';
+import { renderError, renderSuccess, renderWarnings, taskMutationService } from 'pm-cli-core';
 import '../init.js';
 
 export default class Delete extends Command {
@@ -54,32 +54,22 @@ export default class Delete extends Command {
       return;
     }
 
-    await pluginManager.initialize();
+    const result = await taskMutationService.deleteTasks(taskIds);
+    const hasErrors = result.items.some((item) => Boolean(item.error));
 
-    let results;
-    try {
-      results = await pluginManager.deleteTasks(taskIds);
-    } catch (error) {
-      if (error instanceof BulkOperationError) {
-        results = error.results;
-      } else {
-        throw error;
-      }
-    }
-
-    const hasErrors = results.some((result) => Boolean(result.error));
+    renderWarnings(result.warnings);
 
     if (flags.json) {
-      console.log(JSON.stringify(results, null, 2));
+      console.log(JSON.stringify(result.items, null, 2));
       if (hasErrors) this.exit(1);
       return;
     }
 
-    for (const result of results) {
-      if (result.error) {
-        renderError(`${result.id}: ${result.error}`);
+    for (const item of result.items) {
+      if (item.error) {
+        renderError(`${item.id}: ${item.error}`);
       } else {
-        renderSuccess(`Deleted: ${result.id}`);
+        renderSuccess(`Deleted: ${item.id}`);
       }
     }
 

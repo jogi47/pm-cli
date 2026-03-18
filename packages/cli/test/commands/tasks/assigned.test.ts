@@ -1,28 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  initialize: vi.fn(),
-  aggregateTasks: vi.fn(),
+  getAssignedTasks: vi.fn(),
   renderTasks: vi.fn(),
   renderTasksPlain: vi.fn(),
   renderTaskIds: vi.fn(),
-  renderWarning: vi.fn(),
-  filterAndSortTasks: vi.fn(),
-  formatError: vi.fn((error: { message?: string }) => error.message ?? 'warning'),
+  renderWarnings: vi.fn(),
   handleCommandError: vi.fn(),
 }));
 
 vi.mock('pm-cli-core', () => ({
-  pluginManager: {
-    initialize: mocks.initialize,
-    aggregateTasks: mocks.aggregateTasks,
+  taskQueryService: {
+    getAssignedTasks: mocks.getAssignedTasks,
   },
   renderTasks: mocks.renderTasks,
   renderTasksPlain: mocks.renderTasksPlain,
   renderTaskIds: mocks.renderTaskIds,
-  renderWarning: mocks.renderWarning,
-  filterAndSortTasks: mocks.filterAndSortTasks,
-  formatError: mocks.formatError,
+  renderWarnings: mocks.renderWarnings,
 }));
 
 vi.mock('../../../src/init.js', () => ({}));
@@ -35,25 +29,20 @@ const { default: TasksAssigned } = await import('../../../src/commands/tasks/ass
 describe('tasks assigned command', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.initialize.mockResolvedValue(undefined);
-    mocks.filterAndSortTasks.mockImplementation((tasks: unknown[]) => tasks);
+    mocks.getAssignedTasks.mockResolvedValue({ tasks: [], warnings: [] });
   });
 
-  it('uses an inflated fetch limit and applies the display limit after filtering', async () => {
+  it('delegates query orchestration to the task query service', async () => {
     const filteredTasks = [
       { id: 'ASANA-2', title: 'todo 1', status: 'todo', source: 'asana', url: 'https://example.com/2' },
       { id: 'ASANA-4', title: 'todo 2', status: 'todo', source: 'asana', url: 'https://example.com/4' },
       { id: 'ASANA-6', title: 'todo 3', status: 'todo', source: 'asana', url: 'https://example.com/6' },
     ];
 
-    mocks.aggregateTasks.mockResolvedValue({
-      tasks: [
-        { id: 'ASANA-1', title: 'done 1', status: 'done', source: 'asana', url: 'https://example.com/1' },
-        ...filteredTasks,
-      ],
-      errors: [],
+    mocks.getAssignedTasks.mockResolvedValue({
+      tasks: filteredTasks.slice(0, 2),
+      warnings: ['partial failure'],
     });
-    mocks.filterAndSortTasks.mockReturnValue(filteredTasks);
 
     const command = Object.create(TasksAssigned.prototype) as InstanceType<typeof TasksAssigned> & {
       parse: ReturnType<typeof vi.fn>;
@@ -74,12 +63,15 @@ describe('tasks assigned command', () => {
 
     await command.run();
 
-    expect(mocks.aggregateTasks).toHaveBeenCalledWith('assigned', {
+    expect(mocks.getAssignedTasks).toHaveBeenCalledWith({
       source: 'asana',
-      fetchLimit: 100,
+      displayLimit: 2,
       refresh: false,
+      status: 'todo',
+      priority: undefined,
+      sort: undefined,
     });
-    expect(mocks.filterAndSortTasks).toHaveBeenCalled();
+    expect(mocks.renderWarnings).toHaveBeenCalledWith(['partial failure']);
     expect(mocks.renderTasks).toHaveBeenCalledWith(filteredTasks.slice(0, 2), 'table');
   });
 });

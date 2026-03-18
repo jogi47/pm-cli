@@ -1,11 +1,10 @@
 // src/commands/tasks/overdue.ts
 
 import { Command, Flags } from '@oclif/core';
-import { pluginManager, renderTasks, renderTasksPlain, renderTaskIds, renderWarning, filterAndSortTasks, formatError } from 'pm-cli-core';
-import type { OutputFormat, ProviderType, TaskStatus, FilterSortOptions } from 'pm-cli-core';
+import { renderTasks, renderTasksPlain, renderTaskIds, renderWarnings, taskQueryService } from 'pm-cli-core';
+import type { OutputFormat, ProviderType, TaskStatus } from 'pm-cli-core';
 import '../../init.js';
 import { handleCommandError } from '../../lib/command-error.js';
-import { applyDisplayLimit, getFetchLimit } from '../../lib/list-query.js';
 
 export default class TasksOverdue extends Command {
   static override description = 'List overdue tasks';
@@ -62,34 +61,19 @@ export default class TasksOverdue extends Command {
   async run(): Promise<void> {
     const { flags } = await this.parse(TasksOverdue);
     const format: OutputFormat = flags.json ? 'json' : 'table';
-    const displayLimit = flags.limit;
-    const fetchLimit = getFetchLimit(displayLimit);
-
-    await pluginManager.initialize();
 
     try {
-      const result = await pluginManager.aggregateTasks('overdue', {
+      const result = await taskQueryService.getOverdueTasks({
         source: flags.source as ProviderType | undefined,
-        fetchLimit,
+        displayLimit: flags.limit,
         refresh: flags.refresh,
+        status: flags.status as TaskStatus | undefined,
+        priority: flags.priority ? flags.priority.split(',') : undefined,
+        sort: flags.sort as 'due' | 'priority' | 'status' | 'source' | 'title' | undefined,
       });
+      const tasks = result.tasks;
 
-      let tasks = result.tasks;
-
-      if (result.errors && result.errors.length > 0) {
-        for (const err of result.errors) {
-          renderWarning(formatError(err));
-        }
-      }
-
-      const filterOpts: FilterSortOptions = {};
-      if (flags.status) filterOpts.status = flags.status as TaskStatus;
-      if (flags.priority) filterOpts.priority = flags.priority.split(',');
-      if (flags.sort) filterOpts.sort = flags.sort as FilterSortOptions['sort'];
-      if (filterOpts.status || filterOpts.priority || filterOpts.sort) {
-        tasks = filterAndSortTasks(tasks, filterOpts);
-      }
-      tasks = applyDisplayLimit(tasks, displayLimit);
+      renderWarnings(result.warnings);
 
       if (flags['ids-only']) {
         renderTaskIds(tasks);

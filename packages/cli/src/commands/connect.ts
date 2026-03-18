@@ -2,7 +2,7 @@
 
 import { Command, Args } from '@oclif/core';
 import { input, password } from '@inquirer/prompts';
-import { pluginManager, renderSuccess, renderError, PROVIDER_CREDENTIALS, validateProviderCredentials } from 'pm-cli-core';
+import { providerSessionService, renderSuccess, renderError, PROVIDER_CREDENTIALS, validateProviderCredentials } from 'pm-cli-core';
 import type { ProviderCredentials, ProviderType } from 'pm-cli-core';
 import '../init.js';
 import { handleCommandError } from '../lib/command-error.js';
@@ -30,18 +30,16 @@ export default class Connect extends Command {
     const { args } = await this.parse(Connect);
     const providerName = args.provider as ProviderType;
 
-    await pluginManager.initialize();
-    const plugin = pluginManager.getPlugin(providerName);
-
-    if (!plugin) {
-      renderError(`Unknown provider: ${providerName}`);
-      return;
+    let connectionState;
+    try {
+      connectionState = await providerSessionService.getProviderConnectionState(providerName);
+    } catch (error) {
+      handleCommandError(error, 'Failed to connect');
     }
 
-    // Check if already connected
-    if (await plugin.isAuthenticated()) {
-      const info = await plugin.getInfo();
-      this.log(`Already connected to ${plugin.displayName} as ${info.userName}`);
+    if (connectionState.connected && connectionState.info) {
+      const info = connectionState.info;
+      this.log(`Already connected to ${info.displayName} as ${info.userName}`);
       this.log(`Workspace: ${info.workspace}`);
       this.log('');
       this.log('To reconnect, first run: pm disconnect ' + providerName);
@@ -51,8 +49,7 @@ export default class Connect extends Command {
     // Get credentials config for this provider
     const credConfig = PROVIDER_CREDENTIALS[providerName];
     const credentials: ProviderCredentials = { token: '' };
-
-    this.log(`\nConnecting to ${plugin.displayName}...\n`);
+    this.log(`\nConnecting to ${connectionState.displayName}...\n`);
 
     // Prompt for each required field
     for (const field of credConfig.requiredFields) {
@@ -79,11 +76,11 @@ export default class Connect extends Command {
 
     // Attempt to authenticate
     try {
-      await plugin.authenticate(credentials);
+      const result = await providerSessionService.connectProvider(providerName, credentials);
+      const info = result.info;
 
-      const info = await plugin.getInfo();
       this.log('');
-      renderSuccess(`Connected to ${plugin.displayName}!`);
+      renderSuccess(`Connected to ${info.displayName}!`);
       this.log(`  User: ${info.userName}`);
       this.log(`  Workspace: ${info.workspace}`);
     } catch (error) {

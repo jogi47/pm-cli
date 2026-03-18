@@ -1,7 +1,7 @@
 // src/commands/done.ts
 
 import { Command, Args, Flags } from '@oclif/core';
-import { pluginManager, renderSuccess, renderError, BulkOperationError } from 'pm-cli-core';
+import { renderSuccess, renderError, renderWarnings, taskMutationService } from 'pm-cli-core';
 import '../init.js';
 
 export default class Done extends Command {
@@ -39,32 +39,22 @@ export default class Done extends Command {
       return;
     }
 
-    await pluginManager.initialize();
+    const result = await taskMutationService.completeTasks(taskIds);
+    const hasErrors = result.items.some((item) => Boolean(item.error));
 
-    let results;
-    try {
-      results = await pluginManager.completeTasks(taskIds);
-    } catch (error) {
-      if (error instanceof BulkOperationError) {
-        results = error.results;
-      } else {
-        throw error;
-      }
-    }
-
-    const hasErrors = results.some((result) => Boolean(result.error));
+    renderWarnings(result.warnings);
 
     if (flags.json) {
-      console.log(JSON.stringify(results, null, 2));
+      console.log(JSON.stringify(result.items, null, 2));
       if (hasErrors) this.exit(1);
       return;
     }
 
-    for (const result of results) {
-      if (result.task) {
-        renderSuccess(`Completed: ${result.id} — ${result.task.title}`);
+    for (const item of result.items) {
+      if (item.data) {
+        renderSuccess(`Completed: ${item.id} — ${item.data.title}`);
       } else {
-        renderError(`${result.id}: ${result.error}`);
+        renderError(`${item.id}: ${item.error}`);
       }
     }
 

@@ -1,7 +1,7 @@
 // src/commands/disconnect.ts
 
 import { Command, Args } from '@oclif/core';
-import { pluginManager, renderSuccess, renderError } from 'pm-cli-core';
+import { providerSessionService, renderSuccess } from 'pm-cli-core';
 import type { ProviderType } from 'pm-cli-core';
 import '../init.js';
 import { handleCommandError } from '../lib/command-error.js';
@@ -26,23 +26,14 @@ export default class Disconnect extends Command {
     const { args } = await this.parse(Disconnect);
     const providerName = args.provider as ProviderType;
 
-    await pluginManager.initialize();
-    const plugin = pluginManager.getPlugin(providerName);
-
-    if (!plugin) {
-      renderError(`Unknown provider: ${providerName}`);
-      return;
-    }
-
-    // Check if connected
-    if (!(await plugin.isAuthenticated())) {
-      this.log(`Not connected to ${plugin.displayName}`);
-      return;
-    }
-
     try {
-      await plugin.disconnect();
-      renderSuccess(`Disconnected from ${plugin.displayName}`);
+      const result = await providerSessionService.disconnectProvider(providerName);
+      if (!result.wasConnected) {
+        this.log(`Not connected to ${result.displayName}`);
+        return;
+      }
+
+      renderSuccess(`Disconnected from ${result.displayName}`);
     } catch (error) {
       handleCommandError(error, 'Failed to disconnect');
     }

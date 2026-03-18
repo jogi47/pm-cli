@@ -249,6 +249,12 @@ export function renderWarning(message: string): void {
   console.error(chalk.yellow('⚠') + ' ' + message);
 }
 
+export function renderWarnings(messages: string[]): void {
+  for (const message of messages) {
+    renderWarning(message);
+  }
+}
+
 /**
  * Render info message
  */

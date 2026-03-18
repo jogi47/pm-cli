@@ -1,7 +1,7 @@
 // src/commands/tasks/update.ts
 
 import { Command, Args, Flags } from '@oclif/core';
-import { pluginManager, renderTask, renderSuccess, renderError } from 'pm-cli-core';
+import { renderTask, renderSuccess, renderError, renderWarnings, taskMutationService } from 'pm-cli-core';
 import type { CustomFieldInput, OutputFormat, ProviderType, UpdateTaskInput } from 'pm-cli-core';
 import { parseTaskId } from 'pm-cli-core';
 import { parseCustomFieldFlags } from '../../lib/task-field-parser.js';
@@ -81,8 +81,6 @@ export default class TasksUpdate extends Command {
       return;
     }
 
-    await pluginManager.initialize();
-
     const parsedTaskId = parseTaskId(args.id);
     if (!parsedTaskId) {
       renderError(`Invalid task ID format: ${args.id}`);
@@ -117,7 +115,9 @@ export default class TasksUpdate extends Command {
     });
 
     try {
-      const task = await pluginManager.updateTask(args.id, updates);
+      const result = await taskMutationService.updateTask(args.id, updates);
+      renderWarnings(result.warnings);
+      const task = result.data;
       renderSuccess(`Task updated: ${task.id}`);
       renderTask(task, format);
     } catch (error) {

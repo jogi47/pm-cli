@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { renderError, renderTaskAttachments, renderThreadEntries, renderWarning } from '../../src/utils/output.js';
+import { renderError, renderTaskAttachments, renderThreadEntries, renderWarning, renderWarnings } from '../../src/utils/output.js';
 import type { ThreadEntry } from '../../src/models/task.js';
 
 describe('renderThreadEntries', () => {
@@ -109,5 +109,18 @@ describe('renderError/renderWarning', () => {
 
     expect(errors).toHaveLength(1);
     expect(errors[0]).toContain('careful');
+  });
+
+  it('writes warning collections in order', () => {
+    const errors: string[] = [];
+    vi.spyOn(console, 'error').mockImplementation((value?: unknown) => {
+      errors.push(String(value ?? ''));
+    });
+
+    renderWarnings(['first', 'second']);
+
+    expect(errors).toHaveLength(2);
+    expect(errors[0]).toContain('first');
+    expect(errors[1]).toContain('second');
   });
 });

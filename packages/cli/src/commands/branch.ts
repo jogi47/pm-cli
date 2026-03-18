@@ -1,7 +1,7 @@
 // src/commands/branch.ts
 
 import { Command, Args, Flags } from '@oclif/core';
-import { pluginManager, parseTaskId, slugify, renderError, renderSuccess } from 'pm-cli-core';
+import { slugify, renderError, renderSuccess, taskReadService } from 'pm-cli-core';
 import { execFileSync } from 'node:child_process';
 import '../init.js';
 import { handleCommandError } from '../lib/command-error.js';
@@ -44,31 +44,9 @@ export default class Branch extends Command {
   async run(): Promise<void> {
     const { args, flags } = await this.parse(Branch);
 
-    const parsed = parseTaskId(args.id);
-    if (!parsed) {
-      renderError(`Invalid task ID format: ${args.id}`);
-      renderError('Expected format: PROVIDER-externalId (e.g., ASANA-1234567890)');
-      this.exit(1);
-      return;
-    }
-
-    await pluginManager.initialize();
-    const plugin = pluginManager.getPlugin(parsed.source);
-
-    if (!plugin) {
-      renderError(`Unknown provider: ${parsed.source}`);
-      this.exit(1);
-      return;
-    }
-
-    if (!(await plugin.isAuthenticated())) {
-      renderError(`Not connected to ${parsed.source}. Run: pm connect ${parsed.source}`);
-      this.exit(1);
-      return;
-    }
-
     try {
-      const task = await plugin.getTask(parsed.externalId);
+      const result = await taskReadService.getTaskForBranch(args.id);
+      const task = result.task;
       if (!task) {
         renderError(`Task not found: ${args.id}`);
         this.exit(1);
@@ -76,7 +54,7 @@ export default class Branch extends Command {
       }
 
       const slug = sanitizeBranchSegment(slugify(task.title));
-      const taskIdSegment = sanitizeBranchSegment(`${parsed.source}-${parsed.externalId}`);
+      const taskIdSegment = sanitizeBranchSegment(`${task.source}-${task.externalId}`);
       let branchName = flags['no-id'] ? slug : `${taskIdSegment}-${slug}`;
       if (flags.prefix) {
         branchName = `${flags.prefix}/${branchName}`;

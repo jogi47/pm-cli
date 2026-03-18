@@ -1,7 +1,7 @@
 // src/commands/tasks/show.ts
 
 import { Command, Args, Flags } from '@oclif/core';
-import { pluginManager, renderTask, renderError, parseTaskId } from 'pm-cli-core';
+import { renderTask, renderError, taskReadService } from 'pm-cli-core';
 import type { OutputFormat } from 'pm-cli-core';
 import '../../init.js';
 import { handleCommandError } from '../../lib/command-error.js';
@@ -38,32 +38,9 @@ export default class TasksShow extends Command {
     const { args, flags } = await this.parse(TasksShow);
     const format: OutputFormat = flags.json ? 'json' : 'table';
 
-    // Parse task ID
-    const parsed = parseTaskId(args.id);
-    if (!parsed) {
-      renderError(`Invalid task ID format: ${args.id}`);
-      renderError('Expected format: PROVIDER-externalId (e.g., ASANA-1234567890)');
-      this.exit(1);
-      return;
-    }
-
-    await pluginManager.initialize();
-    const plugin = pluginManager.getPlugin(parsed.source);
-
-    if (!plugin) {
-      renderError(`Unknown provider: ${parsed.source}`);
-      this.exit(1);
-      return;
-    }
-
-    if (!(await plugin.isAuthenticated())) {
-      renderError(`Not connected to ${parsed.source}. Run: pm connect ${parsed.source}`);
-      this.exit(1);
-      return;
-    }
-
     try {
-      const task = await plugin.getTask(parsed.externalId);
+      const result = await taskReadService.getTask(args.id);
+      const task = result.task;
 
       if (!task) {
         renderError(`Task not found: ${args.id}`);

@@ -1,13 +1,9 @@
 import { Args, Command, Flags } from '@oclif/core';
 import {
-  isAttachmentDownloadCapable,
-  isThreadCapable,
-  parseTaskId,
-  pluginManager,
-  renderError,
   renderTaskAttachments,
+  renderWarnings,
+  taskReadService,
   type OutputFormat,
-  type ThreadAttachment,
 } from 'pm-cli-core';
 import '../../init.js';
 import { handleCommandError } from '../../lib/command-error.js';
@@ -50,72 +46,18 @@ export default class TasksAttachments extends Command {
     const { args, flags } = await this.parse(TasksAttachments);
     const format: OutputFormat = flags.json ? 'json' : 'table';
 
-    const parsed = parseTaskId(args.id);
-    if (!parsed) {
-      renderError(`Invalid task ID format: ${args.id}`);
-      this.exit(1);
-      return;
-    }
-
-    await pluginManager.initialize();
-    const plugin = pluginManager.getPlugin(parsed.source);
-
-    if (!plugin) {
-      renderError(`Unknown provider: ${parsed.source}`);
-      this.exit(1);
-      return;
-    }
-
-    if (!(await plugin.isAuthenticated())) {
-      renderError(`Not connected to ${parsed.source}. Run: pm connect ${parsed.source}`);
-      this.exit(1);
-      return;
-    }
-
-    if (!plugin.capabilities.thread) {
-      renderError(`${parsed.source} does not support task attachments`);
-      this.exit(1);
-      return;
-    }
-    if (!isThreadCapable(plugin)) {
-      renderError(`${parsed.source} declared attachment support but is not wired correctly`);
-      this.exit(1);
-      return;
-    }
-    if (flags['download-images'] && !plugin.capabilities.attachmentDownload) {
-      renderError(`${parsed.source} does not support attachment downloads`);
-      this.exit(1);
-      return;
-    }
-    if (flags['download-images'] && !isAttachmentDownloadCapable(plugin)) {
-      renderError(`${parsed.source} declared attachment downloads but is not wired correctly`);
-      this.exit(1);
-      return;
-    }
-
     try {
-      const entries = await plugin.getTaskThread(parsed.externalId, {
+      const result = await taskReadService.getTaskAttachments(args.id, {
         downloadImages: flags['download-images'],
         tempDir: flags['temp-dir'],
         cleanup: flags.cleanup,
       });
 
-      renderTaskAttachments(dedupeAttachments(entries), format);
+      renderWarnings(result.warnings);
+
+      renderTaskAttachments(result.attachments, format);
     } catch (error) {
       handleCommandError(error, 'Failed to fetch task attachments');
     }
   }
-}
-
-function dedupeAttachments(entries: Array<{ attachments?: ThreadAttachment[] }>): ThreadAttachment[] {
-  const attachments = entries.flatMap((entry) => entry.attachments || []);
-  const deduped = new Map<string, ThreadAttachment>();
-
-  for (const attachment of attachments) {
-    if (!deduped.has(attachment.id)) {
-      deduped.set(attachment.id, attachment);
-    }
-  }
-
-  return Array.from(deduped.values());
 }

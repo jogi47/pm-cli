@@ -1,7 +1,8 @@
 # application-service refactor plan
 
 date: 2026-03-15
-status: proposed
+status: completed
+last_updated: 2026-03-18
 audience: maintainers
 
 ## purpose
@@ -210,6 +211,8 @@ Each milestone can be delivered independently.
 
 ## milestone 0: prepare the boundary
 
+status: completed on 2026-03-18
+
 ### goal
 
 Create the minimum scaffolding needed to support service extraction without
@@ -263,6 +266,8 @@ changing command behavior.
 ---
 
 ## milestone 1: extract task query service
+
+status: completed on 2026-03-18
 
 ### goal
 
@@ -417,6 +422,8 @@ Command tests:
 
 ## milestone 2: extract task read service
 
+status: completed on 2026-03-18
+
 ### goal
 
 Centralize single-task orchestration logic.
@@ -508,6 +515,8 @@ the branch name.
 
 ## milestone 3: extract task mutation service
 
+status: completed on 2026-03-18
+
 ### goal
 
 Move create/update/comment/done/delete orchestration into a mutation service.
@@ -598,6 +607,8 @@ That avoids mixing architectural extraction with parser redesign.
 
 ## milestone 4: extract provider session service
 
+status: completed on 2026-03-18
+
 ### goal
 
 Centralize connect/disconnect/providers/workspace orchestration.
@@ -653,6 +664,8 @@ collected them.
 
 ## milestone 5: reduce singleton leakage
 
+status: completed on 2026-03-18
+
 ### goal
 
 Start reducing direct infrastructure imports from lower layers.
@@ -665,6 +678,13 @@ Provider and client code imports concrete singleton managers directly:
 - `cacheManager`
 
 This makes the boundaries less explicit and harder to test in isolation.
+
+Completed in this repository:
+
+- narrow runtime dependency interfaces were added in `core`
+- provider clients/plugins now depend on those interfaces instead of importing
+  concrete manager singletons directly where that boundary mattered most
+- default runtime wiring still uses the current singleton-backed implementations
 
 ### recommended first step
 
@@ -728,6 +748,8 @@ Instead:
 
 ## milestone 6: cleanup and hardening
 
+status: completed on 2026-03-18
+
 ### goal
 
 Consolidate the new architecture and remove transitional duplication.
@@ -752,6 +774,7 @@ Consolidate the new architecture and remove transitional duplication.
 - commands are thin and consistent
 - service APIs are stable and covered by tests
 - transitional duplication is removed
+- warning rendering is standardized through shared helpers
 
 ### risks
 
@@ -901,24 +924,24 @@ code quality payoff.
 
 Use this checklist when the work begins:
 
-- [ ] add service folder and exports
-- [ ] add shared service result types
-- [ ] create `task-query-service`
-- [ ] move list/search orchestration into service
-- [ ] refactor `assigned`, `overdue`, `search`
-- [ ] add service tests
-- [ ] reduce command tests to delegation checks
-- [ ] ship and stabilize
-- [ ] create `task-read-service`
-- [ ] refactor read-oriented commands
-- [ ] ship and stabilize
-- [ ] create `task-mutation-service`
-- [ ] refactor mutation commands
-- [ ] ship and stabilize
-- [ ] create `provider-session-service`
-- [ ] refactor provider/session commands
-- [ ] decide whether singleton leakage reduction is still worth doing
-- [ ] remove transitional duplication
+- [x] add service folder and exports
+- [x] add shared service result types
+- [x] create `task-query-service`
+- [x] move list/search orchestration into service
+- [x] refactor `assigned`, `overdue`, `search`
+- [x] add service tests
+- [x] reduce command tests to delegation checks
+- [x] ship and stabilize
+- [x] create `task-read-service`
+- [x] refactor read-oriented commands
+- [x] ship and stabilize
+- [x] create `task-mutation-service`
+- [x] refactor mutation commands
+- [x] ship and stabilize
+- [x] create `provider-session-service`
+- [x] refactor provider/session commands
+- [x] decide whether singleton leakage reduction is still worth doing
+- [x] remove transitional duplication
 
 ## final recommendation
 

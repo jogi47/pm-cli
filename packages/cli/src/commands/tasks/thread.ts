@@ -2,13 +2,10 @@
 
 import { Args, Command, Flags } from '@oclif/core';
 import {
-  isAttachmentDownloadCapable,
-  isThreadCapable,
-  parseTaskId,
-  pluginManager,
-  renderError,
   renderTask,
   renderThreadEntries,
+  renderWarnings,
+  taskReadService,
   type OutputFormat,
 } from 'pm-cli-core';
 import '../../init.js';
@@ -66,60 +63,19 @@ export default class TasksThread extends Command {
     const { args, flags } = await this.parse(TasksThread);
     const format: OutputFormat = flags.json ? 'json' : 'table';
 
-    const parsed = parseTaskId(args.id);
-    if (!parsed) {
-      renderError(`Invalid task ID format: ${args.id}`);
-      this.exit(1);
-      return;
-    }
-
-    await pluginManager.initialize();
-    const plugin = pluginManager.getPlugin(parsed.source);
-
-    if (!plugin) {
-      renderError(`Unknown provider: ${parsed.source}`);
-      this.exit(1);
-      return;
-    }
-
-    if (!(await plugin.isAuthenticated())) {
-      renderError(`Not connected to ${parsed.source}. Run: pm connect ${parsed.source}`);
-      this.exit(1);
-      return;
-    }
-
-    if (!plugin.capabilities.thread) {
-      renderError(`${parsed.source} does not support task threads`);
-      this.exit(1);
-      return;
-    }
-    if (!isThreadCapable(plugin)) {
-      renderError(`${parsed.source} declared thread support but is not wired correctly`);
-      this.exit(1);
-      return;
-    }
-    if (flags['download-images'] && !plugin.capabilities.attachmentDownload) {
-      renderError(`${parsed.source} does not support attachment downloads`);
-      this.exit(1);
-      return;
-    }
-    if (flags['download-images'] && !isAttachmentDownloadCapable(plugin)) {
-      renderError(`${parsed.source} declared attachment downloads but is not wired correctly`);
-      this.exit(1);
-      return;
-    }
-
     try {
-      const [task, entries] = await Promise.all([
-        flags['with-task'] ? plugin.getTask(parsed.externalId) : Promise.resolve(null),
-        plugin.getTaskThread(parsed.externalId, {
-          commentsOnly: flags['comments-only'],
-          limit: flags.limit,
-          downloadImages: flags['download-images'],
-          tempDir: flags['temp-dir'],
-          cleanup: flags.cleanup,
-        }),
-      ]);
+      const result = await taskReadService.getTaskThread(args.id, {
+        includeTask: flags['with-task'],
+        commentsOnly: flags['comments-only'],
+        limit: flags.limit,
+        downloadImages: flags['download-images'],
+        tempDir: flags['temp-dir'],
+        cleanup: flags.cleanup,
+      });
+      const task = result.task;
+      const entries = result.entries;
+
+      renderWarnings(result.warnings);
 
       if (flags['with-task']) {
         if (task) {

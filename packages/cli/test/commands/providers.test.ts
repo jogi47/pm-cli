@@ -1,15 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  initialize: vi.fn(),
-  getProvidersInfo: vi.fn(),
+  getProviders: vi.fn(),
   renderProviders: vi.fn(),
 }));
 
 vi.mock('pm-cli-core', () => ({
-  pluginManager: {
-    initialize: mocks.initialize,
-    getProvidersInfo: mocks.getProvidersInfo,
+  providerSessionService: {
+    getProviders: mocks.getProviders,
   },
   renderProviders: mocks.renderProviders,
 }));
@@ -21,11 +19,10 @@ const { default: Providers } = await import('../../src/commands/providers.js');
 describe('providers command', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.initialize.mockResolvedValue(undefined);
   });
 
   it('passes provider capabilities to the shared renderer', async () => {
-    mocks.getProvidersInfo.mockResolvedValue([
+    mocks.getProviders.mockResolvedValue([
       {
         name: 'asana',
         displayName: 'Asana',

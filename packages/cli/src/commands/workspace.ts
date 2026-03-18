@@ -2,9 +2,10 @@
 
 import { Command, Args, Flags } from '@oclif/core';
 import { select } from '@inquirer/prompts';
-import { isWorkspaceCapable, pluginManager, renderSuccess, renderError, renderInfo } from 'pm-cli-core';
+import { providerSessionService, renderSuccess, renderInfo } from 'pm-cli-core';
 import type { ProviderType } from 'pm-cli-core';
 import '../init.js';
+import { handleCommandError } from '../lib/command-error.js';
 
 export default class Workspace extends Command {
   static override description = 'List or switch workspaces for providers that support multiple workspaces';
@@ -37,63 +38,36 @@ export default class Workspace extends Command {
   async run(): Promise<void> {
     const { args, flags } = await this.parse(Workspace);
     const providerName = flags.source as ProviderType;
+    try {
+      const state = await providerSessionService.getWorkspaceState(providerName);
 
-    await pluginManager.initialize();
-    const plugin = pluginManager.getPlugin(providerName);
+      if (args.action === 'list') {
+        this.log(`\n${state.displayName} Workspaces:\n`);
+        for (const ws of state.workspaces) {
+          const marker = ws.id === state.currentWorkspace?.id ? ' (current)' : '';
+          this.log(`  ${ws.name}${marker}`);
+        }
+        this.log('');
+        renderInfo(`Use "pm workspace switch -s ${providerName}" to change workspace`);
+      } else if (args.action === 'switch') {
+        if (state.workspaces.length === 1) {
+          renderInfo('Only one workspace available');
+          return;
+        }
 
-    if (!plugin) {
-      renderError(`Plugin not found: ${providerName}`);
-      return;
-    }
+        const answer = await select({
+          message: 'Select workspace',
+          choices: state.workspaces.map(ws => ({
+            name: ws.name + (ws.id === state.currentWorkspace?.id ? ' (current)' : ''),
+            value: ws.id,
+          })),
+        });
 
-    if (!(await plugin.isAuthenticated())) {
-      renderError(`Not connected to ${plugin.displayName}. Run: pm connect ${providerName}`);
-      return;
-    }
-
-    // Check if plugin supports workspaces
-    if (!plugin.capabilities.workspaces) {
-      renderError(`${plugin.displayName} does not support multiple workspaces`);
-      return;
-    }
-    if (!isWorkspaceCapable(plugin)) {
-      renderError(`${plugin.displayName} declared workspace support but is not wired correctly`);
-      return;
-    }
-
-    const workspaces = plugin.getWorkspaces();
-    const current = plugin.getCurrentWorkspace();
-
-    if (workspaces.length === 0) {
-      renderError('No workspaces found');
-      return;
-    }
-
-    if (args.action === 'list') {
-      this.log(`\n${plugin.displayName} Workspaces:\n`);
-      for (const ws of workspaces) {
-        const marker = ws.id === current?.id ? ' (current)' : '';
-        this.log(`  ${ws.name}${marker}`);
+        const nextState = await providerSessionService.switchWorkspace(providerName, answer);
+        renderSuccess(`Switched to workspace: ${nextState.currentWorkspace?.name}`);
       }
-      this.log('');
-      renderInfo(`Use "pm workspace switch -s ${providerName}" to change workspace`);
-    } else if (args.action === 'switch') {
-      if (workspaces.length === 1) {
-        renderInfo('Only one workspace available');
-        return;
-      }
-
-      const answer = await select({
-        message: 'Select workspace',
-        choices: workspaces.map(ws => ({
-          name: ws.name + (ws.id === current?.id ? ' (current)' : ''),
-          value: ws.id,
-        })),
-      });
-
-      plugin.setWorkspace(answer);
-      const newWorkspace = plugin.getCurrentWorkspace();
-      renderSuccess(`Switched to workspace: ${newWorkspace?.name}`);
+    } catch (error) {
+      handleCommandError(error, 'Failed to manage workspace');
     }
   }
 }
