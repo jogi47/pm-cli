@@ -118,7 +118,9 @@ export default class TasksUpdate extends Command {
       const result = await taskMutationService.updateTask(args.id, updates);
       renderWarnings(result.warnings);
       const task = result.data;
-      renderSuccess(`Task updated: ${task.id}`);
+      if (!flags.json) {
+        renderSuccess(`Task updated: ${task.id}`);
+      }
       renderTask(task, format);
     } catch (error) {
       handleCommandError(error, 'Failed to update task');

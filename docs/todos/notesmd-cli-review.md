@@ -27,6 +27,11 @@ This is the highest-leverage docs-to-reality cleanup in the repo.
 
 ### 2. Tighten output-mode behavior for scripting
 
+Status:
+- completed on 2026-03-29
+- implementation record:
+  `docs/todos/completed/cli-output-contract-hardening-slice.md`
+
 Task list commands in `pm-cli` expose multiple output flags, but they are not enforced as mutually exclusive:
 
 - [packages/cli/src/commands/tasks/assigned.ts](../packages/cli/src/commands/tasks/assigned.ts)

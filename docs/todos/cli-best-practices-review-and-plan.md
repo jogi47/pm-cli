@@ -1,6 +1,8 @@
 # CLI Best Practices Review And Implementation Plan
 
 Date: 2026-03-15
+Status: active
+Last updated: 2026-03-29
 
 Reference article:
 - https://hackmd.io/@arturtamborski/cli-best-practices
@@ -559,6 +561,38 @@ Exit criteria:
 
 Goal:
 - ensure JSON output is a stable protocol surface, not just a convenience flag
+
+Status:
+- partially completed on 2026-03-29
+- completed slice recorded in
+  `docs/todos/completed/cli-output-contract-hardening-slice.md`
+
+Completed in this slice:
+- suppressed human success banners for `tasks create --json` and
+  `tasks update --json`
+- added a shared output-mode helper for list/search commands
+- enforced mutual exclusivity for `--json`, `--plain`, and `--ids-only` on:
+  - `tasks assigned`
+  - `tasks overdue`
+  - `tasks search`
+- audited the remaining Milestone 1 JSON command paths:
+  - `done`
+  - `delete`
+  - `tasks thread`
+- added focused regression coverage for:
+  - mutually exclusive output modes
+  - JSON-only stdout on `tasks create`
+  - JSON-only stdout on `tasks update`
+  - JSON-only stdout on `done`
+  - JSON-only stdout on `delete`
+  - JSON-only stdout on `tasks thread --with-task`
+- documented the output-mode rule in `README.md`
+
+Remaining in this milestone:
+- introduce a shared JSON envelope
+- standardize JSON serialization through shared helpers
+- expand command-level tests to cover envelope behavior once the shared JSON
+  format exists
 
 Tasks:
 - audit all commands with `--json`

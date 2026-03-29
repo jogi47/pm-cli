@@ -89,4 +89,45 @@ describe('delete command', () => {
     expect(mocks.renderError).toHaveBeenCalledWith('Delete requires confirmation. Re-run with --force to confirm.');
     expect(command.exit).toHaveBeenCalledWith(1);
   });
+
+  it('emits only JSON to stdout in --json mode', async () => {
+    const logs: string[] = [];
+    const consoleLog = vi.spyOn(console, 'log').mockImplementation((value?: unknown) => {
+      logs.push(String(value ?? ''));
+    });
+
+    mocks.deleteTasks.mockResolvedValue({
+      items: [
+        { id: 'ASANA-1' },
+        { id: 'LINEAR-2', error: 'delete denied' },
+      ],
+      warnings: ['partial delete'],
+    });
+
+    const command = Object.create(Delete.prototype) as InstanceType<typeof Delete> & {
+      parse: ReturnType<typeof vi.fn>;
+      exit: ReturnType<typeof vi.fn>;
+    };
+    command.parse = vi.fn().mockResolvedValue({
+      argv: ['ASANA-1', 'LINEAR-2'],
+      flags: { json: true, force: true },
+    });
+    command.exit = vi.fn();
+
+    try {
+      await command.run();
+    } finally {
+      consoleLog.mockRestore();
+    }
+
+    expect(mocks.renderWarnings).toHaveBeenCalledWith(['partial delete']);
+    expect(mocks.renderSuccess).not.toHaveBeenCalled();
+    expect(mocks.renderError).not.toHaveBeenCalled();
+    expect(logs).toHaveLength(1);
+    expect(JSON.parse(logs[0])).toEqual([
+      { id: 'ASANA-1' },
+      { id: 'LINEAR-2', error: 'delete denied' },
+    ]);
+    expect(command.exit).toHaveBeenCalledWith(1);
+  });
 });

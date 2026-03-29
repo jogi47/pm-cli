@@ -138,10 +138,14 @@ export default class TasksCreate extends Command {
       const createdTasks = result.data;
 
       if (createdTasks.length === 1) {
-        renderSuccess(`Task created: ${createdTasks[0].id}`);
+        if (!flags.json) {
+          renderSuccess(`Task created: ${createdTasks[0].id}`);
+        }
         renderTask(createdTasks[0], format);
       } else {
-        renderSuccess(`${createdTasks.length} tasks created`);
+        if (!flags.json) {
+          renderSuccess(`${createdTasks.length} tasks created`);
+        }
         renderTasks(createdTasks, format);
       }
     } catch (error) {

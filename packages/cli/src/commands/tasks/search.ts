@@ -1,10 +1,11 @@
 // src/commands/tasks/search.ts
 
 import { Command, Args, Flags } from '@oclif/core';
-import { renderTasks, renderTasksPlain, renderTaskIds, renderWarnings, taskQueryService } from 'pm-cli-core';
-import type { OutputFormat, ProviderType, TaskStatus } from 'pm-cli-core';
+import { renderError, renderTasks, renderTasksPlain, renderTaskIds, renderWarnings, taskQueryService } from 'pm-cli-core';
+import type { ProviderType, TaskStatus } from 'pm-cli-core';
 import '../../init.js';
 import { handleCommandError } from '../../lib/command-error.js';
+import { listOutputFlags, resolveListOutputMode } from '../../lib/output-mode.js';
 
 export default class TasksSearch extends Command {
   static override description = 'Search for tasks';
@@ -35,10 +36,7 @@ export default class TasksSearch extends Command {
       description: 'Maximum number of tasks to show',
       default: 25,
     }),
-    json: Flags.boolean({
-      description: 'Output in JSON format',
-      default: false,
-    }),
+    ...listOutputFlags,
     status: Flags.string({
       description: 'Filter by status (todo, in_progress, done)',
       options: ['todo', 'in_progress', 'done'],
@@ -50,19 +48,17 @@ export default class TasksSearch extends Command {
       description: 'Sort by field (due, priority, status, source, title)',
       options: ['due', 'priority', 'status', 'source', 'title'],
     }),
-    plain: Flags.boolean({
-      description: 'Tab-separated output, no colors or borders',
-      default: false,
-    }),
-    'ids-only': Flags.boolean({
-      description: 'Output just task IDs, one per line',
-      default: false,
-    }),
   };
 
   async run(): Promise<void> {
     const { args, flags } = await this.parse(TasksSearch);
-    const format: OutputFormat = flags.json ? 'json' : 'table';
+    const outputMode = resolveListOutputMode(flags);
+    if (outputMode.error) {
+      renderError(outputMode.error);
+      this.exit(1);
+      return;
+    }
+    const mode = outputMode.mode ?? 'table';
 
     try {
       const result = await taskQueryService.searchTasks({
@@ -77,12 +73,12 @@ export default class TasksSearch extends Command {
 
       renderWarnings(result.warnings);
 
-      if (flags['ids-only']) {
+      if (mode === 'ids-only') {
         renderTaskIds(tasks);
-      } else if (flags.plain) {
+      } else if (mode === 'plain') {
         renderTasksPlain(tasks);
       } else {
-        renderTasks(tasks, format);
+        renderTasks(tasks, mode);
       }
     } catch (error) {
       handleCommandError(error, 'Failed to search tasks');

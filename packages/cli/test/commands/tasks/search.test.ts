@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   renderTasksPlain: vi.fn(),
   renderTaskIds: vi.fn(),
   renderWarnings: vi.fn(),
+  renderError: vi.fn(),
   handleCommandError: vi.fn(),
 }));
 
@@ -17,6 +18,7 @@ vi.mock('pm-cli-core', () => ({
   renderTasksPlain: mocks.renderTasksPlain,
   renderTaskIds: mocks.renderTaskIds,
   renderWarnings: mocks.renderWarnings,
+  renderError: mocks.renderError,
 }));
 
 vi.mock('../../../src/init.js', () => ({}));
@@ -73,5 +75,34 @@ describe('tasks search command', () => {
     });
     expect(mocks.renderWarnings).toHaveBeenCalledWith(['search warning']);
     expect(mocks.renderTasks).toHaveBeenCalledWith(sortedTasks.slice(0, 2), 'table');
+  });
+
+  it('rejects conflicting output flags before querying tasks', async () => {
+    const command = Object.create(TasksSearch.prototype) as InstanceType<typeof TasksSearch> & {
+      parse: ReturnType<typeof vi.fn>;
+      exit: ReturnType<typeof vi.fn>;
+    };
+    command.parse = vi.fn().mockResolvedValue({
+      args: { query: 'bug' },
+      flags: {
+        source: 'asana',
+        limit: 2,
+        json: true,
+        status: undefined,
+        priority: undefined,
+        sort: undefined,
+        plain: true,
+        'ids-only': false,
+      },
+    });
+    command.exit = vi.fn();
+
+    await command.run();
+
+    expect(mocks.searchTasks).not.toHaveBeenCalled();
+    expect(mocks.renderError).toHaveBeenCalledWith(
+      'Output flags are mutually exclusive. Use only one of --json, --plain, or --ids-only.',
+    );
+    expect(command.exit).toHaveBeenCalledWith(1);
   });
 });

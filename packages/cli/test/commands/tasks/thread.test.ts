@@ -101,4 +101,100 @@ describe('tasks thread command', () => {
     expect(mocks.renderTask).toHaveBeenCalled();
     expect(mocks.renderThreadEntries).toHaveBeenCalled();
   });
+
+  it('emits only JSON to stdout for --json --with-task', async () => {
+    const logs: string[] = [];
+    const consoleLog = vi.spyOn(console, 'log').mockImplementation((value?: unknown) => {
+      logs.push(String(value ?? ''));
+    });
+
+    mocks.getTaskThread.mockResolvedValue({
+      task: {
+        id: 'ASANA-123',
+        externalId: '123',
+        title: 'Demo task',
+        status: 'todo',
+        source: 'asana',
+        url: 'https://app.asana.com/0/0/123',
+      },
+      entries: [{ id: 'story-1', body: 'hello', source: 'asana', createdAt: new Date('2026-01-01T00:00:00.000Z') }],
+      warnings: ['partial thread warning'],
+    });
+
+    const command = Object.create(TasksThread.prototype) as InstanceType<typeof TasksThread> & {
+      parse: ReturnType<typeof vi.fn>;
+    };
+    command.parse = vi.fn().mockResolvedValue({
+      args: { id: 'ASANA-123' },
+      flags: {
+        json: true,
+        'comments-only': false,
+        'with-task': true,
+        limit: undefined,
+        'download-images': false,
+        'temp-dir': undefined,
+        cleanup: false,
+      },
+    });
+
+    try {
+      await command.run();
+    } finally {
+      consoleLog.mockRestore();
+    }
+
+    expect(mocks.renderWarnings).toHaveBeenCalledWith(['partial thread warning']);
+    expect(mocks.renderTask).not.toHaveBeenCalled();
+    expect(mocks.renderThreadEntries).not.toHaveBeenCalled();
+    expect(logs).toHaveLength(1);
+    expect(JSON.parse(logs[0])).toEqual({
+      task: {
+        id: 'ASANA-123',
+        externalId: '123',
+        title: 'Demo task',
+        status: 'todo',
+        source: 'asana',
+        url: 'https://app.asana.com/0/0/123',
+      },
+      entries: [
+        {
+          id: 'story-1',
+          body: 'hello',
+          source: 'asana',
+          createdAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+    });
+  });
+
+  it('passes json mode through to the thread renderer when task output is not included', async () => {
+    mocks.getTaskThread.mockResolvedValue({
+      entries: [{ id: 'story-1', body: 'hello', source: 'asana', createdAt: new Date('2026-01-01T00:00:00.000Z') }],
+      warnings: [],
+    });
+
+    const command = Object.create(TasksThread.prototype) as InstanceType<typeof TasksThread> & {
+      parse: ReturnType<typeof vi.fn>;
+    };
+    command.parse = vi.fn().mockResolvedValue({
+      args: { id: 'ASANA-123' },
+      flags: {
+        json: true,
+        'comments-only': false,
+        'with-task': false,
+        limit: undefined,
+        'download-images': false,
+        'temp-dir': undefined,
+        cleanup: false,
+      },
+    });
+
+    await command.run();
+
+    expect(mocks.renderTask).not.toHaveBeenCalled();
+    expect(mocks.renderThreadEntries).toHaveBeenCalledWith(
+      [{ id: 'story-1', body: 'hello', source: 'asana', createdAt: new Date('2026-01-01T00:00:00.000Z') }],
+      'json',
+    );
+  });
 });

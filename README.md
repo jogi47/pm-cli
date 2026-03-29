@@ -110,6 +110,9 @@ List/search flags that work on the current fetch commands:
 --ids-only
 ```
 
+`--json`, `--plain`, and `--ids-only` are mutually exclusive output modes.
+When `--json` is used, the command writes only JSON to stdout.
+
 Refresh is also supported on:
 
 ```bash
