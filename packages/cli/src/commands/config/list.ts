@@ -1,5 +1,5 @@
 import { Flags, Command } from '@oclif/core';
-import { configManager } from 'pm-cli-core';
+import { configManager, renderJsonEnvelope } from 'pm-cli-core';
 import { handleCommandError } from '../../lib/command-error.js';
 
 export default class ConfigList extends Command {
@@ -12,7 +12,7 @@ export default class ConfigList extends Command {
   async run(): Promise<void> {
     await this.parse(ConfigList);
     try {
-      this.log(JSON.stringify(configManager.listConfig(), null, 2));
+      renderJsonEnvelope('config list', configManager.listConfig());
     } catch (error) {
       handleCommandError(error, 'Failed to list config');
     }

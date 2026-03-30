@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { renderError, renderTaskAttachments, renderThreadEntries, renderWarning, renderWarnings } from '../../src/utils/output.js';
+import {
+  createJsonEnvelope,
+  renderError,
+  renderJsonEnvelope,
+  renderTaskAttachments,
+  renderThreadEntries,
+  renderWarning,
+  renderWarnings,
+} from '../../src/utils/output.js';
 import type { ThreadEntry } from '../../src/models/task.js';
 
 describe('renderThreadEntries', () => {
@@ -122,5 +130,46 @@ describe('renderError/renderWarning', () => {
     expect(errors).toHaveLength(2);
     expect(errors[0]).toContain('first');
     expect(errors[1]).toContain('second');
+  });
+});
+
+describe('json envelope helpers', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('creates versioned envelopes with default array metadata', () => {
+    expect(createJsonEnvelope('tasks search', [{ id: 'ASANA-1' }], {
+      warnings: ['partial result'],
+      errors: ['asana timeout'],
+    })).toEqual({
+      schemaVersion: '1',
+      command: 'tasks search',
+      data: [{ id: 'ASANA-1' }],
+      warnings: ['partial result'],
+      errors: ['asana timeout'],
+      meta: { count: 1 },
+    });
+  });
+
+  it('renders versioned envelopes to stdout', () => {
+    const logs: string[] = [];
+    vi.spyOn(console, 'log').mockImplementation((value?: unknown) => {
+      logs.push(String(value ?? ''));
+    });
+
+    renderJsonEnvelope('tasks show', { id: 'ASANA-1' }, {
+      meta: { includesTask: true },
+    });
+
+    expect(logs).toHaveLength(1);
+    expect(JSON.parse(logs[0])).toEqual({
+      schemaVersion: '1',
+      command: 'tasks show',
+      data: { id: 'ASANA-1' },
+      warnings: [],
+      errors: [],
+      meta: { includesTask: true },
+    });
   });
 });

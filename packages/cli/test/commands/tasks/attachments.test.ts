@@ -83,4 +83,46 @@ describe('tasks attachments command', () => {
       },
     ], 'table');
   });
+
+  it('passes warnings into the shared json attachment renderer', async () => {
+    mocks.getTaskAttachments.mockResolvedValue({
+      attachments: [
+        {
+          id: 'att-1',
+          name: 'mockup.png',
+          kind: 'image',
+          source: 'asana',
+        },
+      ],
+      warnings: ['attachment warning'],
+    });
+
+    const command = Object.create(TasksAttachments.prototype) as InstanceType<typeof TasksAttachments> & {
+      parse: ReturnType<typeof vi.fn>;
+    };
+    command.parse = vi.fn().mockResolvedValue({
+      args: { id: 'ASANA-123' },
+      flags: {
+        json: true,
+        'download-images': false,
+        'temp-dir': undefined,
+        cleanup: false,
+      },
+    });
+
+    await command.run();
+
+    expect(mocks.renderWarnings).not.toHaveBeenCalled();
+    expect(mocks.renderTaskAttachments).toHaveBeenCalledWith([
+      {
+        id: 'att-1',
+        name: 'mockup.png',
+        kind: 'image',
+        source: 'asana',
+      },
+    ], 'json', {
+      command: 'tasks attachments',
+      warnings: ['attachment warning'],
+    });
+  });
 });

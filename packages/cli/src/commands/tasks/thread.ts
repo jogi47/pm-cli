@@ -2,6 +2,7 @@
 
 import { Args, Command, Flags } from '@oclif/core';
 import {
+  renderJsonEnvelope,
   renderTask,
   renderThreadEntries,
   renderWarnings,
@@ -75,7 +76,9 @@ export default class TasksThread extends Command {
       const task = result.task;
       const entries = result.entries;
 
-      renderWarnings(result.warnings);
+      if (format !== 'json') {
+        renderWarnings(result.warnings);
+      }
 
       if (flags['with-task']) {
         if (task) {
@@ -89,11 +92,22 @@ export default class TasksThread extends Command {
       }
 
       if (format === 'json' && flags['with-task']) {
-        console.log(JSON.stringify({ task, entries }, null, 2));
+        renderJsonEnvelope('tasks thread', { task, entries }, {
+          warnings: result.warnings,
+          meta: { includesTask: true },
+        });
         return;
       }
 
-      renderThreadEntries(entries, format);
+      if (format === 'json') {
+        renderThreadEntries(entries, format, {
+          command: 'tasks thread',
+          warnings: result.warnings,
+          meta: { includesTask: false },
+        });
+      } else {
+        renderThreadEntries(entries, format);
+      }
     } catch (error) {
       handleCommandError(error, 'Failed to fetch task thread');
     }

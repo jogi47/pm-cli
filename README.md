@@ -112,6 +112,8 @@ List/search flags that work on the current fetch commands:
 
 `--json`, `--plain`, and `--ids-only` are mutually exclusive output modes.
 When `--json` is used, the command writes only JSON to stdout.
+JSON responses use a versioned envelope with:
+`schemaVersion`, `command`, `data`, `warnings`, `errors`, and `meta`.
 
 Refresh is also supported on:
 

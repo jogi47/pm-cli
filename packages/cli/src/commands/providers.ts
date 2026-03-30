@@ -33,6 +33,10 @@ export default class Providers extends Command {
       capabilities: p.capabilities,
     }));
 
-    renderProviders(displayData, format);
+    if (flags.json) {
+      renderProviders(displayData, format, { command: 'providers' });
+    } else {
+      renderProviders(displayData, format);
+    }
   }
 }

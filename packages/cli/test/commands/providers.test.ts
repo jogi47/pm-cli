@@ -66,4 +66,52 @@ describe('providers command', () => {
       },
     ], 'table');
   });
+
+  it('uses the shared json envelope renderer in json mode', async () => {
+    mocks.getProviders.mockResolvedValue([
+      {
+        name: 'asana',
+        displayName: 'Asana',
+        connected: true,
+        workspace: 'Workspace One',
+        userName: 'Ada',
+        capabilities: {
+          comments: true,
+          thread: true,
+          attachmentDownload: true,
+          workspaces: true,
+          customFields: true,
+          projectPlacement: true,
+        },
+      },
+    ]);
+
+    const command = Object.create(Providers.prototype) as InstanceType<typeof Providers> & {
+      parse: ReturnType<typeof vi.fn>;
+    };
+    command.parse = vi.fn().mockResolvedValue({
+      flags: { json: true },
+    });
+
+    await command.run();
+
+    expect(mocks.renderProviders).toHaveBeenCalledWith([
+      {
+        name: 'Asana',
+        connected: true,
+        workspace: 'Workspace One',
+        user: 'Ada',
+        capabilities: {
+          comments: true,
+          thread: true,
+          attachmentDownload: true,
+          workspaces: true,
+          customFields: true,
+          projectPlacement: true,
+        },
+      },
+    ], 'json', {
+      command: 'providers',
+    });
+  });
 });

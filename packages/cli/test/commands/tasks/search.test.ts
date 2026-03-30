@@ -105,4 +105,40 @@ describe('tasks search command', () => {
     );
     expect(command.exit).toHaveBeenCalledWith(1);
   });
+
+  it('passes warnings through the shared json renderer instead of stderr', async () => {
+    mocks.searchTasks.mockResolvedValue({
+      tasks: [
+        { id: 'ASANA-3', title: 'alpha', status: 'todo', source: 'asana', url: 'https://example.com/3' },
+      ],
+      warnings: ['search warning'],
+    });
+
+    const command = Object.create(TasksSearch.prototype) as InstanceType<typeof TasksSearch> & {
+      parse: ReturnType<typeof vi.fn>;
+    };
+    command.parse = vi.fn().mockResolvedValue({
+      args: { query: 'bug' },
+      flags: {
+        source: 'asana',
+        limit: 2,
+        json: true,
+        status: undefined,
+        priority: undefined,
+        sort: undefined,
+        plain: false,
+        'ids-only': false,
+      },
+    });
+
+    await command.run();
+
+    expect(mocks.renderWarnings).not.toHaveBeenCalled();
+    expect(mocks.renderTasks).toHaveBeenCalledWith([
+      { id: 'ASANA-3', title: 'alpha', status: 'todo', source: 'asana', url: 'https://example.com/3' },
+    ], 'json', {
+      command: 'tasks search',
+      warnings: ['search warning'],
+    });
+  });
 });

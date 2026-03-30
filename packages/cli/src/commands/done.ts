@@ -1,7 +1,7 @@
 // src/commands/done.ts
 
 import { Command, Args, Flags } from '@oclif/core';
-import { renderSuccess, renderError, renderWarnings, taskMutationService } from 'pm-cli-core';
+import { renderJsonEnvelope, renderSuccess, renderError, renderWarnings, taskMutationService } from 'pm-cli-core';
 import '../init.js';
 
 export default class Done extends Command {
@@ -41,14 +41,20 @@ export default class Done extends Command {
 
     const result = await taskMutationService.completeTasks(taskIds);
     const hasErrors = result.items.some((item) => Boolean(item.error));
-
-    renderWarnings(result.warnings);
+    const errors = result.items
+      .filter((item) => item.error)
+      .map((item) => `${item.id}: ${item.error}`);
 
     if (flags.json) {
-      console.log(JSON.stringify(result.items, null, 2));
+      renderJsonEnvelope('done', result.items, {
+        warnings: result.warnings,
+        errors,
+      });
       if (hasErrors) this.exit(1);
       return;
     }
+
+    renderWarnings(result.warnings);
 
     for (const item of result.items) {
       if (item.data) {

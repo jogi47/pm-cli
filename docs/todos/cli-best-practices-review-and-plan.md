@@ -563,7 +563,7 @@ Goal:
 - ensure JSON output is a stable protocol surface, not just a convenience flag
 
 Status:
-- partially completed on 2026-03-29
+- completed on 2026-03-29
 - completed slice recorded in
   `docs/todos/completed/cli-output-contract-hardening-slice.md`
 
@@ -579,6 +579,19 @@ Completed in this slice:
   - `done`
   - `delete`
   - `tasks thread`
+- added a shared versioned JSON envelope with:
+  - `schemaVersion`
+  - `command`
+  - `data`
+  - `warnings`
+  - `errors`
+  - `meta`
+- routed JSON serialization through shared output helpers for:
+  - task list/detail renderers
+  - provider/dashboard/summary renderers
+  - thread and attachment renderers
+  - bulk mutation JSON output
+  - `config list`
 - added focused regression coverage for:
   - mutually exclusive output modes
   - JSON-only stdout on `tasks create`
@@ -586,13 +599,8 @@ Completed in this slice:
   - JSON-only stdout on `done`
   - JSON-only stdout on `delete`
   - JSON-only stdout on `tasks thread --with-task`
-- documented the output-mode rule in `README.md`
-
-Remaining in this milestone:
-- introduce a shared JSON envelope
-- standardize JSON serialization through shared helpers
-- expand command-level tests to cover envelope behavior once the shared JSON
-  format exists
+- versioned envelope rendering in core/output tests
+- documented the output-mode rule and envelope shape in `README.md`
 
 Tasks:
 - audit all commands with `--json`

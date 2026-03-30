@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   getTaskThread: vi.fn(),
+  renderJsonEnvelope: vi.fn(),
   renderTask: vi.fn(),
   renderThreadEntries: vi.fn(),
   renderWarnings: vi.fn(),
@@ -12,6 +13,7 @@ vi.mock('pm-cli-core', () => ({
   taskReadService: {
     getTaskThread: mocks.getTaskThread,
   },
+  renderJsonEnvelope: mocks.renderJsonEnvelope,
   renderTask: mocks.renderTask,
   renderThreadEntries: mocks.renderThreadEntries,
   renderWarnings: mocks.renderWarnings,
@@ -103,11 +105,6 @@ describe('tasks thread command', () => {
   });
 
   it('emits only JSON to stdout for --json --with-task', async () => {
-    const logs: string[] = [];
-    const consoleLog = vi.spyOn(console, 'log').mockImplementation((value?: unknown) => {
-      logs.push(String(value ?? ''));
-    });
-
     mocks.getTaskThread.mockResolvedValue({
       task: {
         id: 'ASANA-123',
@@ -137,17 +134,12 @@ describe('tasks thread command', () => {
       },
     });
 
-    try {
-      await command.run();
-    } finally {
-      consoleLog.mockRestore();
-    }
+    await command.run();
 
-    expect(mocks.renderWarnings).toHaveBeenCalledWith(['partial thread warning']);
+    expect(mocks.renderWarnings).not.toHaveBeenCalled();
     expect(mocks.renderTask).not.toHaveBeenCalled();
     expect(mocks.renderThreadEntries).not.toHaveBeenCalled();
-    expect(logs).toHaveLength(1);
-    expect(JSON.parse(logs[0])).toEqual({
+    expect(mocks.renderJsonEnvelope).toHaveBeenCalledWith('tasks thread', {
       task: {
         id: 'ASANA-123',
         externalId: '123',
@@ -161,9 +153,12 @@ describe('tasks thread command', () => {
           id: 'story-1',
           body: 'hello',
           source: 'asana',
-          createdAt: '2026-01-01T00:00:00.000Z',
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
         },
       ],
+    }, {
+      warnings: ['partial thread warning'],
+      meta: { includesTask: true },
     });
   });
 
@@ -191,10 +186,16 @@ describe('tasks thread command', () => {
 
     await command.run();
 
+    expect(mocks.renderWarnings).not.toHaveBeenCalled();
     expect(mocks.renderTask).not.toHaveBeenCalled();
     expect(mocks.renderThreadEntries).toHaveBeenCalledWith(
       [{ id: 'story-1', body: 'hello', source: 'asana', createdAt: new Date('2026-01-01T00:00:00.000Z') }],
       'json',
+      {
+        command: 'tasks thread',
+        warnings: [],
+        meta: { includesTask: false },
+      },
     );
   });
 });

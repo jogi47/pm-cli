@@ -38,9 +38,15 @@ export default class Today extends Command {
 
       const tasks = result.tasks;
 
-      renderWarnings(result.warnings);
-
-      renderDashboard(tasks, format);
+      if (flags.json) {
+        renderDashboard(tasks, format, {
+          command: 'today',
+          warnings: result.warnings,
+        });
+      } else {
+        renderWarnings(result.warnings);
+        renderDashboard(tasks, format);
+      }
     } catch (error) {
       handleCommandError(error, 'Failed to fetch tasks');
     }

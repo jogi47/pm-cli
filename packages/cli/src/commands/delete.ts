@@ -2,7 +2,7 @@
 
 import { Command, Args, Flags } from '@oclif/core';
 import { confirm } from '@inquirer/prompts';
-import { renderError, renderSuccess, renderWarnings, taskMutationService } from 'pm-cli-core';
+import { renderError, renderJsonEnvelope, renderSuccess, renderWarnings, taskMutationService } from 'pm-cli-core';
 import '../init.js';
 
 export default class Delete extends Command {
@@ -56,14 +56,20 @@ export default class Delete extends Command {
 
     const result = await taskMutationService.deleteTasks(taskIds);
     const hasErrors = result.items.some((item) => Boolean(item.error));
-
-    renderWarnings(result.warnings);
+    const errors = result.items
+      .filter((item) => item.error)
+      .map((item) => `${item.id}: ${item.error}`);
 
     if (flags.json) {
-      console.log(JSON.stringify(result.items, null, 2));
+      renderJsonEnvelope('delete', result.items, {
+        warnings: result.warnings,
+        errors,
+      });
       if (hasErrors) this.exit(1);
       return;
     }
+
+    renderWarnings(result.warnings);
 
     for (const item of result.items) {
       if (item.error) {

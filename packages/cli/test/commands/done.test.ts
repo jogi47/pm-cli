@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => {
   return {
     completeTasks: vi.fn(),
+    renderJsonEnvelope: vi.fn(),
     renderSuccess: vi.fn(),
     renderError: vi.fn(),
     renderWarnings: vi.fn(),
@@ -13,6 +14,7 @@ vi.mock('pm-cli-core', () => ({
   taskMutationService: {
     completeTasks: mocks.completeTasks,
   },
+  renderJsonEnvelope: mocks.renderJsonEnvelope,
   renderSuccess: mocks.renderSuccess,
   renderError: mocks.renderError,
   renderWarnings: mocks.renderWarnings,
@@ -65,11 +67,6 @@ describe('done command', () => {
   });
 
   it('emits only JSON to stdout in --json mode', async () => {
-    const logs: string[] = [];
-    const consoleLog = vi.spyOn(console, 'log').mockImplementation((value?: unknown) => {
-      logs.push(String(value ?? ''));
-    });
-
     mocks.completeTasks.mockResolvedValue({
       items: [
         {
@@ -97,17 +94,12 @@ describe('done command', () => {
     });
     command.exit = vi.fn();
 
-    try {
-      await command.run();
-    } finally {
-      consoleLog.mockRestore();
-    }
+    await command.run();
 
-    expect(mocks.renderWarnings).toHaveBeenCalledWith(['partial completion']);
+    expect(mocks.renderWarnings).not.toHaveBeenCalled();
     expect(mocks.renderSuccess).not.toHaveBeenCalled();
     expect(mocks.renderError).not.toHaveBeenCalled();
-    expect(logs).toHaveLength(1);
-    expect(JSON.parse(logs[0])).toEqual([
+    expect(mocks.renderJsonEnvelope).toHaveBeenCalledWith('done', [
       {
         id: 'ASANA-1',
         data: {
@@ -119,7 +111,10 @@ describe('done command', () => {
         id: 'LINEAR-2',
         error: 'linear outage',
       },
-    ]);
+    ], {
+      warnings: ['partial completion'],
+      errors: ['LINEAR-2: linear outage'],
+    });
     expect(command.exit).toHaveBeenCalledWith(1);
   });
 });

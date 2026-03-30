@@ -8,6 +8,48 @@ import { formatError } from './errors.js';
 
 export type OutputFormat = 'table' | 'json';
 
+export interface JsonEnvelope<T> {
+  schemaVersion: '1';
+  command: string;
+  data: T;
+  warnings: string[];
+  errors: string[];
+  meta: Record<string, unknown>;
+}
+
+export interface JsonRenderOptions {
+  command?: string;
+  warnings?: string[];
+  errors?: string[];
+  meta?: Record<string, unknown>;
+}
+
+export function createJsonEnvelope<T>(
+  command: string,
+  data: T,
+  options: Omit<JsonRenderOptions, 'command'> = {},
+): JsonEnvelope<T> {
+  return {
+    schemaVersion: '1',
+    command,
+    data,
+    warnings: options.warnings ?? [],
+    errors: options.errors ?? [],
+    meta: {
+      ...(Array.isArray(data) ? { count: data.length } : {}),
+      ...(options.meta ?? {}),
+    },
+  };
+}
+
+export function renderJsonEnvelope<T>(
+  command: string,
+  data: T,
+  options: Omit<JsonRenderOptions, 'command'> = {},
+): void {
+  console.log(JSON.stringify(createJsonEnvelope(command, data, options), null, 2));
+}
+
 /**
  * Status display configuration
  */
@@ -88,9 +130,9 @@ function formatProviderCapabilities(capabilities?: ProviderCapabilities): string
 /**
  * Render a list of tasks
  */
-export function renderTasks(tasks: Task[], format: OutputFormat): void {
+export function renderTasks(tasks: Task[], format: OutputFormat, jsonOptions: JsonRenderOptions = {}): void {
   if (format === 'json') {
-    console.log(JSON.stringify(tasks, null, 2));
+    renderJsonEnvelope(jsonOptions.command ?? 'tasks', tasks, jsonOptions);
     return;
   }
 
@@ -132,9 +174,9 @@ export function renderTasks(tasks: Task[], format: OutputFormat): void {
 /**
  * Render a single task in detail
  */
-export function renderTask(task: Task, format: OutputFormat): void {
+export function renderTask(task: Task, format: OutputFormat, jsonOptions: JsonRenderOptions = {}): void {
   if (format === 'json') {
-    console.log(JSON.stringify(task, null, 2));
+    renderJsonEnvelope(jsonOptions.command ?? 'task', task, jsonOptions);
     return;
   }
 
@@ -190,10 +232,11 @@ export function renderTask(task: Task, format: OutputFormat): void {
  */
 export function renderProviders(
   providers: Array<{ name: string; connected: boolean; workspace?: string; user?: string; capabilities?: ProviderCapabilities }>,
-  format: OutputFormat
+  format: OutputFormat,
+  jsonOptions: JsonRenderOptions = {},
 ): void {
   if (format === 'json') {
-    console.log(JSON.stringify(providers, null, 2));
+    renderJsonEnvelope(jsonOptions.command ?? 'providers', providers, jsonOptions);
     return;
   }
 
@@ -265,9 +308,9 @@ export function renderInfo(message: string): void {
 /**
  * Render a morning dashboard grouping tasks by overdue / due today / in progress
  */
-export function renderDashboard(tasks: Task[], format: OutputFormat): void {
+export function renderDashboard(tasks: Task[], format: OutputFormat, jsonOptions: JsonRenderOptions = {}): void {
   if (format === 'json') {
-    console.log(JSON.stringify(tasks, null, 2));
+    renderJsonEnvelope(jsonOptions.command ?? 'today', tasks, jsonOptions);
     return;
   }
 
@@ -333,10 +376,11 @@ export function renderDashboard(tasks: Task[], format: OutputFormat): void {
 export function renderSummary(
   providers: ProviderInfo[],
   taskCounts: { overdue: number; dueToday: number; inProgress: number; total: number },
-  format: OutputFormat
+  format: OutputFormat,
+  jsonOptions: JsonRenderOptions = {},
 ): void {
   if (format === 'json') {
-    console.log(JSON.stringify({ providers, taskCounts }, null, 2));
+    renderJsonEnvelope(jsonOptions.command ?? 'summary', { providers, taskCounts }, jsonOptions);
     return;
   }
 
@@ -379,9 +423,9 @@ export function renderTaskIds(tasks: Task[]): void {
 /**
  * Render task thread entries
  */
-export function renderThreadEntries(entries: ThreadEntry[], format: OutputFormat): void {
+export function renderThreadEntries(entries: ThreadEntry[], format: OutputFormat, jsonOptions: JsonRenderOptions = {}): void {
   if (format === 'json') {
-    console.log(JSON.stringify(entries, null, 2));
+    renderJsonEnvelope(jsonOptions.command ?? 'tasks thread', entries, jsonOptions);
     return;
   }
 
@@ -426,9 +470,13 @@ export function renderThreadEntries(entries: ThreadEntry[], format: OutputFormat
 /**
  * Render task attachments without the rest of the thread body.
  */
-export function renderTaskAttachments(attachments: ThreadAttachment[], format: OutputFormat): void {
+export function renderTaskAttachments(
+  attachments: ThreadAttachment[],
+  format: OutputFormat,
+  jsonOptions: JsonRenderOptions = {},
+): void {
   if (format === 'json') {
-    console.log(JSON.stringify(attachments, null, 2));
+    renderJsonEnvelope(jsonOptions.command ?? 'tasks attachments', attachments, jsonOptions);
     return;
   }
 

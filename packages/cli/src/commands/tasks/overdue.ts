@@ -69,14 +69,22 @@ export default class TasksOverdue extends Command {
       });
       const tasks = result.tasks;
 
-      renderWarnings(result.warnings);
-
       if (mode === 'ids-only') {
+        renderWarnings(result.warnings);
         renderTaskIds(tasks);
       } else if (mode === 'plain') {
+        renderWarnings(result.warnings);
         renderTasksPlain(tasks);
       } else {
-        renderTasks(tasks, mode);
+        if (mode === 'json') {
+          renderTasks(tasks, mode, {
+            command: 'tasks overdue',
+            warnings: result.warnings,
+          });
+        } else {
+          renderWarnings(result.warnings);
+          renderTasks(tasks, mode);
+        }
       }
     } catch (error) {
       handleCommandError(error, 'Failed to fetch tasks');

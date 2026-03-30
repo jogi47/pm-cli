@@ -56,7 +56,11 @@ export default class TasksShow extends Command {
         return;
       }
 
-      renderTask(task, format);
+      if (flags.json) {
+        renderTask(task, format, { command: 'tasks show' });
+      } else {
+        renderTask(task, format);
+      }
     } catch (error) {
       handleCommandError(error, 'Failed to fetch task');
     }

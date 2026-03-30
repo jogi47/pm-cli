@@ -27,12 +27,13 @@ export default class Summary extends Command {
 
     try {
       const providers = await providerSessionService.getProviders();
+      let warnings: string[] = [];
 
       let tasks: Task[];
       try {
         const result = await taskQueryService.getAssignedTasks();
         tasks = result.tasks;
-        renderWarnings(result.warnings);
+        warnings = result.warnings;
       } catch {
         tasks = [];
       }
@@ -56,7 +57,15 @@ export default class Summary extends Command {
         }
       }
 
-      renderSummary(providers, { overdue, dueToday, inProgress, total }, format);
+      if (flags.json) {
+        renderSummary(providers, { overdue, dueToday, inProgress, total }, format, {
+          command: 'summary',
+          warnings,
+        });
+      } else {
+        renderWarnings(warnings);
+        renderSummary(providers, { overdue, dueToday, inProgress, total }, format);
+      }
     } catch (error) {
       handleCommandError(error, 'Failed to fetch summary');
     }

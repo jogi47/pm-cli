@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => {
   return {
     deleteTasks: vi.fn(),
+    renderJsonEnvelope: vi.fn(),
     renderSuccess: vi.fn(),
     renderError: vi.fn(),
     renderWarnings: vi.fn(),
@@ -17,6 +18,7 @@ vi.mock('pm-cli-core', () => ({
   taskMutationService: {
     deleteTasks: mocks.deleteTasks,
   },
+  renderJsonEnvelope: mocks.renderJsonEnvelope,
   renderSuccess: mocks.renderSuccess,
   renderError: mocks.renderError,
   renderWarnings: mocks.renderWarnings,
@@ -91,11 +93,6 @@ describe('delete command', () => {
   });
 
   it('emits only JSON to stdout in --json mode', async () => {
-    const logs: string[] = [];
-    const consoleLog = vi.spyOn(console, 'log').mockImplementation((value?: unknown) => {
-      logs.push(String(value ?? ''));
-    });
-
     mocks.deleteTasks.mockResolvedValue({
       items: [
         { id: 'ASANA-1' },
@@ -114,20 +111,18 @@ describe('delete command', () => {
     });
     command.exit = vi.fn();
 
-    try {
-      await command.run();
-    } finally {
-      consoleLog.mockRestore();
-    }
+    await command.run();
 
-    expect(mocks.renderWarnings).toHaveBeenCalledWith(['partial delete']);
+    expect(mocks.renderWarnings).not.toHaveBeenCalled();
     expect(mocks.renderSuccess).not.toHaveBeenCalled();
     expect(mocks.renderError).not.toHaveBeenCalled();
-    expect(logs).toHaveLength(1);
-    expect(JSON.parse(logs[0])).toEqual([
+    expect(mocks.renderJsonEnvelope).toHaveBeenCalledWith('delete', [
       { id: 'ASANA-1' },
       { id: 'LINEAR-2', error: 'delete denied' },
-    ]);
+    ], {
+      warnings: ['partial delete'],
+      errors: ['LINEAR-2: delete denied'],
+    });
     expect(command.exit).toHaveBeenCalledWith(1);
   });
 });

@@ -134,19 +134,30 @@ export default class TasksCreate extends Command {
         source,
         inputs,
       });
-      renderWarnings(result.warnings);
       const createdTasks = result.data;
 
       if (createdTasks.length === 1) {
         if (!flags.json) {
+          renderWarnings(result.warnings);
           renderSuccess(`Task created: ${createdTasks[0].id}`);
+          renderTask(createdTasks[0], format);
+        } else {
+          renderTask(createdTasks[0], format, {
+            command: 'tasks create',
+            warnings: result.warnings,
+          });
         }
-        renderTask(createdTasks[0], format);
       } else {
         if (!flags.json) {
+          renderWarnings(result.warnings);
           renderSuccess(`${createdTasks.length} tasks created`);
+          renderTasks(createdTasks, format);
+        } else {
+          renderTasks(createdTasks, format, {
+            command: 'tasks create',
+            warnings: result.warnings,
+          });
         }
-        renderTasks(createdTasks, format);
       }
     } catch (error) {
       handleCommandError(error, 'Failed to create task');

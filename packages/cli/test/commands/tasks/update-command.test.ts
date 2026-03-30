@@ -68,8 +68,11 @@ describe('tasks update command', () => {
 
     await command.run();
 
-    expect(mocks.renderWarnings).toHaveBeenCalledWith(['stale cache']);
     expect(mocks.renderSuccess).not.toHaveBeenCalled();
-    expect(mocks.renderTask).toHaveBeenCalledWith(updatedTask, 'json');
+    expect(mocks.renderWarnings).not.toHaveBeenCalled();
+    expect(mocks.renderTask).toHaveBeenCalledWith(updatedTask, 'json', {
+      command: 'tasks update',
+      warnings: ['stale cache'],
+    });
   });
 });

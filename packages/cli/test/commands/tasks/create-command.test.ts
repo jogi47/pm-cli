@@ -73,8 +73,11 @@ describe('tasks create command', () => {
 
     await command.run();
 
-    expect(mocks.renderWarnings).toHaveBeenCalledWith(['cache miss']);
     expect(mocks.renderSuccess).not.toHaveBeenCalled();
-    expect(mocks.renderTask).toHaveBeenCalledWith(createdTask, 'json');
+    expect(mocks.renderWarnings).not.toHaveBeenCalled();
+    expect(mocks.renderTask).toHaveBeenCalledWith(createdTask, 'json', {
+      command: 'tasks create',
+      warnings: ['cache miss'],
+    });
   });
 });

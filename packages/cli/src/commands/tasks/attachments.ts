@@ -53,9 +53,15 @@ export default class TasksAttachments extends Command {
         cleanup: flags.cleanup,
       });
 
-      renderWarnings(result.warnings);
-
-      renderTaskAttachments(result.attachments, format);
+      if (flags.json) {
+        renderTaskAttachments(result.attachments, format, {
+          command: 'tasks attachments',
+          warnings: result.warnings,
+        });
+      } else {
+        renderWarnings(result.warnings);
+        renderTaskAttachments(result.attachments, format);
+      }
     } catch (error) {
       handleCommandError(error, 'Failed to fetch task attachments');
     }
