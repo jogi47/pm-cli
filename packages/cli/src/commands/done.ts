@@ -3,6 +3,7 @@
 import { Command, Args, Flags } from '@oclif/core';
 import { renderJsonEnvelope, renderSuccess, renderError, renderWarnings, taskMutationService } from 'pm-cli-core';
 import '../init.js';
+import { CLI_EXIT_CODES } from '../lib/exit-code.js';
 
 export default class Done extends Command {
   static override description = 'Mark one or more tasks as done';
@@ -35,7 +36,7 @@ export default class Done extends Command {
 
     if (taskIds.length === 0) {
       renderError('Please provide at least one task ID.');
-      this.exit(1);
+      this.exit(CLI_EXIT_CODES.USAGE);
       return;
     }
 
@@ -50,7 +51,7 @@ export default class Done extends Command {
         warnings: result.warnings,
         errors,
       });
-      if (hasErrors) this.exit(1);
+      if (hasErrors) this.exit(CLI_EXIT_CODES.PARTIAL);
       return;
     }
 
@@ -65,7 +66,7 @@ export default class Done extends Command {
     }
 
     if (hasErrors) {
-      this.exit(1);
+      this.exit(CLI_EXIT_CODES.PARTIAL);
     }
   }
 }

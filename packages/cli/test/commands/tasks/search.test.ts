@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { CLI_EXIT_CODES } from '../../../src/lib/exit-code.js';
 
 const mocks = vi.hoisted(() => ({
   searchTasks: vi.fn(),
@@ -103,7 +104,7 @@ describe('tasks search command', () => {
     expect(mocks.renderError).toHaveBeenCalledWith(
       'Output flags are mutually exclusive. Use only one of --json, --plain, or --ids-only.',
     );
-    expect(command.exit).toHaveBeenCalledWith(1);
+    expect(command.exit).toHaveBeenCalledWith(CLI_EXIT_CODES.USAGE);
   });
 
   it('passes warnings through the shared json renderer instead of stderr', async () => {

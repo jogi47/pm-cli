@@ -5,6 +5,7 @@ import { renderError, renderTasks, renderTasksPlain, renderTaskIds, renderWarnin
 import type { ProviderType, TaskStatus } from 'pm-cli-core';
 import '../../init.js';
 import { handleCommandError } from '../../lib/command-error.js';
+import { CLI_EXIT_CODES } from '../../lib/exit-code.js';
 import { listOutputFlags, resolveListOutputMode } from '../../lib/output-mode.js';
 
 export default class TasksOverdue extends Command {
@@ -53,7 +54,7 @@ export default class TasksOverdue extends Command {
     const outputMode = resolveListOutputMode(flags);
     if (outputMode.error) {
       renderError(outputMode.error);
-      this.exit(1);
+      this.exit(CLI_EXIT_CODES.USAGE);
       return;
     }
     const mode = outputMode.mode ?? 'table';

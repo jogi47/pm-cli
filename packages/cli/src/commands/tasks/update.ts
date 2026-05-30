@@ -8,6 +8,7 @@ import { parseCustomFieldFlags } from '../../lib/task-field-parser.js';
 import { splitIdOrName } from '../../lib/task-id-resolver.js';
 import '../../init.js';
 import { handleCommandError } from '../../lib/command-error.js';
+import { CLI_EXIT_CODES } from '../../lib/exit-code.js';
 
 export default class TasksUpdate extends Command {
   static override description = 'Update a task';
@@ -70,21 +71,21 @@ export default class TasksUpdate extends Command {
     const parsedFields = parseCustomFieldFlags(flags.field);
     if (parsedFields.error) {
       renderError(parsedFields.error);
-      this.exit(1);
+      this.exit(CLI_EXIT_CODES.USAGE);
       return;
     }
 
     // Ensure at least one update field is provided
     if (!flags.title && !flags.description && !flags.due && !flags.status && parsedFields.fields.length === 0) {
       renderError('No updates provided. Use --title, --description, --due, --status, or --field.');
-      this.exit(1);
+      this.exit(CLI_EXIT_CODES.USAGE);
       return;
     }
 
     const parsedTaskId = parseTaskId(args.id);
     if (!parsedTaskId) {
       renderError(`Invalid task ID format: ${args.id}`);
-      this.exit(1);
+      this.exit(CLI_EXIT_CODES.USAGE);
       return;
     }
 
@@ -96,7 +97,7 @@ export default class TasksUpdate extends Command {
         dueDate = new Date(flags.due);
         if (isNaN(dueDate.getTime())) {
           renderError(`Invalid date format: ${flags.due}. Use YYYY-MM-DD or "none".`);
-          this.exit(1);
+          this.exit(CLI_EXIT_CODES.USAGE);
           return;
         }
       }

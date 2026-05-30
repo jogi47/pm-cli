@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { CLI_EXIT_CODES } from '../../src/lib/exit-code.js';
 
 const mocks = vi.hoisted(() => {
   return {
@@ -63,7 +64,7 @@ describe('done command', () => {
     expect(mocks.completeTasks).toHaveBeenCalledWith(['ASANA-1', 'LINEAR-2']);
     expect(mocks.renderSuccess).toHaveBeenCalledWith('Completed: ASANA-1 — Fix login');
     expect(mocks.renderError).toHaveBeenCalledWith('LINEAR-2: linear outage');
-    expect(command.exit).toHaveBeenCalledWith(1);
+    expect(command.exit).toHaveBeenCalledWith(CLI_EXIT_CODES.PARTIAL);
   });
 
   it('emits only JSON to stdout in --json mode', async () => {
@@ -115,6 +116,6 @@ describe('done command', () => {
       warnings: ['partial completion'],
       errors: ['LINEAR-2: linear outage'],
     });
-    expect(command.exit).toHaveBeenCalledWith(1);
+    expect(command.exit).toHaveBeenCalledWith(CLI_EXIT_CODES.PARTIAL);
   });
 });

@@ -7,6 +7,7 @@ import { mergeLegacyDifficultyField, parseCustomFieldFlags } from '../../lib/tas
 import { splitIdOrName } from '../../lib/task-id-resolver.js';
 import '../../init.js';
 import { handleCommandError } from '../../lib/command-error.js';
+import { CLI_EXIT_CODES } from '../../lib/exit-code.js';
 
 export default class TasksCreate extends Command {
   static override description = 'Create a new task';
@@ -84,7 +85,7 @@ export default class TasksCreate extends Command {
     const parsedFields = parseCustomFieldFlags(flags.field);
     if (parsedFields.error) {
       renderError(parsedFields.error);
-      this.exit(1);
+      this.exit(CLI_EXIT_CODES.USAGE);
       return;
     }
 
@@ -93,7 +94,7 @@ export default class TasksCreate extends Command {
     const validationError = validateCreateFlags(flags.project, flags.section, flags.difficulty, customFields);
     if (validationError) {
       renderError(validationError);
-      this.exit(1);
+      this.exit(CLI_EXIT_CODES.USAGE);
       return;
     }
 
@@ -103,7 +104,7 @@ export default class TasksCreate extends Command {
       dueDate = new Date(flags.due);
       if (isNaN(dueDate.getTime())) {
         renderError(`Invalid date format: ${flags.due}. Use YYYY-MM-DD.`);
-        this.exit(1);
+        this.exit(CLI_EXIT_CODES.USAGE);
         return;
       }
     }
@@ -111,7 +112,7 @@ export default class TasksCreate extends Command {
     const titles = resolveTaskTitles(args.title, flags.title);
     if (titles.length === 0) {
       renderError('Provide at least one title as an argument or via --title');
-      this.exit(1);
+      this.exit(CLI_EXIT_CODES.USAGE);
       return;
     }
 

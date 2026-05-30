@@ -6,6 +6,7 @@ import { providerSessionService, renderSuccess, renderError, PROVIDER_CREDENTIAL
 import type { ProviderCredentials, ProviderType } from 'pm-cli-core';
 import '../init.js';
 import { handleCommandError } from '../lib/command-error.js';
+import { CLI_EXIT_CODES } from '../lib/exit-code.js';
 
 export default class Connect extends Command {
   static override description = 'Connect to a project management provider and store credentials locally';
@@ -71,6 +72,7 @@ export default class Connect extends Command {
     const missingFields = validateProviderCredentials(providerName, credentials);
     if (missingFields.length > 0) {
       renderError(`Missing required credentials: ${missingFields.join(', ')}`);
+      this.exit(CLI_EXIT_CODES.USAGE);
       return;
     }
 

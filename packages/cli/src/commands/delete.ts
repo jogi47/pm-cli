@@ -4,6 +4,7 @@ import { Command, Args, Flags } from '@oclif/core';
 import { confirm } from '@inquirer/prompts';
 import { renderError, renderJsonEnvelope, renderSuccess, renderWarnings, taskMutationService } from 'pm-cli-core';
 import '../init.js';
+import { CLI_EXIT_CODES } from '../lib/exit-code.js';
 
 export default class Delete extends Command {
   static override description = 'Delete one or more tasks';
@@ -41,7 +42,7 @@ export default class Delete extends Command {
 
     if (taskIds.length === 0) {
       renderError('Please provide at least one task ID.');
-      this.exit(1);
+      this.exit(CLI_EXIT_CODES.USAGE);
       return;
     }
 
@@ -50,7 +51,7 @@ export default class Delete extends Command {
       renderError(process.stdin.isTTY
         ? 'Delete cancelled.'
         : 'Delete requires confirmation. Re-run with --force to confirm.');
-      this.exit(1);
+      this.exit(CLI_EXIT_CODES.USAGE);
       return;
     }
 
@@ -65,7 +66,7 @@ export default class Delete extends Command {
         warnings: result.warnings,
         errors,
       });
-      if (hasErrors) this.exit(1);
+      if (hasErrors) this.exit(CLI_EXIT_CODES.PARTIAL);
       return;
     }
 
@@ -79,7 +80,7 @@ export default class Delete extends Command {
       }
     }
 
-    if (hasErrors) this.exit(1);
+    if (hasErrors) this.exit(CLI_EXIT_CODES.PARTIAL);
   }
 }
 

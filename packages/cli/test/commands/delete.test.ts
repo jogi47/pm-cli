@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { CLI_EXIT_CODES } from '../../src/lib/exit-code.js';
 
 const mocks = vi.hoisted(() => {
   return {
@@ -58,7 +59,7 @@ describe('delete command', () => {
     expect(mocks.deleteTasks).toHaveBeenCalledWith(['ASANA-1', 'LINEAR-2']);
     expect(mocks.renderSuccess).toHaveBeenCalledWith('Deleted: ASANA-1');
     expect(mocks.renderError).toHaveBeenCalledWith('LINEAR-2: delete denied');
-    expect(command.exit).toHaveBeenCalledWith(1);
+    expect(command.exit).toHaveBeenCalledWith(CLI_EXIT_CODES.PARTIAL);
   });
 
   it('requires confirmation when --force is not provided in non-interactive mode', async () => {
@@ -89,7 +90,7 @@ describe('delete command', () => {
 
     expect(mocks.deleteTasks).not.toHaveBeenCalled();
     expect(mocks.renderError).toHaveBeenCalledWith('Delete requires confirmation. Re-run with --force to confirm.');
-    expect(command.exit).toHaveBeenCalledWith(1);
+    expect(command.exit).toHaveBeenCalledWith(CLI_EXIT_CODES.USAGE);
   });
 
   it('emits only JSON to stdout in --json mode', async () => {
@@ -123,6 +124,6 @@ describe('delete command', () => {
       warnings: ['partial delete'],
       errors: ['LINEAR-2: delete denied'],
     });
-    expect(command.exit).toHaveBeenCalledWith(1);
+    expect(command.exit).toHaveBeenCalledWith(CLI_EXIT_CODES.PARTIAL);
   });
 });
