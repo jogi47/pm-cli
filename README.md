@@ -267,6 +267,26 @@ pm tasks overdue --plain
 pm tasks search "deploy" --ids-only
 ```
 
+## Exit codes
+
+`pm` uses classified exit codes so scripts and CI can detect failure type without parsing output:
+
+| Code | Meaning | Examples |
+|------|---------|----------|
+| `0` | Success | Command completed |
+| `1` | Failure | Provider/runtime error; all items failed in a multi-ID `done`/`delete` |
+| `2` | Usage | Invalid flags or input; non-interactive delete without `--force` |
+| `3` | Auth | Not connected; authentication failure |
+| `4` | Partial | Bulk `done`/`delete` where some IDs succeeded and some failed |
+
+Notes:
+
+- Failures may exit `2`, `3`, or `4` instead of always exiting `1`
+- `pm done` and `pm delete` use smart bulk resolution:
+  - one ID with a validation/auth error → `2` or `3`
+  - mixed success and failure → `4`
+  - every ID failed in a multi-ID run → `1`
+
 ## Config and cache
 
 Project/user config:

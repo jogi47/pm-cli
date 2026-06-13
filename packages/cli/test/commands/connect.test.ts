@@ -17,26 +17,30 @@ vi.mock('@inquirer/prompts', () => ({
   password: mocks.password,
 }));
 
-vi.mock('pm-cli-core', () => ({
-  providerSessionService: {
-    getProviderConnectionState: mocks.getProviderConnectionState,
-    connectProvider: mocks.connectProvider,
-  },
-  renderSuccess: mocks.renderSuccess,
-  renderError: mocks.renderError,
-  PROVIDER_CREDENTIALS: {
-    asana: {
-      requiredFields: ['token'],
-      fields: {
-        token: {
-          label: 'Personal Access Token',
-          secret: true,
+vi.mock('pm-cli-core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('pm-cli-core')>();
+  return {
+    ...actual,
+    providerSessionService: {
+      getProviderConnectionState: mocks.getProviderConnectionState,
+      connectProvider: mocks.connectProvider,
+    },
+    renderSuccess: mocks.renderSuccess,
+    renderError: mocks.renderError,
+    PROVIDER_CREDENTIALS: {
+      asana: {
+        requiredFields: ['token'],
+        fields: {
+          token: {
+            label: 'Personal Access Token',
+            secret: true,
+          },
         },
       },
     },
-  },
-  validateProviderCredentials: mocks.validateProviderCredentials,
-}));
+    validateProviderCredentials: mocks.validateProviderCredentials,
+  };
+});
 
 vi.mock('../../src/init.js', () => ({}));
 vi.mock('../../src/lib/command-error.js', () => ({
@@ -122,5 +126,26 @@ describe('connect command', () => {
     expect(command.log).toHaveBeenNthCalledWith(3, '');
     expect(command.log).toHaveBeenNthCalledWith(4, 'To reconnect, first run: pm disconnect asana');
     expect(command.exit).not.toHaveBeenCalled();
+  });
+
+  it('delegates auth failures to handleCommandError', async () => {
+    const { AuthenticationError } = await import('pm-cli-core');
+    const authError = new AuthenticationError('asana', 'Invalid token');
+    mocks.connectProvider.mockRejectedValue(authError);
+
+    const command = Object.create(Connect.prototype) as InstanceType<typeof Connect> & {
+      parse: ReturnType<typeof vi.fn>;
+      exit: ReturnType<typeof vi.fn>;
+      log: ReturnType<typeof vi.fn>;
+    };
+    command.parse = vi.fn().mockResolvedValue({
+      args: { provider: 'asana' },
+    });
+    command.exit = vi.fn();
+    command.log = vi.fn();
+
+    await command.run();
+
+    expect(mocks.handleCommandError).toHaveBeenCalledWith(authError, 'Failed to connect');
   });
 });

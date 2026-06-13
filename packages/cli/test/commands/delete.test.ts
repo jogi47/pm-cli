@@ -126,4 +126,104 @@ describe('delete command', () => {
     });
     expect(command.exit).toHaveBeenCalledWith(CLI_EXIT_CODES.PARTIAL);
   });
+
+  it('exits with auth when a single task is not connected', async () => {
+    mocks.deleteTasks.mockResolvedValue({
+      items: [{ id: 'ASANA-1', error: 'Not connected to asana' }],
+      warnings: [],
+    });
+
+    const command = Object.create(Delete.prototype) as InstanceType<typeof Delete> & {
+      parse: ReturnType<typeof vi.fn>;
+      exit: ReturnType<typeof vi.fn>;
+    };
+    command.parse = vi.fn().mockResolvedValue({
+      argv: ['ASANA-1'],
+      flags: { json: false, force: true },
+    });
+    command.exit = vi.fn();
+
+    await command.run();
+
+    expect(command.exit).toHaveBeenCalledWith(CLI_EXIT_CODES.AUTH);
+  });
+
+  it('exits with usage when a single task has an invalid ID', async () => {
+    mocks.deleteTasks.mockResolvedValue({
+      items: [{ id: 'BAD-ID', error: 'Invalid task ID format: BAD-ID' }],
+      warnings: [],
+    });
+
+    const command = Object.create(Delete.prototype) as InstanceType<typeof Delete> & {
+      parse: ReturnType<typeof vi.fn>;
+      exit: ReturnType<typeof vi.fn>;
+    };
+    command.parse = vi.fn().mockResolvedValue({
+      argv: ['BAD-ID'],
+      flags: { json: false, force: true },
+    });
+    command.exit = vi.fn();
+
+    await command.run();
+
+    expect(command.exit).toHaveBeenCalledWith(CLI_EXIT_CODES.USAGE);
+  });
+
+  it('exits with failure when every task fails in a multi-id delete', async () => {
+    mocks.deleteTasks.mockResolvedValue({
+      items: [
+        { id: 'ASANA-1', error: 'Not connected to asana' },
+        { id: 'LINEAR-2', error: 'Not connected to linear' },
+      ],
+      warnings: [],
+    });
+
+    const command = Object.create(Delete.prototype) as InstanceType<typeof Delete> & {
+      parse: ReturnType<typeof vi.fn>;
+      exit: ReturnType<typeof vi.fn>;
+    };
+    command.parse = vi.fn().mockResolvedValue({
+      argv: ['ASANA-1', 'LINEAR-2'],
+      flags: { json: false, force: true },
+    });
+    command.exit = vi.fn();
+
+    await command.run();
+
+    expect(command.exit).toHaveBeenCalledWith(CLI_EXIT_CODES.FAILURE);
+  });
+
+  it('exits with failure when delete is cancelled interactively', async () => {
+    const originalIsTTY = process.stdin.isTTY;
+    Object.defineProperty(process.stdin, 'isTTY', {
+      value: true,
+      configurable: true,
+    });
+
+    const { confirm } = await import('@inquirer/prompts');
+    vi.mocked(confirm).mockResolvedValue(false);
+
+    const command = Object.create(Delete.prototype) as InstanceType<typeof Delete> & {
+      parse: ReturnType<typeof vi.fn>;
+      exit: ReturnType<typeof vi.fn>;
+    };
+    command.parse = vi.fn().mockResolvedValue({
+      argv: ['ASANA-1'],
+      flags: { json: false, force: false },
+    });
+    command.exit = vi.fn();
+
+    try {
+      await command.run();
+    } finally {
+      Object.defineProperty(process.stdin, 'isTTY', {
+        value: originalIsTTY,
+        configurable: true,
+      });
+    }
+
+    expect(mocks.deleteTasks).not.toHaveBeenCalled();
+    expect(mocks.renderError).toHaveBeenCalledWith('Delete cancelled.');
+    expect(command.exit).toHaveBeenCalledWith(CLI_EXIT_CODES.FAILURE);
+  });
 });

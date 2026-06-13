@@ -5,6 +5,7 @@ import { renderTask, renderError, taskReadService } from 'pm-cli-core';
 import type { OutputFormat } from 'pm-cli-core';
 import '../../init.js';
 import { handleCommandError } from '../../lib/command-error.js';
+import { CLI_EXIT_CODES } from '../../lib/exit-code.js';
 
 export default class TasksShow extends Command {
   static override description = 'Show task details';
@@ -44,7 +45,7 @@ export default class TasksShow extends Command {
 
       if (!task) {
         renderError(`Task not found: ${args.id}`);
-        this.exit(1);
+        this.exit(CLI_EXIT_CODES.FAILURE);
         return;
       }
 

@@ -3,6 +3,8 @@
 import { Command, Args, Flags } from '@oclif/core';
 import { renderJsonEnvelope, renderSuccess, renderError, renderWarnings, taskMutationService } from 'pm-cli-core';
 import '../init.js';
+import { resolveBulkMutationExitCode } from '../lib/bulk-exit-code.js';
+import { handleCommandError } from '../lib/command-error.js';
 import { CLI_EXIT_CODES } from '../lib/exit-code.js';
 
 export default class Done extends Command {
@@ -40,8 +42,14 @@ export default class Done extends Command {
       return;
     }
 
-    const result = await taskMutationService.completeTasks(taskIds);
-    const hasErrors = result.items.some((item) => Boolean(item.error));
+    let result;
+    try {
+      result = await taskMutationService.completeTasks(taskIds);
+    } catch (error) {
+      handleCommandError(error, 'Failed to complete tasks');
+    }
+
+    const exitCode = resolveBulkMutationExitCode(result.items);
     const errors = result.items
       .filter((item) => item.error)
       .map((item) => `${item.id}: ${item.error}`);
@@ -51,7 +59,9 @@ export default class Done extends Command {
         warnings: result.warnings,
         errors,
       });
-      if (hasErrors) this.exit(CLI_EXIT_CODES.PARTIAL);
+      if (exitCode !== CLI_EXIT_CODES.SUCCESS) {
+        this.exit(exitCode);
+      }
       return;
     }
 
@@ -65,8 +75,8 @@ export default class Done extends Command {
       }
     }
 
-    if (hasErrors) {
-      this.exit(CLI_EXIT_CODES.PARTIAL);
+    if (exitCode !== CLI_EXIT_CODES.SUCCESS) {
+      this.exit(exitCode);
     }
   }
 }

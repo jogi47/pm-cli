@@ -499,6 +499,24 @@ pm tasks overdue --plain
 pm tasks search "deploy" --ids-only
 ```
 
+## Exit Codes
+
+Use exit status in scripts instead of parsing stderr:
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success |
+| `1` | Failure (provider/runtime error; all IDs failed in multi-ID bulk ops) |
+| `2` | Usage or validation error |
+| `3` | Auth or connection error |
+| `4` | Partial bulk success (`done` / `delete`) |
+
+For `pm done` and `pm delete`:
+
+- single-ID auth/validation failures map to `3` or `2`
+- mixed bulk results map to `4`
+- multi-ID runs where every item failed map to `1`
+
 ## Caching Behavior
 
 - cache TTL is about 5 minutes

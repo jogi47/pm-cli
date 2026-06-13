@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { CLI_EXIT_CODES } from '../../../src/lib/exit-code.js';
 
 const mocks = vi.hoisted(() => ({
   parseTaskId: vi.fn(),
@@ -74,5 +75,65 @@ describe('tasks update command', () => {
       command: 'tasks update',
       warnings: ['stale cache'],
     });
+  });
+
+  it('exits with usage when no updates are provided', async () => {
+    const command = Object.create(TasksUpdate.prototype) as InstanceType<typeof TasksUpdate> & {
+      parse: ReturnType<typeof vi.fn>;
+      exit: ReturnType<typeof vi.fn>;
+    };
+    command.parse = vi.fn().mockResolvedValue({
+      args: { id: 'ASANA-123' },
+      flags: {
+        title: undefined,
+        description: undefined,
+        due: undefined,
+        status: undefined,
+        project: undefined,
+        workspace: undefined,
+        field: undefined,
+        refresh: false,
+        json: false,
+      },
+    });
+    command.exit = vi.fn();
+
+    await command.run();
+
+    expect(mocks.updateTask).not.toHaveBeenCalled();
+    expect(mocks.renderError).toHaveBeenCalledWith(
+      'No updates provided. Use --title, --description, --due, --status, or --field.',
+    );
+    expect(command.exit).toHaveBeenCalledWith(CLI_EXIT_CODES.USAGE);
+  });
+
+  it('exits with usage when the task ID format is invalid', async () => {
+    mocks.parseTaskId.mockReturnValue(null);
+
+    const command = Object.create(TasksUpdate.prototype) as InstanceType<typeof TasksUpdate> & {
+      parse: ReturnType<typeof vi.fn>;
+      exit: ReturnType<typeof vi.fn>;
+    };
+    command.parse = vi.fn().mockResolvedValue({
+      args: { id: 'BAD-ID' },
+      flags: {
+        title: 'Updated title',
+        description: undefined,
+        due: undefined,
+        status: undefined,
+        project: undefined,
+        workspace: undefined,
+        field: undefined,
+        refresh: false,
+        json: false,
+      },
+    });
+    command.exit = vi.fn();
+
+    await command.run();
+
+    expect(mocks.updateTask).not.toHaveBeenCalled();
+    expect(mocks.renderError).toHaveBeenCalledWith('Invalid task ID format: BAD-ID');
+    expect(command.exit).toHaveBeenCalledWith(CLI_EXIT_CODES.USAGE);
   });
 });

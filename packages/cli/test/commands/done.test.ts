@@ -118,4 +118,70 @@ describe('done command', () => {
     });
     expect(command.exit).toHaveBeenCalledWith(CLI_EXIT_CODES.PARTIAL);
   });
+
+  it('exits with auth when a single task is not connected', async () => {
+    mocks.completeTasks.mockResolvedValue({
+      items: [{ id: 'ASANA-1', error: 'Not connected to asana' }],
+      warnings: [],
+    });
+
+    const command = Object.create(Done.prototype) as InstanceType<typeof Done> & {
+      parse: ReturnType<typeof vi.fn>;
+      exit: ReturnType<typeof vi.fn>;
+    };
+    command.parse = vi.fn().mockResolvedValue({
+      argv: ['ASANA-1'],
+      flags: { json: false },
+    });
+    command.exit = vi.fn();
+
+    await command.run();
+
+    expect(command.exit).toHaveBeenCalledWith(CLI_EXIT_CODES.AUTH);
+  });
+
+  it('exits with usage when a single task has an invalid ID', async () => {
+    mocks.completeTasks.mockResolvedValue({
+      items: [{ id: 'BAD-ID', error: 'Invalid task ID format: BAD-ID' }],
+      warnings: [],
+    });
+
+    const command = Object.create(Done.prototype) as InstanceType<typeof Done> & {
+      parse: ReturnType<typeof vi.fn>;
+      exit: ReturnType<typeof vi.fn>;
+    };
+    command.parse = vi.fn().mockResolvedValue({
+      argv: ['BAD-ID'],
+      flags: { json: false },
+    });
+    command.exit = vi.fn();
+
+    await command.run();
+
+    expect(command.exit).toHaveBeenCalledWith(CLI_EXIT_CODES.USAGE);
+  });
+
+  it('exits with failure when every task fails in a multi-id completion', async () => {
+    mocks.completeTasks.mockResolvedValue({
+      items: [
+        { id: 'ASANA-1', error: 'Not connected to asana' },
+        { id: 'LINEAR-2', error: 'Not connected to linear' },
+      ],
+      warnings: [],
+    });
+
+    const command = Object.create(Done.prototype) as InstanceType<typeof Done> & {
+      parse: ReturnType<typeof vi.fn>;
+      exit: ReturnType<typeof vi.fn>;
+    };
+    command.parse = vi.fn().mockResolvedValue({
+      argv: ['ASANA-1', 'LINEAR-2'],
+      flags: { json: false },
+    });
+    command.exit = vi.fn();
+
+    await command.run();
+
+    expect(command.exit).toHaveBeenCalledWith(CLI_EXIT_CODES.FAILURE);
+  });
 });

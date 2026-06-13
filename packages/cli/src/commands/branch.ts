@@ -5,6 +5,7 @@ import { slugify, renderError, renderSuccess, taskReadService } from 'pm-cli-cor
 import { execFileSync } from 'node:child_process';
 import '../init.js';
 import { handleCommandError } from '../lib/command-error.js';
+import { CLI_EXIT_CODES } from '../lib/exit-code.js';
 import { isValidGitBranchName, sanitizeBranchSegment } from '../lib/branch-name.js';
 
 
@@ -49,7 +50,7 @@ export default class Branch extends Command {
       const task = result.task;
       if (!task) {
         renderError(`Task not found: ${args.id}`);
-        this.exit(1);
+        this.exit(CLI_EXIT_CODES.FAILURE);
         return;
       }
 
@@ -63,7 +64,7 @@ export default class Branch extends Command {
       branchName = sanitizeBranchSegment(branchName);
       if (!branchName || !isValidGitBranchName(branchName)) {
         renderError('Could not build a valid and safe git branch name from the selected task.');
-        this.exit(1);
+        this.exit(CLI_EXIT_CODES.FAILURE);
         return;
       }
 

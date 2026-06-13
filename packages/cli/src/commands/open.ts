@@ -4,6 +4,7 @@ import { Command, Args } from '@oclif/core';
 import { renderError, taskReadService } from 'pm-cli-core';
 import '../init.js';
 import { handleCommandError } from '../lib/command-error.js';
+import { CLI_EXIT_CODES } from '../lib/exit-code.js';
 
 export default class Open extends Command {
   static override description = 'Open a task in the browser';
@@ -28,7 +29,7 @@ export default class Open extends Command {
       const task = result.task;
       if (!task) {
         renderError(`Task not found: ${args.id}`);
-        this.exit(1);
+        this.exit(CLI_EXIT_CODES.FAILURE);
         return;
       }
 

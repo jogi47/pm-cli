@@ -43,6 +43,17 @@ describe('command error exit codes', () => {
     expect(getExitCodeForError('boom')).toBe(CLI_EXIT_CODES.FAILURE);
   });
 
+  it('maps connection-shaped PMCliError messages to exit code 3', () => {
+    expect(getExitCodeForError(new PMCliError({
+      message: 'No providers connected. Run: pm connect <provider>',
+    }))).toBe(CLI_EXIT_CODES.AUTH);
+
+    expect(getExitCodeForError(new PMCliError({
+      message: 'Something else failed',
+      suggestion: 'Run: pm connect asana',
+    }))).toBe(CLI_EXIT_CODES.AUTH);
+  });
+
   it('renders the error and exits with the mapped code', () => {
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation(((code?: string | number | null | undefined) => {
       throw new Error(`exit:${String(code)}`);

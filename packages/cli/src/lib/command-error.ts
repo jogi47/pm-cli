@@ -17,7 +17,20 @@ export function getExitCodeForError(error: unknown): CliExitCode {
     return CLI_EXIT_CODES.PARTIAL;
   }
 
+  if (error instanceof PMCliError && isConnectionRelatedError(error)) {
+    return CLI_EXIT_CODES.AUTH;
+  }
+
   return CLI_EXIT_CODES.FAILURE;
+}
+
+function isConnectionRelatedError(error: PMCliError): boolean {
+  const message = error.message.toLowerCase();
+  if (message.includes('not connected') || message.includes('no providers connected')) {
+    return true;
+  }
+
+  return error.suggestion?.includes('pm connect') ?? false;
 }
 
 export function handleCommandError(error: unknown, fallback = 'Command failed'): never {

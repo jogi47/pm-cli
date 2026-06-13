@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { CLI_EXIT_CODES } from '../../../src/lib/exit-code.js';
 
 const mocks = vi.hoisted(() => ({
   resolveCreateSource: vi.fn(),
@@ -79,5 +80,36 @@ describe('tasks create command', () => {
       command: 'tasks create',
       warnings: ['cache miss'],
     });
+  });
+
+  it('exits with usage when no title is provided', async () => {
+    const command = Object.create(TasksCreate.prototype) as InstanceType<typeof TasksCreate> & {
+      parse: ReturnType<typeof vi.fn>;
+      exit: ReturnType<typeof vi.fn>;
+    };
+    command.parse = vi.fn().mockResolvedValue({
+      args: { title: undefined },
+      flags: {
+        description: undefined,
+        title: undefined,
+        source: 'asana',
+        project: undefined,
+        section: undefined,
+        workspace: undefined,
+        difficulty: undefined,
+        field: undefined,
+        refresh: false,
+        due: undefined,
+        assignee: undefined,
+        json: false,
+      },
+    });
+    command.exit = vi.fn();
+
+    await command.run();
+
+    expect(mocks.resolveCreateSource).not.toHaveBeenCalled();
+    expect(mocks.renderError).toHaveBeenCalledWith('Provide at least one title as an argument or via --title');
+    expect(command.exit).toHaveBeenCalledWith(CLI_EXIT_CODES.USAGE);
   });
 });

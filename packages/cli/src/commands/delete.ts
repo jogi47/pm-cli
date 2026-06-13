@@ -4,6 +4,8 @@ import { Command, Args, Flags } from '@oclif/core';
 import { confirm } from '@inquirer/prompts';
 import { renderError, renderJsonEnvelope, renderSuccess, renderWarnings, taskMutationService } from 'pm-cli-core';
 import '../init.js';
+import { resolveBulkMutationExitCode } from '../lib/bulk-exit-code.js';
+import { handleCommandError } from '../lib/command-error.js';
 import { CLI_EXIT_CODES } from '../lib/exit-code.js';
 
 export default class Delete extends Command {
@@ -48,15 +50,24 @@ export default class Delete extends Command {
 
     const confirmed = flags.force || await confirmDelete(taskIds);
     if (!confirmed) {
-      renderError(process.stdin.isTTY
-        ? 'Delete cancelled.'
-        : 'Delete requires confirmation. Re-run with --force to confirm.');
-      this.exit(CLI_EXIT_CODES.USAGE);
+      if (process.stdin.isTTY) {
+        renderError('Delete cancelled.');
+        this.exit(CLI_EXIT_CODES.FAILURE);
+      } else {
+        renderError('Delete requires confirmation. Re-run with --force to confirm.');
+        this.exit(CLI_EXIT_CODES.USAGE);
+      }
       return;
     }
 
-    const result = await taskMutationService.deleteTasks(taskIds);
-    const hasErrors = result.items.some((item) => Boolean(item.error));
+    let result;
+    try {
+      result = await taskMutationService.deleteTasks(taskIds);
+    } catch (error) {
+      handleCommandError(error, 'Failed to delete tasks');
+    }
+
+    const exitCode = resolveBulkMutationExitCode(result.items);
     const errors = result.items
       .filter((item) => item.error)
       .map((item) => `${item.id}: ${item.error}`);
@@ -66,7 +77,9 @@ export default class Delete extends Command {
         warnings: result.warnings,
         errors,
       });
-      if (hasErrors) this.exit(CLI_EXIT_CODES.PARTIAL);
+      if (exitCode !== CLI_EXIT_CODES.SUCCESS) {
+        this.exit(exitCode);
+      }
       return;
     }
 
@@ -80,7 +93,9 @@ export default class Delete extends Command {
       }
     }
 
-    if (hasErrors) this.exit(CLI_EXIT_CODES.PARTIAL);
+    if (exitCode !== CLI_EXIT_CODES.SUCCESS) {
+      this.exit(exitCode);
+    }
   }
 }
 
